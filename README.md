@@ -1,73 +1,38 @@
-# Welcome to your Lovable project
+Tech Stack
+This project is built with a modern and robust tech stack to ensure scalability, performance, and developer experience. Below is a detailed breakdown of the technologies used:
+Frontend
 
-## Project info
+React (v18.3.1): Main frontend framework for building dynamic user interfaces.
+TypeScript: Strongly-typed programming language for enhanced code quality and maintainability.
+Vite (v5.4.1): Fast build tool and development server for an optimized development experience.
+TailwindCSS (v3.4.11): Utility-first CSS framework for rapid and responsive styling.
+Radix UI: Accessible and customizable UI components for building inclusive interfaces.
+React Router DOM (v6.30.0): Declarative routing for client-side navigation.
+React Query (@tanstack/react-query): Powerful data fetching and state management library.
+React Hook Form: Performant and flexible library for form handling and validation.
+Zod: TypeScript-first schema validation for robust data validation.
+Recharts: Lightweight library for creating interactive data visualizations.
+Lucide React: Modern, customizable icon library for a consistent UI.
 
-**URL**: https://lovable.dev/projects/9756f202-6ce2-432d-bdb1-2aedbddebb42
+Backend
 
-## How can I edit this code?
+Express.js: Minimal and flexible Node.js framework for building RESTful APIs.
+Prisma (v6.7.0): Next-generation ORM for seamless database operations.
+bcryptjs: Secure password hashing for user authentication.
+CORS: Middleware for enabling Cross-Origin Resource Sharing.
 
-There are several ways of editing your application.
+Development Tools
 
-**Use Lovable**
+ESLint: Linting tool for maintaining consistent code quality.
+PostCSS: CSS post-processing for enhanced styling capabilities.
+SWC (via @vitejs/plugin-react-swc): Ultra-fast JavaScript/TypeScript compiler for improved build performance.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9756f202-6ce2-432d-bdb1-2aedbddebb42) and start prompting.
+UI Component Libraries
 
-Changes made via Lovable will be committed automatically to this repo.
+shadcn/ui: Modern, customizable UI components (implied by project structure).
+Radix UI Components: Accessible UI primitives for building robust interfaces.
+Tailwind Typography: Enhanced typography styling for content-heavy applications.
+Embla Carousel: Performant and customizable carousel/slider components.
+Sonner: Lightweight and customizable toast notification library.
+Vaul: Additional UI components for enriched user interactions.
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9756f202-6ce2-432d-bdb1-2aedbddebb42) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
