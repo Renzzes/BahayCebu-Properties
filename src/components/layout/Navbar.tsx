@@ -94,6 +94,7 @@ const Navbar: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       alert('Login successful!');
       setIsAuthDialogOpen(false);
+      navigate('/admin/dashboard');
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(err.message);

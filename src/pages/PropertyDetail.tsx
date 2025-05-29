@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,8 +5,9 @@ import { Phone, Mail } from 'lucide-react';
 import PropertyGallery from '@/components/ui/PropertyGallery';
 import PropertyDetails from '@/components/properties/PropertyDetails';
 import ContactForm from '@/components/ui/ContactForm';
-import { PropertyType } from '@/components/properties/PropertyCard';
 import FloatingMessage from '@/components/ui/FloatingMessage';
+import LoanCalculator from '@/components/LoanCalculator';
+import { PropertyType, staticProperties, getPropertyById, convertAdminPropertyToPropertyType } from '@/data/properties';
 
 // Sample property data - in a real application, this would be fetched from an API
 const properties: Record<string, PropertyType & { description?: string, images?: string[] }> = {
@@ -116,7 +116,18 @@ const properties: Record<string, PropertyType & { description?: string, images?:
 
 const PropertyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const property = id ? properties[id] : null;
+  
+  // First check if it's an admin property
+  const adminProperty = getPropertyById(id || '');
+  let property: PropertyType | null = null;
+  
+  if (adminProperty) {
+    // Convert admin property to PropertyType
+    property = convertAdminPropertyToPropertyType(adminProperty);
+  } else {
+    // Check static properties
+    property = id ? staticProperties[id] : null;
+  }
   
   if (!property) {
     return (
@@ -154,6 +165,11 @@ const PropertyDetail: React.FC = () => {
               <p className="text-gray-600 mb-4">
                 {property.type} in {property.location}
               </p>
+            </div>
+
+            {/* Loan Calculator */}
+            <div className="bg-white rounded-lg shadow-sm">
+              <LoanCalculator propertyPrice={property.price} />
             </div>
             
             {/* Agent Contact */}

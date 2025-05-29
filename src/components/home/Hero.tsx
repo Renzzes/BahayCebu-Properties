@@ -1,9 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from '@/components/ui/carousel';
+import { getAgent } from '@/data/agents';
+import type { Agent } from '@/data/agents';
 
 const heroImages = [
   {
@@ -36,6 +37,15 @@ const Hero: React.FC = () => {
   const [taglineIndex, setTaglineIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
   const [typingSpeed, setTypingSpeed] = useState(100);
+  const [agent, setAgent] = useState<Agent | null>(null);
+
+  useEffect(() => {
+    const loadAgent = async () => {
+      const agentData = await getAgent();
+      setAgent(agentData);
+    };
+    loadAgent();
+  }, []);
 
   useEffect(() => {
     const currentTagline = taglines[taglineIndex];
@@ -125,6 +135,40 @@ const Hero: React.FC = () => {
             </Button>
           </div>
         </div>
+
+        {/* Agent Section */}
+        {agent && (
+          <div className="absolute bottom-8 right-8 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl max-w-md animate-fade-in" style={{ animationDelay: "0.6s" }}>
+            <div className="flex items-center space-x-4">
+              <div className="w-20 h-20 rounded-xl overflow-hidden">
+                {agent.image ? (
+                  <img 
+                    src={agent.image} 
+                    alt={agent.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green flex items-center justify-center">
+                    <span className="text-2xl font-bold text-white">
+                      {agent.name.charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-serif font-bold text-bahayCebu-darkGray">{agent.name}</h3>
+                <p className="text-bahayCebu-green font-medium">{agent.title}</p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm text-bahayCebu-darkGray/70">{agent.phone}</p>
+                  <p className="text-sm text-bahayCebu-darkGray/70">{agent.email}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-sm text-bahayCebu-darkGray/80 line-clamp-2">{agent.description}</p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

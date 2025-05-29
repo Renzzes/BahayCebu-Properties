@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PropertyCard, { PropertyType } from '@/components/properties/PropertyCard';
 import PropertyFilter, { FilterValues } from '@/components/properties/PropertyFilter';
+import { getAllPropertiesAsPropertyType } from '@/data/properties';
 
 const Properties: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -18,15 +19,15 @@ const Properties: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch properties from API
+  // Fetch properties from centralized property management system
   useEffect(() => {
-    const fetchProperties = async () => {
+    const fetchProperties = () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/properties');
-        const data = await res.json();
-        setProperties(data);
-        setFilteredProperties(data);
+        // Get all active properties from the centralized property management system
+        const allProperties = getAllPropertiesAsPropertyType();
+        setProperties(allProperties);
+        setFilteredProperties(allProperties);
       } catch (err) {
         setProperties([]);
         setFilteredProperties([]);

@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import PropertyCard, { PropertyType } from '../properties/PropertyCard';
+import { getFeaturedPropertiesAsPropertyType } from '../../data/properties';
 
 const FeaturedProperties: React.FC = () => {
   const [featuredProperties, setFeaturedProperties] = useState<PropertyType[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFeatured = async () => {
+    const fetchFeatured = () => {
       setLoading(true);
       try {
-        const res = await fetch('/api/properties');
-        const data = await res.json();
-        setFeaturedProperties(data.filter((p: PropertyType) => p.featured));
+        // Get featured properties from the centralized property management system
+        const featured = getFeaturedPropertiesAsPropertyType();
+        setFeaturedProperties(featured);
       } catch (err) {
         setFeaturedProperties([]);
       } finally {
