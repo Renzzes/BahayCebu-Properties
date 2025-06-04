@@ -5,21 +5,29 @@ import { prisma } from "./lib/db";
 
 const app = express();
 
-// NEW: Global request logger middleware
+// Global request logger middleware
 app.use((req: Request, _res: Response, next: NextFunction) => {
 	console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.url}`);
 	next();
 });
 
 const corsOptions = {
-	origin: "http://localhost:8080",
+	origin: ["http://localhost:8080", "http://localhost:3000"], // Allow both development and production URLs
 	credentials: true,
 	optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Error handling middleware
+app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
+	console.error(err.stack);
+	res.status(500).json({ error: 'Something broke!', details: err.message });
+	next(err);
+});
 
 // NEW: Simple ping route for testing
 app.get('/api/ping', (_req, res) => {
@@ -53,43 +61,118 @@ app.get("/api/properties/:id", async (req: Request, res: Response) => {
 });
 
 app.post("/api/signup", async (req: Request, res: Response) => {
-  console.log("Database URL:", process.env.DATABASE_URL);
-  console.log("Signup request from:", req.headers.origin);
-  const { email, password, name } = req.body;
-  
-  if (!name) {
-    return res.status(400).json({ error: "Name is required" });
-  }
-  
-  const hashedPassword = await bcrypt.hash(password, 10);
+	console.log("Database URL:", process.env.DATABASE_URL);
+	console.log("Signup request from:", req.headers.origin);
+	const { email, password, name } = req.body;
+	
+	if (!name) {
+		return res.status(400).json({ error: "Name is required" });
+	}
+	
+	const hashedPassword = await bcrypt.hash(password, 10);
 
-  // Debug: Check if the email already exists
-  const existingUser = await prisma.user.findUnique({
-    where: { email: email },
-  });
-  console.log("Existing user check:", existingUser);
+	// Debug: Check if the email already exists
+	const existingUser = await prisma.user.findUnique({
+		where: { email: email },
+	});
+	console.log("Existing user check:", existingUser);
 
-  try {
-    const user = await prisma.user.create({
-      data: { email, password: hashedPassword, name },
-    });
-    console.log("User created:", user);
-    return res.status(201).json({ id: user.id, email: user.email, name: user.name });
-  } catch (err: unknown) {
-    console.error("Signup error details. Email attempted:", email, "Full error:", err);
-    if (typeof err === 'object' && err !== null && 'code' in err && err.code === "P2002") {
-      return res.status(400).json({ error: "Email already exists" });
-    }
-    return res.status(400).json({ error: "Signup failed", details: err instanceof Error ? err.message : String(err) });
-  }
+	try {
+		const user = await prisma.user.create({
+			data: { email, password: hashedPassword, name },
+		});
+		console.log("User created:", user);
+		return res.status(201).json({ id: user.id, email: user.email, name: user.name });
+	} catch (err: unknown) {
+		console.error("Signup error details. Email attempted:", email, "Full error:", err);
+		if (typeof err === 'object' && err !== null && 'code' in err && err.code === "P2002") {
+			return res.status(400).json({ error: "Email already exists" });
+		}
+		return res.status(400).json({ error: "Signup failed", details: err instanceof Error ? err.message : String(err) });
+	}
+});
+
+// Create a new property
+app.post("/api/properties", async (req: Request, res: Response) => {
+	try {
+		const {
+			title,
+			price,
+			location,
+			bedrooms,
+			bathrooms,
+			area,
+			type,
+			featured,
+			description,
+			images,
+			videoUrl,
+			thumbnail
+		} = req.body;
+
+		// Validate required fields
+		if (!title || !price || !location || !bedrooms || !bathrooms || !area || !type) {
+			return res.status(400).json({ error: "Missing required fields" });
+		}
+
+		const property = await prisma.property.create({
+			data: {
+				title,
+				price: parseFloat(price),
+				location,
+				bedrooms: parseInt(bedrooms),
+				bathrooms: parseInt(bathrooms),
+				area: parseFloat(area),
+				type,
+				featured: featured || false,
+				description,
+				images: images || [],
+				videoUrl,
+				thumbnail
+			}
+		});
+
+		return res.status(201).json(property);
+	} catch (error) {
+		console.error('Error creating property:', error);
+		return res.status(500).json({ error: "Failed to create property" });
+	}
 });
 
 // Update a property
 app.put("/api/properties/:id", async (req: Request, res: Response) => {
 	try {
+		const {
+			title,
+			price,
+			location,
+			bedrooms,
+			bathrooms,
+			area,
+			type,
+			featured,
+			description,
+			images,
+			videoUrl,
+			thumbnail
+		} = req.body;
+
 		const property = await prisma.property.update({
 			where: { id: req.params.id },
-			data: req.body,
+			data: {
+				title,
+				price: price ? parseFloat(price) : undefined,
+				location,
+				bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+				bathrooms: bathrooms ? parseInt(bathrooms) : undefined,
+				area: area ? parseFloat(area) : undefined,
+				type,
+				featured,
+				description,
+				images,
+				videoUrl,
+				thumbnail
+			}
 		});
 		return res.json(property);
 	} catch (err) {
@@ -167,6 +250,96 @@ app.get("/api/test-create-user", async (_req: Request, res: Response) => {
 	} catch (err) {
 		console.error("Test user creation error:", err);
 		return res.status(500).json({ error: "Failed to create test user", details: err });
+	}
+});
+
+// Get all agents
+app.get("/api/agents", async (_req: Request, res: Response) => {
+	try {
+		const agents = await prisma.agent.findMany({
+			orderBy: { createdAt: 'desc' }
+		});
+		return res.json(agents);
+	} catch (error) {
+		console.error('Error fetching agents:', error);
+		return res.status(500).json({ error: 'Failed to fetch agents' });
+	}
+});
+
+// Get latest agent
+app.get("/api/agents/latest", async (_req: Request, res: Response) => {
+	try {
+		const agent = await prisma.agent.findFirst({
+			orderBy: { createdAt: 'desc' }
+		});
+		return res.json(agent);
+	} catch (error) {
+		console.error('Error fetching latest agent:', error);
+		return res.status(500).json({ error: 'Failed to fetch latest agent' });
+	}
+});
+
+// Create new agent
+app.post("/api/agents", async (req: Request, res: Response) => {
+	try {
+		const { name, title, email, phone, location, description, image } = req.body;
+		
+		if (!name || !title || !email || !phone || !location || !description) {
+			return res.status(400).json({ error: 'Missing required fields' });
+		}
+
+		const agent = await prisma.agent.create({
+			data: {
+				name,
+				title,
+				email,
+				phone,
+				location,
+				description,
+				image: image || null
+			}
+		});
+		
+		return res.json(agent);
+	} catch (error) {
+		console.error('Error creating agent:', error);
+		if (error instanceof Error && error.message.includes('Unique constraint')) {
+			return res.status(400).json({ error: 'An agent with this email already exists' });
+		}
+		return res.status(500).json({ error: 'Failed to create agent' });
+	}
+});
+
+// Update agent
+app.put("/api/agents/:id", async (req: Request, res: Response) => {
+	try {
+		const agent = await prisma.agent.update({
+			where: { id: req.params.id },
+			data: req.body
+		});
+		return res.json(agent);
+	} catch (error) {
+		console.error('Error updating agent:', error);
+		if (error instanceof Error && error.message.includes('Record to update not found')) {
+			return res.status(404).json({ error: 'Agent not found' });
+		}
+		return res.status(500).json({ error: 'Failed to update agent' });
+	}
+});
+
+// Delete agent
+app.delete("/api/agents/:id", async (req: Request, res: Response) => {
+	try {
+		const agent = await prisma.agent.delete({
+			where: { id: req.params.id }
+		});
+		return res.json(agent);
+	} catch (error) {
+		console.error('Error deleting agent:', error);
+		if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
+			return res.status(404).json({ error: 'Agent not found' });
+		}
+		return res.status(500).json({ error: 'Failed to delete agent' });
 	}
 });
 

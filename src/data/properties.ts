@@ -12,6 +12,8 @@ export interface AdminProperty {
   listingType: 'For Sale' | 'For Rent' | 'Resale';
   lastUpdated: string;
   featured?: boolean;
+  videoUrl?: string;
+  thumbnail?: string;
   stats: {
     views: number;
     leads: number;
@@ -32,6 +34,26 @@ export interface PropertyType {
   type: 'House' | 'Condo' | 'Villa' | 'Land';
   description?: string;
   images?: string[];
+  videoUrl?: string;
+  thumbnail?: string;
+}
+
+// Add type definition for API response
+interface PropertyApiResponse {
+  id: string;
+  title: string;
+  price: number;
+  location: string;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  type: string;
+  featured: boolean;
+  description?: string;
+  images?: string[];
+  videoUrl?: string;
+  thumbnail?: string;
+  updatedAt: string;
 }
 
 // Global property store (simulating database)
@@ -50,6 +72,8 @@ const globalProperties: AdminProperty[] = [
     listingType: 'For Sale',
     lastUpdated: 'Oct. 12',
     featured: true,
+    videoUrl: 'https://example.com/video1.mp4',
+    thumbnail: 'https://example.com/thumbnail1.jpg',
     stats: { views: 3233, leads: 67, applications: 8 }
   },
   {
@@ -66,6 +90,8 @@ const globalProperties: AdminProperty[] = [
     listingType: 'For Sale',
     lastUpdated: 'Nov. 22',
     featured: true,
+    videoUrl: 'https://example.com/video2.mp4',
+    thumbnail: 'https://example.com/thumbnail2.jpg',
     stats: { views: 7239, leads: 38, applications: 5 }
   },
   {
@@ -82,6 +108,8 @@ const globalProperties: AdminProperty[] = [
     listingType: 'For Rent',
     lastUpdated: 'Dec. 16',
     featured: false,
+    videoUrl: 'https://example.com/video3.mp4',
+    thumbnail: 'https://example.com/thumbnail3.jpg',
     stats: { views: 7899, leads: 318, applications: 0 }
   },
   {
@@ -98,6 +126,8 @@ const globalProperties: AdminProperty[] = [
     listingType: 'Resale',
     lastUpdated: 'Oct. 12',
     featured: true,
+    videoUrl: 'https://example.com/video4.mp4',
+    thumbnail: 'https://example.com/thumbnail4.jpg',
     stats: { views: 3233, leads: 67, applications: 8 }
   },
   {
@@ -114,6 +144,8 @@ const globalProperties: AdminProperty[] = [
     listingType: 'For Sale',
     lastUpdated: 'Nov. 22',
     featured: true,
+    videoUrl: 'https://example.com/video5.mp4',
+    thumbnail: 'https://example.com/thumbnail5.jpg',
     stats: { views: 7239, leads: 38, applications: 5 }
   },
   {
@@ -130,58 +162,191 @@ const globalProperties: AdminProperty[] = [
     listingType: 'For Sale',
     lastUpdated: 'Dec. 16',
     featured: false,
+    videoUrl: 'https://example.com/video6.mp4',
+    thumbnail: 'https://example.com/thumbnail6.jpg',
     stats: { views: 7899, leads: 318, applications: 0 }
   }
 ];
 
 // Property management functions
-export const getAllProperties = (): AdminProperty[] => {
-  return [...globalProperties];
+export const getAllProperties = async (): Promise<AdminProperty[]> => {
+  try {
+    const response = await fetch('/api/properties');
+    if (!response.ok) throw new Error('Failed to fetch properties');
+    const data = await response.json();
+    
+    // Convert API data to AdminProperty format
+    return data.map((property: PropertyApiResponse) => ({
+      id: property.id,
+      name: property.title,
+      address: property.location,
+      description: property.description || '',
+      image: property.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
+      price: property.price,
+      units: property.bedrooms,
+      occupancyRate: 0,
+      status: 'Active',
+      propertyType: property.type as AdminProperty['propertyType'],
+      listingType: 'For Sale',
+      lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      featured: property.featured,
+      videoUrl: property.videoUrl || '',
+      thumbnail: property.thumbnail || '',
+      stats: { views: 0, leads: 0, applications: 0 }
+    }));
+  } catch (error) {
+    console.error('Error fetching properties:', error);
+    return [];
+  }
 };
 
-export const getActiveProperties = (): AdminProperty[] => {
-  return globalProperties.filter(p => p.status === 'Active');
+export const getActiveProperties = async (): Promise<AdminProperty[]> => {
+  const properties = await getAllProperties();
+  return properties.filter(p => p.status === 'Active');
 };
 
-export const getFeaturedProperties = (): AdminProperty[] => {
-  return globalProperties.filter(p => p.featured && p.status === 'Active');
+export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
+  const properties = await getAllProperties();
+  return properties.filter(p => p.featured && p.status === 'Active');
 };
 
-export const addProperty = (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): AdminProperty => {
-  const newProperty: AdminProperty = {
-    ...property,
-    id: (globalProperties.length + 1).toString(),
-    lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    stats: { views: 0, leads: 0, applications: 0 }
-  };
-  
-  globalProperties.push(newProperty);
-  return newProperty;
+export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
+  try {
+    const response = await fetch('/api/properties', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: property.name,
+        price: property.price,
+        location: property.address,
+        bedrooms: property.units,
+        bathrooms: Math.ceil(property.units / 2), // Estimate bathrooms based on units
+        area: property.units * 50, // Estimate area based on units
+        type: property.propertyType,
+        featured: property.featured,
+        description: property.description,
+        images: [property.image],
+        videoUrl: property.videoUrl,
+        thumbnail: property.thumbnail
+      })
+    });
+
+    if (!response.ok) throw new Error('Failed to add property');
+    const data = await response.json();
+
+    // Convert API response to AdminProperty format
+    return {
+      id: data.id,
+      name: data.title,
+      address: data.location,
+      description: data.description || '',
+      image: data.images?.[0] || '',
+      price: data.price,
+      units: data.bedrooms,
+      occupancyRate: 0,
+      status: 'Active',
+      propertyType: data.type as AdminProperty['propertyType'],
+      listingType: 'For Sale',
+      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      featured: data.featured,
+      videoUrl: data.videoUrl || '',
+      thumbnail: data.thumbnail || '',
+      stats: { views: 0, leads: 0, applications: 0 }
+    };
+  } catch (error) {
+    console.error('Error adding property:', error);
+    return null;
+  }
 };
 
-export const updateProperty = (id: string, updates: Partial<AdminProperty>): AdminProperty | null => {
-  const index = globalProperties.findIndex(p => p.id === id);
-  if (index === -1) return null;
-  
-  globalProperties[index] = {
-    ...globalProperties[index],
-    ...updates,
-    lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  };
-  
-  return globalProperties[index];
+export const updateProperty = async (id: string, updates: Partial<AdminProperty>): Promise<AdminProperty | null> => {
+  try {
+    const response = await fetch(`/api/properties/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: updates.name,
+        price: updates.price,
+        location: updates.address,
+        bedrooms: updates.units,
+        bathrooms: Math.ceil(updates.units ? updates.units / 2 : 0),
+        area: updates.units ? updates.units * 50 : 0,
+        type: updates.propertyType,
+        featured: updates.featured,
+        description: updates.description,
+        images: updates.image ? [updates.image] : undefined,
+        videoUrl: updates.videoUrl,
+        thumbnail: updates.thumbnail
+      })
+    });
+    
+    if (!response.ok) throw new Error('Failed to update property');
+    const data = await response.json();
+    
+    return {
+      id: data.id,
+      name: data.title,
+      address: data.location,
+      description: data.description || '',
+      image: data.images?.[0] || '',
+      price: data.price,
+      units: data.bedrooms,
+      occupancyRate: updates.occupancyRate || 0,
+      status: updates.status || 'Active',
+      propertyType: data.type as AdminProperty['propertyType'],
+      listingType: updates.listingType || 'For Sale',
+      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      featured: data.featured,
+      videoUrl: data.videoUrl || '',
+      thumbnail: data.thumbnail || '',
+      stats: { views: 0, leads: 0, applications: 0 }
+    };
+  } catch (error) {
+    console.error('Error updating property:', error);
+    return null;
+  }
 };
 
-export const deleteProperty = (id: string): boolean => {
-  const index = globalProperties.findIndex(p => p.id === id);
-  if (index === -1) return false;
-  
-  globalProperties.splice(index, 1);
-  return true;
+export const deleteProperty = async (id: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`/api/properties/${id}`, {
+      method: 'DELETE'
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Error deleting property:', error);
+    return false;
+  }
 };
 
-export const getPropertyById = (id: string): AdminProperty | null => {
-  return globalProperties.find(p => p.id === id) || null;
+export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
+  try {
+    const response = await fetch(`/api/properties/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch property');
+    const data = await response.json();
+    
+    return {
+      id: data.id,
+      name: data.title,
+      address: data.location,
+      description: data.description || '',
+      image: data.images?.[0] || '',
+      price: data.price,
+      units: data.bedrooms,
+      occupancyRate: 0,
+      status: 'Active',
+      propertyType: data.type as AdminProperty['propertyType'],
+      listingType: 'For Sale',
+      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      featured: data.featured,
+      videoUrl: data.videoUrl || '',
+      thumbnail: data.thumbnail || '',
+      stats: { views: 0, leads: 0, applications: 0 }
+    };
+  } catch (error) {
+    console.error('Error fetching property:', error);
+    return null;
+  }
 };
 
 // Convert admin property to PropertyType for detail view
@@ -202,27 +367,31 @@ export const convertAdminPropertyToPropertyType = (adminProperty: AdminProperty)
     title: adminProperty.name,
     price: adminProperty.price,
     location: adminProperty.address,
-    bedrooms: Math.floor(adminProperty.units / 10) || 2, // Estimate bedrooms based on units
-    bathrooms: Math.floor(adminProperty.units / 15) || 1, // Estimate bathrooms
-    area: adminProperty.units * 50, // Estimate area based on units
+    bedrooms: Math.floor(adminProperty.units / 10) || 2,
+    bathrooms: Math.floor(adminProperty.units / 15) || 1,
+    area: adminProperty.units * 50,
     image: adminProperty.image,
     type: propertyType,
     description: adminProperty.description,
     images: [adminProperty.image],
-    featured: adminProperty.featured
+    featured: adminProperty.featured,
+    videoUrl: adminProperty.videoUrl,
+    thumbnail: adminProperty.thumbnail
   };
 };
 
 // Get all properties as PropertyType for client-side display
-export const getAllPropertiesAsPropertyType = (): PropertyType[] => {
-  return globalProperties
+export const getAllPropertiesAsPropertyType = async (): Promise<PropertyType[]> => {
+  const properties = await getAllProperties();
+  return properties
     .filter(p => p.status === 'Active')
     .map(convertAdminPropertyToPropertyType);
 };
 
 // Get featured properties as PropertyType for homepage
-export const getFeaturedPropertiesAsPropertyType = (): PropertyType[] => {
-  return globalProperties
+export const getFeaturedPropertiesAsPropertyType = async (): Promise<PropertyType[]> => {
+  const properties = await getAllProperties();
+  return properties
     .filter(p => p.featured && p.status === 'Active')
     .map(convertAdminPropertyToPropertyType);
 };

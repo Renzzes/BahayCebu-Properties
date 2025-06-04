@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Phone, Mail } from 'lucide-react';
+import { Phone, Mail, MapPin, UserPlus } from 'lucide-react';
 import PropertyGallery from '@/components/ui/PropertyGallery';
 import PropertyDetails from '@/components/properties/PropertyDetails';
 import ContactForm from '@/components/ui/ContactForm';
 import FloatingMessage from '@/components/ui/FloatingMessage';
 import LoanCalculator from '@/components/LoanCalculator';
 import { PropertyType, staticProperties, getPropertyById, convertAdminPropertyToPropertyType } from '@/data/properties';
+import { Agent, getAgent } from '@/data/agents';
 
 // Sample property data - in a real application, this would be fetched from an API
 const properties: Record<string, PropertyType & { description?: string, images?: string[] }> = {
@@ -116,6 +117,7 @@ const properties: Record<string, PropertyType & { description?: string, images?:
 
 const PropertyDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [agent, setAgent] = useState<Agent | null>(null);
   
   // First check if it's an admin property
   const adminProperty = getPropertyById(id || '');
@@ -128,6 +130,15 @@ const PropertyDetail: React.FC = () => {
     // Check static properties
     property = id ? staticProperties[id] : null;
   }
+
+  // Fetch agent data
+  useEffect(() => {
+    const loadAgent = async () => {
+      const agentData = await getAgent();
+      setAgent(agentData);
+    };
+    loadAgent();
+  }, []);
   
   if (!property) {
     return (
@@ -171,42 +182,59 @@ const PropertyDetail: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm">
               <LoanCalculator propertyPrice={property.price} />
             </div>
-            
-            {/* Agent Contact */}
+
+            {/* Agent Section */}
             <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-100">
-                <img
-                  src="https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80"
-                  alt="Agent"
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-                <div>
-                  <h3 className="font-medium text-bahayCebu-darkGray">Maria Santos</h3>
-                  <p className="text-sm text-gray-500">Senior Property Agent</p>
+              {agent ? (
+                <>
+                  <div className="flex items-center gap-4 mb-4 pb-4 border-b border-gray-100">
+                    {agent.image ? (
+                      <img
+                        src={agent.image}
+                        alt={agent.name}
+                        className="w-16 h-16 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
+                        <span className="text-2xl font-bold text-white">
+                          {agent.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <h3 className="font-medium text-bahayCebu-darkGray">{agent.name}</h3>
+                      <p className="text-sm text-gray-500">{agent.title}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 mb-6">
+                    <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      <span>{agent.phone}</span>
+                    </Button>
+                    <Button variant="outline" className="w-full flex items-center justify-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span>{agent.email}</span>
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-bahayCebu-beige p-4 rounded-lg">
+                    <h4 className="font-semibold text-bahayCebu-darkGray mb-2">
+                      About {agent.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      {agent.description}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="w-16 h-16 bg-bahayCebu-green/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UserPlus className="h-8 w-8 text-bahayCebu-green" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No Agent Added yet</p>
                 </div>
-              </div>
-              
-              <div className="space-y-3 mb-6">
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  <span>+63 912 345 6789</span>
-                </Button>
-                <Button variant="outline" className="w-full flex items-center justify-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  <span>Email Agent</span>
-                </Button>
-              </div>
-              
-              <div className="bg-bahayCebu-beige p-4 rounded-lg mb-4">
-                <h4 className="font-semibold text-bahayCebu-darkGray mb-2">
-                  Interested in this property?
-                </h4>
-                <p className="text-sm text-gray-600 mb-3">
-                  Fill out the form below and our agent will contact you soon with more details.
-                </p>
-              </div>
-              
-              <ContactForm propertyId={property.id} />
+              )}
             </div>
           </div>
         </div>

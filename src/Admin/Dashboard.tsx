@@ -18,9 +18,39 @@ const AdminDashboard = () => {
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [isEditPropertyOpen, setIsEditPropertyOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<AdminProperty | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
-  const [properties, setProperties] = useState<AdminProperty[]>(getAllProperties());
+  const [properties, setProperties] = useState<AdminProperty[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<AdminProperty[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const propertiesPerPage = 6;
+
+  // Calculate pagination
+  const indexOfLastProperty = currentPage * propertiesPerPage;
+  const indexOfFirstProperty = indexOfLastProperty - propertiesPerPage;
+  const currentProperties = filteredProperties.slice(indexOfFirstProperty, indexOfLastProperty);
+  const totalPages = Math.ceil(filteredProperties.length / propertiesPerPage);
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // Load properties on mount
+  useEffect(() => {
+    const loadProperties = async () => {
+      try {
+        const propertyData = await getAllProperties();
+        setProperties(propertyData);
+        setFilteredProperties(propertyData); // Initialize filtered properties with all properties
+      } catch (error) {
+        console.error('Error loading properties:', error);
+        setProperties([]);
+        setFilteredProperties([]);
+      }
+    };
+    loadProperties();
+  }, []);
 
   // User profile management state
   const [currentUser, setCurrentUser] = useState<AdminUser>(getCurrentUser());
@@ -33,7 +63,6 @@ const AdminDashboard = () => {
   // Property filtering state
   const [propertyTypeFilter, setPropertyTypeFilter] = useState<string>('all');
   const [listingTypeFilter, setListingTypeFilter] = useState<string>('all');
-  const [filteredProperties, setFilteredProperties] = useState<AdminProperty[]>(getAllProperties());
 
   // Profile form data
   const [profileForm, setProfileForm] = useState({
@@ -60,7 +89,9 @@ const AdminDashboard = () => {
     status: 'Active' as AdminProperty['status'],
     propertyType: 'Condo' as AdminProperty['propertyType'],
     listingType: 'For Sale' as AdminProperty['listingType'],
-    featured: false
+    featured: false,
+    thumbnail: '',
+    videoUrl: ''
   });
 
   const [editProperty, setEditProperty] = useState({
@@ -74,7 +105,9 @@ const AdminDashboard = () => {
     status: 'Active' as AdminProperty['status'],
     propertyType: 'Condo' as AdminProperty['propertyType'],
     listingType: 'For Sale' as AdminProperty['listingType'],
-    featured: false
+    featured: false,
+    videoUrl: '',
+    thumbnail: ''
   });
 
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -259,82 +292,120 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddProperty = () => {
+  const handleAddProperty = async () => {
     if (newProperty.name && newProperty.address && newProperty.units && newProperty.description) {
-      const propertyData = {
-        name: newProperty.name,
-        address: newProperty.address,
-        description: newProperty.description,
-        image: newProperty.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
-        price: parseInt(newProperty.price) || 0,
-        units: parseInt(newProperty.units),
-        occupancyRate: parseInt(newProperty.occupancyRate) || 0,
-        status: newProperty.status,
-        propertyType: newProperty.propertyType,
-        listingType: newProperty.listingType,
-        featured: newProperty.featured
-      };
-      
-      const addedProperty = addProperty(propertyData);
-      setProperties(getAllProperties()); // Refresh the properties list
-      
-      setNewProperty({
-        name: '',
-        address: '',
-        description: '',
-        image: '',
-        price: '',
-        units: '',
-        occupancyRate: '',
-        status: 'Active',
-        propertyType: 'Condo',
-        listingType: 'For Sale',
-        featured: false
-      });
-      setIsAddPropertyOpen(false);
+      try {
+        const addedProperty = await addProperty({
+          name: newProperty.name,
+          address: newProperty.address,
+          description: newProperty.description,
+          image: newProperty.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
+          price: parseInt(newProperty.price) || 0,
+          units: parseInt(newProperty.units),
+          occupancyRate: parseInt(newProperty.occupancyRate) || 0,
+          status: newProperty.status,
+          propertyType: newProperty.propertyType,
+          listingType: newProperty.listingType,
+          featured: newProperty.featured,
+          videoUrl: newProperty.videoUrl || '',
+          thumbnail: newProperty.thumbnail || ''
+        });
+        
+        // Update the properties state with the new data
+        const updatedProperties = await getAllProperties();
+        setProperties(updatedProperties);
+        setFilteredProperties(updatedProperties);
+        
+        // Reset the form
+        setNewProperty({
+          name: '',
+          address: '',
+          description: '',
+          image: '',
+          price: '',
+          units: '',
+          occupancyRate: '',
+          status: 'Active',
+          propertyType: 'Condo',
+          listingType: 'For Sale',
+          featured: false,
+          thumbnail: '',
+          videoUrl: ''
+        });
+        
+        // Close the dialog and show success message
+        setIsAddPropertyOpen(false);
+        alert('Property added successfully!');
+      } catch (error) {
+        console.error('Error adding property:', error);
+        alert('Failed to add property. Please try again.');
+      }
+    } else {
+      alert('Please fill in all required fields.');
     }
   };
 
-  const handleEditProperty = () => {
+  const handleEditProperty = async () => {
     if (editingProperty && editProperty.name && editProperty.address && editProperty.units && editProperty.description) {
-      const updates = {
-        name: editProperty.name,
-        address: editProperty.address,
-        description: editProperty.description,
-        image: editProperty.image || editingProperty.image,
-        price: parseInt(editProperty.price) || editingProperty.price,
-        units: parseInt(editProperty.units),
-        occupancyRate: parseInt(editProperty.occupancyRate),
-        status: editProperty.status,
-        propertyType: editProperty.propertyType,
-        listingType: editProperty.listingType,
-        featured: editProperty.featured
-      };
-      
-      updateProperty(editingProperty.id, updates);
-      setProperties(getAllProperties()); // Refresh the properties list
-      
-      setEditingProperty(null);
-      setEditProperty({
-        name: '',
-        address: '',
-        description: '',
-        image: '',
-        price: '',
-        units: '',
-        occupancyRate: '',
-        status: 'Active',
-        propertyType: 'Condo',
-        listingType: 'For Sale',
-        featured: false
-      });
-      setIsEditPropertyOpen(false);
+      try {
+        const updates = {
+          name: editProperty.name,
+          address: editProperty.address,
+          description: editProperty.description,
+          image: editProperty.image || editingProperty.image,
+          price: parseInt(editProperty.price) || editingProperty.price,
+          units: parseInt(editProperty.units),
+          occupancyRate: parseInt(editProperty.occupancyRate),
+          status: editProperty.status,
+          propertyType: editProperty.propertyType,
+          listingType: editProperty.listingType,
+          featured: editProperty.featured,
+          videoUrl: editProperty.videoUrl || '',
+          thumbnail: editProperty.thumbnail || ''
+        };
+        
+        await updateProperty(editingProperty.id, updates);
+        const updatedProperties = await getAllProperties();
+        setProperties(updatedProperties);
+        setFilteredProperties(updatedProperties);
+        
+        setEditingProperty(null);
+        setEditProperty({
+          name: '',
+          address: '',
+          description: '',
+          image: '',
+          price: '',
+          units: '',
+          occupancyRate: '',
+          status: 'Active',
+          propertyType: 'Condo',
+          listingType: 'For Sale',
+          featured: false,
+          videoUrl: '',
+          thumbnail: ''
+        });
+        setIsEditPropertyOpen(false);
+      } catch (error) {
+        console.error('Error updating property:', error);
+        alert('Failed to update property. Please try again.');
+      }
+    } else {
+      alert('Please fill in all required fields.');
     }
   };
 
-  const handleDeleteProperty = (propertyId: string) => {
-    deleteProperty(propertyId);
-    setProperties(getAllProperties()); // Refresh the properties list
+  const handleDeleteProperty = async (propertyId: string) => {
+    try {
+      await deleteProperty(propertyId);
+      const updatedProperties = await getAllProperties();
+      setProperties(updatedProperties);
+      setFilteredProperties(updatedProperties);
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      alert('Failed to delete property. Please try again.');
+    }
   };
 
   const openEditDialog = (property: AdminProperty) => {
@@ -350,7 +421,9 @@ const AdminDashboard = () => {
       status: property.status,
       propertyType: property.propertyType,
       listingType: property.listingType,
-      featured: property.featured || false
+      featured: property.featured || false,
+      videoUrl: property.videoUrl || '',
+      thumbnail: property.thumbnail || ''
     });
     setIsEditPropertyOpen(true);
   };
@@ -381,8 +454,48 @@ const AdminDashboard = () => {
 
   const handleAddAgent = async () => {
     try {
+      // Validate required fields
+      if (!newAgent.name.trim()) {
+        alert('Please enter the agent\'s name');
+        return;
+      }
+      if (!newAgent.title.trim()) {
+        alert('Please enter the agent\'s title');
+        return;
+      }
+      if (!newAgent.email.trim()) {
+        alert('Please enter the agent\'s email');
+        return;
+      }
+      if (!newAgent.phone.trim()) {
+        alert('Please enter the agent\'s phone number');
+        return;
+      }
+      if (!newAgent.location.trim()) {
+        alert('Please enter the agent\'s location');
+        return;
+      }
+      if (!newAgent.description.trim()) {
+        alert('Please enter the agent\'s description');
+        return;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(newAgent.email.trim())) {
+        alert('Please enter a valid email address');
+        return;
+      }
+
       const agentData = {
-        ...newAgent
+        ...newAgent,
+        // Trim all string fields
+        name: newAgent.name.trim(),
+        title: newAgent.title.trim(),
+        email: newAgent.email.trim(),
+        phone: newAgent.phone.trim(),
+        location: newAgent.location.trim(),
+        description: newAgent.description.trim()
       };
       
       await createAgent(agentData);
@@ -401,7 +514,11 @@ const AdminDashboard = () => {
       setIsAddAgentOpen(false);
     } catch (error) {
       console.error('Error adding agent:', error);
-      alert('Failed to add agent. Please try again.');
+      if (error instanceof Error && error.message.includes('Unique constraint')) {
+        alert('An agent with this email already exists. Please use a different email address.');
+      } else {
+        alert('Failed to add agent. Please try again.');
+      }
     }
   };
 
@@ -430,6 +547,44 @@ const AdminDashboard = () => {
       alert('Failed to delete agent. Please try again.');
     }
   };
+
+  const handleDeleteAllProperties = async () => {
+    try {
+      // Delete all properties one by one
+      await Promise.all(properties.map(property => deleteProperty(property.id)));
+      const updatedProperties = await getAllProperties();
+      setProperties(updatedProperties);
+      setFilteredProperties(updatedProperties);
+      setIsDeleteAllDialogOpen(false);
+    } catch (error) {
+      console.error('Error deleting all properties:', error);
+      alert('Failed to delete all properties. Please try again.');
+    }
+  };
+
+  // Reset all dialog states when component unmounts or route changes
+  useEffect(() => {
+    return () => {
+      setIsAddAgentOpen(false);
+      setIsEditAgentOpen(false);
+      setIsAddPropertyOpen(false);
+      setIsEditPropertyOpen(false);
+      setIsDeleteDialogOpen(false);
+      setIsDeleteAllDialogOpen(false);
+      setIsEditProfileOpen(false);
+      setIsChangePasswordOpen(false);
+    };
+  }, []);
+
+  // Reset dialog states when menu changes
+  useEffect(() => {
+    setIsAddAgentOpen(false);
+    setIsEditAgentOpen(false);
+    setIsAddPropertyOpen(false);
+    setIsEditPropertyOpen(false);
+    setIsDeleteDialogOpen(false);
+    setIsDeleteAllDialogOpen(false);
+  }, [selectedMenu]);
 
   return (
     <div className="min-h-screen bg-bahayCebu-beige flex">
@@ -518,14 +673,49 @@ const AdminDashboard = () => {
                   <h1 className="text-4xl font-serif font-light text-bahayCebu-darkGray mb-2">Property Portfolio</h1>
                   <p className="text-bahayCebu-darkGray/60 text-lg">Manage and monitor your property listings</p>
                 </div>
-                <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
-                      <Plus className="w-5 h-5" />
-                      <span className="font-medium">Add Property</span>
-                    </Button>
-                  </DialogTrigger>
-                </Dialog>
+                <div className="flex items-center space-x-4">
+                  <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="destructive" 
+                        className="flex items-center space-x-3 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                        disabled={properties.length === 0}
+                      >
+                        <Trash2 className="w-5 h-5" />
+                        <span className="font-medium">Delete All Properties</span>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Delete All Properties</DialogTitle>
+                        <p className="text-bahayCebu-darkGray/60 mt-2">Are you sure you want to delete all properties? This action cannot be undone.</p>
+                      </DialogHeader>
+                      <div className="flex justify-end space-x-4 pt-6">
+                        <Button 
+                          variant="outline" 
+                          className="px-6 py-2 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                          onClick={() => setIsDeleteAllDialogOpen(false)}
+                        >
+                          Cancel
+                        </Button>
+                        <Button 
+                          onClick={handleDeleteAllProperties}
+                          className="px-6 py-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white shadow-lg rounded-xl"
+                        >
+                          Delete All
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
+                        <Plus className="w-5 h-5" />
+                        <span className="font-medium">Add Property</span>
+                      </Button>
+                    </DialogTrigger>
+                  </Dialog>
+                </div>
               </div>
 
               {/* Edit Property Dialog */}
@@ -723,6 +913,37 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     
+                    {/* Video Information */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-indigo-500 pl-4">Video Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="edit-video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
+                          <Input
+                            id="edit-video-url"
+                            type="url"
+                            value={editProperty.videoUrl || ''}
+                            onChange={(e) => setEditProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
+                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
+                          />
+                          <p className="text-sm text-gray-500">Paste a YouTube or Vimeo video URL</p>
+                        </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="edit-thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
+                          <Input
+                            id="edit-thumbnail"
+                            type="url"
+                            value={editProperty.thumbnail || ''}
+                            onChange={(e) => setEditProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
+                            placeholder="Enter thumbnail URL"
+                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
+                          />
+                          <p className="text-sm text-gray-500">URL for video thumbnail image</p>
+                        </div>
+                      </div>
+                    </div>
+                    
                     {/* Action Buttons */}
                     <div className="flex justify-end space-x-4 pt-8 border-t border-gray-100">
                       <Button 
@@ -806,178 +1027,226 @@ const AdminDashboard = () => {
               </div>
 
               {/* Properties Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProperties.map((property) => (
-                  <Card key={property.id} className="overflow-hidden border-0 shadow-md bg-white rounded-2xl">
-                    <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
-                      <img
-                        src={property.image}
-                        alt={property.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center';
-                        }}
-                      />
-                      
-                      {/* Price Badge on Image */}
-                      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md border border-white/20 px-3 py-2 rounded-xl shadow-lg">
-                        <div className="text-lg font-bold text-bahayCebu-green">₱{property.price.toLocaleString()}</div>
-                      </div>
-                      
-                      {/* Action Buttons */}
-                      <div className="absolute top-4 right-4 flex space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          className="h-10 w-10 p-0 bg-white/95 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
-                          onClick={() => openEditDialog(property)}
-                        >
-                          <Edit3 className="h-4 w-4 text-bahayCebu-green" />
-                        </Button>
-                        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="h-10 w-10 p-0 bg-bahayCebu-terracotta/95 hover:bg-bahayCebu-terracotta hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-                            <DialogHeader>
-                              <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Delete Property</DialogTitle>
-                              <p className="text-bahayCebu-darkGray/60 mt-2">Are you sure you want to delete this property? This action cannot be undone.</p>
-                            </DialogHeader>
-                            <div className="flex justify-end space-x-4 pt-6">
-                              <Button 
-                                variant="outline" 
-                                className="px-6 py-2 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
-                                onClick={() => setIsDeleteDialogOpen(false)}
-                              >
-                                Cancel
-                              </Button>
-                              <Button 
-                                onClick={() => {
-                                  handleDeleteProperty(property.id);
-                                  setIsDeleteDialogOpen(false);
-                                }}
-                                className="px-6 py-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white shadow-lg rounded-xl"
-                              >
-                                Delete Property
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+              {properties.length === 0 ? (
+                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
+                  <CardContent className="p-12 text-center">
+                    <div className="w-20 h-20 bg-bahayCebu-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Building className="h-10 w-10 text-bahayCebu-green" />
                     </div>
-
-                    <CardHeader className="p-6 pb-4">
-                      <div className="space-y-4">
-                        {/* Property Name */}
-                        <div>
-                          <h3 className="font-serif font-bold text-xl text-bahayCebu-darkGray mb-2 line-clamp-1">{property.name}</h3>
-                        </div>
-
-                        {/* Category Badges */}
-                        <div className="flex items-center gap-2">
-                          <Badge className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20 font-medium px-3 py-1 text-xs rounded-full">
-                            {property.propertyType}
-                          </Badge>
-                          <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-medium px-3 py-1 text-xs rounded-full">
-                            {property.listingType}
-                          </Badge>
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className="flex justify-between items-center">
-                          <Badge className={`${getStatusColor(property.status)} font-medium px-3 py-1 rounded-full border text-xs`}>
-                            {property.status}
-                          </Badge>
-                          <span className="text-gray-400 text-xs">Updated {property.lastUpdated}</span>
-                        </div>
-
-                        {/* Address */}
-                        <div className="space-y-2">
-                          <p className="text-bahayCebu-darkGray/70 text-sm line-clamp-1">{property.address}</p>
-                        </div>
-
-                        {/* Description */}
-                        <div className="space-y-2">
-                          <div className="text-bahayCebu-darkGray/60 text-xs leading-relaxed">
-                            <p>
-                              {expandedDescriptions.has(property.id) 
-                                ? property.description 
-                                : truncateDescription(property.description, 80)}
-                            </p>
-                            {property.description.length > 80 && (
-                              <button
-                                onClick={() => toggleDescription(property.id)}
-                                className="text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium mt-1 transition-colors"
-                              >
-                                {expandedDescriptions.has(property.id) ? 'Show less' : 'Read more'}
-                              </button>
-                            )}
+                    <h3 className="text-2xl font-serif font-bold text-bahayCebu-darkGray mb-4">No property listed or added</h3>
+                    <p className="text-bahayCebu-darkGray/60 max-w-md mx-auto leading-relaxed">
+                      Start adding properties to your portfolio to showcase them to potential buyers and renters.
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {currentProperties.map((property) => (
+                      <Card key={property.id} className="overflow-hidden border-0 shadow-md bg-white rounded-2xl">
+                        <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
+                          <img
+                            src={property.image}
+                            alt={property.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center';
+                            }}
+                          />
+                          
+                          {/* Price Badge on Image */}
+                          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md border border-white/20 px-3 py-2 rounded-xl shadow-lg">
+                            <div className="text-lg font-bold text-bahayCebu-green">₱{property.price.toLocaleString()}</div>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-10 w-10 p-0 bg-white/95 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
+                              onClick={() => openEditDialog(property)}
+                            >
+                              <Edit3 className="h-4 w-4 text-bahayCebu-green" />
+                            </Button>
+                            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  className="h-10 w-10 p-0 bg-bahayCebu-terracotta/95 hover:bg-bahayCebu-terracotta hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
+                                <DialogHeader>
+                                  <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Delete Property</DialogTitle>
+                                  <p className="text-bahayCebu-darkGray/60 mt-2">Are you sure you want to delete this property? This action cannot be undone.</p>
+                                </DialogHeader>
+                                <div className="flex justify-end space-x-4 pt-6">
+                                  <Button 
+                                    variant="outline" 
+                                    className="px-6 py-2 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                                    onClick={() => setIsDeleteDialogOpen(false)}
+                                  >
+                                    Cancel
+                                  </Button>
+                                  <Button 
+                                    onClick={() => {
+                                      handleDeleteProperty(property.id);
+                                      setIsDeleteDialogOpen(false);
+                                    }}
+                                    className="px-6 py-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white shadow-lg rounded-xl"
+                                  >
+                                    Delete Property
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
                         </div>
-                      </div>
-                    </CardHeader>
 
-                    <CardContent className="px-6 pb-6 space-y-4">
-                      {/* Property Stats */}
-                      <div className="flex items-center justify-between text-sm bg-gray-50 rounded-xl p-3">
-                        <div className="text-center">
-                          <div className="font-bold text-bahayCebu-darkGray">{property.units}</div>
-                          <div className="text-gray-500 text-xs">Units</div>
-                        </div>
-                        <div className="w-px h-6 bg-gray-200"></div>
-                        <div className="text-center">
-                          <div className="font-bold text-bahayCebu-green">{property.occupancyRate}%</div>
-                          <div className="text-gray-500 text-xs">Occupied</div>
-                        </div>
-                      </div>
-                      
-                      {/* View Listing Button */}
-                      <Button 
-                        variant="outline" 
-                        className="w-full border-2 border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white transition-all duration-300 rounded-xl h-10 font-medium text-sm"
-                        onClick={() => navigate(`/property/${property.id}`)}
+                        <CardHeader className="p-6 pb-4">
+                          <div className="space-y-4">
+                            {/* Property Name */}
+                            <div>
+                              <h3 className="font-serif font-bold text-xl text-bahayCebu-darkGray mb-2 line-clamp-1">{property.name}</h3>
+                            </div>
+
+                            {/* Category Badges */}
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20 font-medium px-3 py-1 text-xs rounded-full">
+                                {property.propertyType}
+                              </Badge>
+                              <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-medium px-3 py-1 text-xs rounded-full">
+                                {property.listingType}
+                              </Badge>
+                            </div>
+
+                            {/* Status Badge */}
+                            <div className="flex justify-between items-center">
+                              <Badge className={`${getStatusColor(property.status)} font-medium px-3 py-1 rounded-full border text-xs`}>
+                                {property.status}
+                              </Badge>
+                              <span className="text-gray-400 text-xs">Updated {property.lastUpdated}</span>
+                            </div>
+
+                            {/* Address */}
+                            <div className="space-y-2">
+                              <p className="text-bahayCebu-darkGray/70 text-sm line-clamp-1">{property.address}</p>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-2">
+                              <div className="text-bahayCebu-darkGray/60 text-xs leading-relaxed">
+                                <p>
+                                  {expandedDescriptions.has(property.id) 
+                                    ? property.description 
+                                    : truncateDescription(property.description, 80)}
+                                </p>
+                                {property.description.length > 80 && (
+                                  <button
+                                    onClick={() => toggleDescription(property.id)}
+                                    className="text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium mt-1 transition-colors"
+                                  >
+                                    {expandedDescriptions.has(property.id) ? 'Show less' : 'Read more'}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="px-6 pb-6 space-y-4">
+                          {/* Property Stats */}
+                          <div className="flex items-center justify-between text-sm bg-gray-50 rounded-xl p-3">
+                            <div className="text-center">
+                              <div className="font-bold text-bahayCebu-darkGray">{property.units}</div>
+                              <div className="text-gray-500 text-xs">Units</div>
+                            </div>
+                            <div className="w-px h-6 bg-gray-200"></div>
+                            <div className="text-center">
+                              <div className="font-bold text-bahayCebu-green">{property.occupancyRate}%</div>
+                              <div className="text-gray-500 text-xs">Occupied</div>
+                            </div>
+                          </div>
+                          
+                          {/* View Listing Button */}
+                          <Button 
+                            variant="outline" 
+                            className="w-full border-2 border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white transition-all duration-300 rounded-xl h-10 font-medium text-sm"
+                            onClick={() => navigate(`/property/${property.id}`)}
+                          >
+                            View Listing Details
+                          </Button>
+                          
+                          {/* Performance Stats */}
+                          <div className="border-t border-gray-100 pt-4">
+                            <div className="text-center mb-3">
+                              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">30-Day Performance</span>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 text-center">
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500">Views</div>
+                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.views.toLocaleString()}</div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500">Leads</div>
+                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.leads}</div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="text-xs text-gray-500">Applications</div>
+                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.applications}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Pagination */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-center items-center space-x-2 mt-8">
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="px-4 py-2 text-sm border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
                       >
-                        View Listing Details
+                        Previous
                       </Button>
-                      
-                      {/* Performance Stats */}
-                      <div className="border-t border-gray-100 pt-4">
-                        <div className="text-center mb-3">
-                          <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">30-Day Performance</span>
-                        </div>
-                        <div className="grid grid-cols-3 gap-3 text-center">
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">Views</div>
-                            <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.views.toLocaleString()}</div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">Leads</div>
-                            <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.leads}</div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-xs text-gray-500">Applications</div>
-                            <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.applications}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
+                        <Button
+                          key={pageNumber}
+                          variant={pageNumber === currentPage ? "default" : "outline"}
+                          onClick={() => handlePageChange(pageNumber)}
+                          className={`px-4 py-2 text-sm rounded-xl ${
+                            pageNumber === currentPage
+                              ? "bg-bahayCebu-green text-white"
+                              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          {pageNumber}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="px-4 py-2 text-sm border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
 
               {/* Add Property Dialog */}
               <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
                 <DialogTrigger asChild>
-                  <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
-                    <Plus className="w-5 h-5" />
-                    <span className="font-medium">Add Property</span>
-                  </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
                   <DialogHeader className="pb-6 border-b border-gray-100">
@@ -1169,6 +1438,37 @@ const AdminDashboard = () => {
                             </div>
                           </div>
                         )}
+                      </div>
+                    </div>
+                    
+                    {/* Video Information */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-indigo-500 pl-4">Video Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
+                          <Input
+                            id="video-url"
+                            type="url"
+                            value={newProperty.videoUrl || ''}
+                            onChange={(e) => setNewProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
+                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
+                          />
+                          <p className="text-sm text-gray-500">Paste a YouTube or Vimeo video URL</p>
+                        </div>
+                        <div className="space-y-3">
+                          <Label htmlFor="thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
+                          <Input
+                            id="thumbnail"
+                            type="url"
+                            value={newProperty.thumbnail || ''}
+                            onChange={(e) => setNewProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
+                            placeholder="Enter thumbnail URL"
+                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
+                          />
+                          <p className="text-sm text-gray-500">URL for video thumbnail image</p>
+                        </div>
                       </div>
                     </div>
                     
@@ -1430,14 +1730,13 @@ const AdminDashboard = () => {
                   <p className="text-bahayCebu-darkGray/60 text-lg">Manage your real estate agent information</p>
                 </div>
                 {agents.length === 0 && (
-                  <Dialog open={isAddAgentOpen} onOpenChange={setIsAddAgentOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
-                        <Plus className="w-5 h-5" />
-                        <span className="font-medium">Add Agent</span>
-                      </Button>
-                    </DialogTrigger>
-                  </Dialog>
+                  <Button 
+                    onClick={() => setIsAddAgentOpen(true)}
+                    className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span className="font-medium">Add Agent</span>
+                  </Button>
                 )}
               </div>
 
@@ -1451,13 +1750,12 @@ const AdminDashboard = () => {
                     <p className="text-bahayCebu-darkGray/60 max-w-md mx-auto leading-relaxed">
                       Add your real estate agent information to display on the website.
                     </p>
-                    <Dialog open={isAddAgentOpen} onOpenChange={setIsAddAgentOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="mt-6 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-6 py-2">
-                          Add Agent
-                        </Button>
-                      </DialogTrigger>
-                    </Dialog>
+                    <Button 
+                      onClick={() => setIsAddAgentOpen(true)}
+                      className="mt-6 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-6 py-2"
+                    >
+                      Add Agent
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -1535,7 +1833,23 @@ const AdminDashboard = () => {
               )}
 
               {/* Add Agent Dialog */}
-              <Dialog open={isAddAgentOpen} onOpenChange={setIsAddAgentOpen}>
+              <Dialog 
+                open={isAddAgentOpen} 
+                onOpenChange={(open) => {
+                  setIsAddAgentOpen(open);
+                  if (!open) {
+                    setNewAgent({
+                      name: '',
+                      title: '',
+                      email: '',
+                      phone: '',
+                      location: '',
+                      description: '',
+                      image: ''
+                    });
+                  }
+                }}
+              >
                 <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
                   <DialogHeader className="pb-6 border-b border-gray-100">
                     <DialogTitle className="text-3xl font-serif font-light text-bahayCebu-darkGray">Add New Agent</DialogTitle>
@@ -1743,7 +2057,15 @@ const AdminDashboard = () => {
               </Dialog>
 
               {/* Edit Agent Dialog */}
-              <Dialog open={isEditAgentOpen} onOpenChange={setIsEditAgentOpen}>
+              <Dialog 
+                open={isEditAgentOpen} 
+                onOpenChange={(open) => {
+                  setIsEditAgentOpen(open);
+                  if (!open) {
+                    setEditingAgent(null);
+                  }
+                }}
+              >
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Edit Agent</DialogTitle>

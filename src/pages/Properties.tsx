@@ -21,14 +21,15 @@ const Properties: React.FC = () => {
 
   // Fetch properties from centralized property management system
   useEffect(() => {
-    const fetchProperties = () => {
+    const fetchProperties = async () => {
       setLoading(true);
       try {
         // Get all active properties from the centralized property management system
-        const allProperties = getAllPropertiesAsPropertyType();
+        const allProperties = await getAllPropertiesAsPropertyType();
         setProperties(allProperties);
         setFilteredProperties(allProperties);
       } catch (err) {
+        console.error('Error fetching properties:', err);
         setProperties([]);
         setFilteredProperties([]);
       } finally {

@@ -8,17 +8,21 @@ datasource db {
 }
 
 model Property {
-  id        String   @id @default(uuid())
-  title     String
-  price     Float
-  location  String
-  bedrooms  Int
-  bathrooms Int
-  area      Float
-  type      String
-  featured  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  title       String
+  price       Float
+  location    String
+  bedrooms    Int
+  bathrooms   Int
+  area        Float
+  type        String
+  featured    Boolean  @default(false)
+  description String?
+  images      String[] // Array of image URLs
+  videoUrl    String?  // Optional video URL
+  thumbnail   String?  // Optional video thumbnail URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model User {

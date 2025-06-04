@@ -39,13 +39,7 @@ const Hero: React.FC = () => {
   const [typingSpeed, setTypingSpeed] = useState(100);
   const [agent, setAgent] = useState<Agent | null>(null);
 
-  useEffect(() => {
-    const loadAgent = async () => {
-      const agentData = await getAgent();
-      setAgent(agentData);
-    };
-    loadAgent();
-  }, []);
+
 
   useEffect(() => {
     const currentTagline = taglines[taglineIndex];
@@ -137,7 +131,12 @@ const Hero: React.FC = () => {
         </div>
 
         {/* Agent Section */}
-        {agent && (
+        {agent && 
+         agent.name && 
+         agent.title && 
+         agent.email && 
+         agent.phone && 
+         agent.description && (
           <div className="absolute bottom-8 right-8 bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl max-w-md animate-fade-in" style={{ animationDelay: "0.6s" }}>
             <div className="flex items-center space-x-4">
               <div className="w-20 h-20 rounded-xl overflow-hidden">

@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Check, House } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Check } from 'lucide-react';
 
 const AboutSection: React.FC = () => {
   return (
