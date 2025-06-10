@@ -776,7 +776,7 @@ const AdminDashboard = () => {
       
       // Reload the agents list
       await loadAgents();
-     
+      
       // Close the dialog and reset state
       setIsEditAgentOpen(false);
       setEditingAgent(null);

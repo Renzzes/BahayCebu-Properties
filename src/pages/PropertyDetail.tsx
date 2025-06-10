@@ -5,7 +5,7 @@ import { Phone, Mail, MapPin, UserPlus } from 'lucide-react';
 import PropertyGallery from '@/components/ui/PropertyGallery';
 import PropertyDetails from '@/components/properties/PropertyDetails';
 import ContactForm from '@/components/ui/ContactForm';
-import FloatingMessage from '@/components/ui/FloatingMessage';
+
 import LoanCalculator from '@/components/LoanCalculator';
 import { PropertyType, staticProperties, getPropertyById, convertAdminPropertyToPropertyType } from '@/data/properties';
 import { Agent, getAgent } from '@/data/agents';
@@ -241,7 +241,7 @@ const PropertyDetail: React.FC = () => {
       </div>
       
       {/* Floating Message */}
-      <FloatingMessage />
+      
     </div>
   );
 };

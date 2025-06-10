@@ -10,44 +10,40 @@ const AboutSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="relative">
             <img 
-              src="https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80" 
-              alt="Luxury Home in Cebu" 
-              className="rounded-lg shadow-lg w-full h-auto object-cover max-h-[500px]"
+              src="/LOGO/1.png" 
+              alt="BahayCebu Properties Logo" 
+              className="w-full h-[600px] object-contain transition-transform duration-300 hover:scale-110"
             />
-            <div className="absolute -bottom-6 -right-6 bg-white p-4 shadow-lg rounded-lg hidden md:block">
-              <p className="font-serif text-3xl font-bold text-bahayCebu-green">15+</p>
-              <p className="text-sm text-gray-600">Years of Experience</p>
-            </div>
           </div>
           
           <div>
             <h2 className="text-3xl md:text-4xl font-serif font-bold mb-4 text-bahayCebu-darkGray">
-              About BahayCebu Properties
+              Welcome to BahayCebu Properties
             </h2>
             <p className="text-gray-600 mb-6 text-lg">
-              BahayCebu Properties is Cebu's premier real estate agency, specializing in helping clients 
-              find their dream homes in this tropical paradise. Our personalized approach and extensive 
-              market knowledge ensure that every client finds their perfect property.
+              Since 2011, I've been dedicated to helping individuals and families find their perfect homes in 
+              Cebu's vibrant communities. With deep local knowledge and a genuine commitment to personalized service, 
+              I guide clients through every step of their real estate journey.
             </p>
             
-            <div className="space-y-3 mb-8">
-              <div className="flex items-start">
+            <div className="space-y-4 mb-8">
+              <div className="flex items-start transition-all duration-300 hover:-translate-x-2 hover:bg-gray-50 p-3 rounded-lg">
                 <div className="mt-1 mr-3 bg-bahayCebu-green/10 p-1 rounded-full">
                   <Check className="h-4 w-4 text-bahayCebu-green" />
                 </div>
-                <p className="text-gray-700">Personalized property recommendations based on your preferences</p>
+                <p className="text-gray-700">Expert guidance with nearly two decades of Cebu real estate experience</p>
               </div>
-              <div className="flex items-start">
+              <div className="flex items-start transition-all duration-300 hover:-translate-x-2 hover:bg-gray-50 p-3 rounded-lg">
                 <div className="mt-1 mr-3 bg-bahayCebu-green/10 p-1 rounded-full">
                   <Check className="h-4 w-4 text-bahayCebu-green" />
                 </div>
-                <p className="text-gray-700">Comprehensive knowledge of Cebu's neighborhoods and market trends</p>
+                <p className="text-gray-700">In-depth knowledge of neighborhoods, market trends, and investment opportunities</p>
               </div>
-              <div className="flex items-start">
+              <div className="flex items-start transition-all duration-300 hover:-translate-x-2 hover:bg-gray-50 p-3 rounded-lg">
                 <div className="mt-1 mr-3 bg-bahayCebu-green/10 p-1 rounded-full">
                   <Check className="h-4 w-4 text-bahayCebu-green" />
                 </div>
-                <p className="text-gray-700">End-to-end support from property viewing to paperwork completion</p>
+                <p className="text-gray-700">Personalized, honest service focused on finding your true home</p>
               </div>
             </div>
             
@@ -55,7 +51,7 @@ const AboutSection: React.FC = () => {
               asChild 
               className="bg-bahayCebu-green hover:bg-bahayCebu-green/90"
             >
-              <Link to="/about">Learn More About Us</Link>
+              <Link to="/about">Learn More About My Story</Link>
             </Button>
           </div>
         </div>

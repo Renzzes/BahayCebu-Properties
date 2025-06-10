@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AgentProvider } from "@/contexts/AgentContext";
+import ChatwayWidget from "@/components/ChatwayWidget";
 
 import Index from "./pages/Index";
 import Properties from "./pages/Properties";
@@ -35,19 +37,22 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<MainLayout><Index /></MainLayout>} />
-            <Route path="/properties" element={<MainLayout><Properties /></MainLayout>} />
-            <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
-            <Route path="/about" element={<MainLayout><About /></MainLayout>} />
-            <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-          </Routes>
+        <AgentProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+              <Route path="/properties" element={<MainLayout><Properties /></MainLayout>} />
+              <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
+              <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+              <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
+              <Route path="/admin/*" element={<AdminDashboard />} />
+              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+            </Routes>
+          </BrowserRouter>
           <Toaster />
           <Sonner />
-        </BrowserRouter>
+          <ChatwayWidget />
+        </AgentProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

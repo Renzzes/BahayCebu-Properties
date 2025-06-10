@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from 'lucide-react';
+import { useAgent } from '@/contexts/AgentContext';
 
 const Footer: React.FC = () => {
+  const { agent } = useAgent();
+
   return (
     <footer className="bg-bahayCebu-darkGray text-white pt-12 pb-6">
       <div className="container-custom">
@@ -17,15 +20,21 @@ const Footer: React.FC = () => {
               We provide a personalized approach to match you with your dream home.
             </p>
             <div className="flex space-x-4">
-              <a href="https://facebook.com" aria-label="Facebook" className="text-white hover:text-bahayCebu-terracotta transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="https://instagram.com" aria-label="Instagram" className="text-white hover:text-bahayCebu-terracotta transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="https://linkedin.com" aria-label="LinkedIn" className="text-white hover:text-bahayCebu-terracotta transition-colors">
-                <Linkedin className="h-5 w-5" />
-              </a>
+              {agent?.socialMedia?.facebook && (
+                <a href={agent.socialMedia.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-white hover:text-bahayCebu-terracotta transition-colors">
+                  <Facebook className="h-5 w-5" />
+                </a>
+              )}
+              {agent?.socialMedia?.instagram && (
+                <a href={agent.socialMedia.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white hover:text-bahayCebu-terracotta transition-colors">
+                  <Instagram className="h-5 w-5" />
+                </a>
+              )}
+              {agent?.socialMedia?.linkedin && (
+                <a href={agent.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-white hover:text-bahayCebu-terracotta transition-colors">
+                  <Linkedin className="h-5 w-5" />
+                </a>
+              )}
             </div>
           </div>
 
@@ -73,15 +82,19 @@ const Footer: React.FC = () => {
             <ul className="space-y-3">
               <li className="flex items-center">
                 <MapPin className="h-5 w-5 text-bahayCebu-terracotta mr-2" />
-                <span className="text-gray-300">123 Real Estate St., Cebu City</span>
+                <span className="text-gray-300">{agent?.location || 'Loading...'}</span>
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 text-bahayCebu-terracotta mr-2" />
-                <a href="tel:+639123456789" className="text-gray-300 hover:text-white transition-colors">+63 912 345 6789</a>
+                <a href={`tel:${agent?.phone}`} className="text-gray-300 hover:text-white transition-colors">
+                  {agent?.phone || 'Loading...'}
+                </a>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 text-bahayCebu-terracotta mr-2" />
-                <a href="mailto:info@bahaycebuhomes.com" className="text-gray-300 hover:text-white transition-colors">info@bahaycebuhomes.com</a>
+                <a href={`mailto:${agent?.email}`} className="text-gray-300 hover:text-white transition-colors">
+                  {agent?.email || 'Loading...'}
+                </a>
               </li>
             </ul>
           </div>
