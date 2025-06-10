@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -32,7 +31,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, hideViewDetails =
       navigate(`/properties?type=${property.type}`);
     } else {
       // Navigate to property detail page
-      navigate(`/property/${property.id}`);
+      navigate(`/properties/${property.id}`);
     }
   };
 
@@ -65,7 +64,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, hideViewDetails =
       </div>
 
       {/* Property Details */}
-      <CardContent className="pt-4">
+      <CardContent className="p-4">
         <div className="flex justify-between items-start">
           <h3 className="font-serif text-lg font-semibold text-bahayCebu-darkGray line-clamp-1">
             {property.title}
@@ -100,7 +99,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, hideViewDetails =
             className="w-full bg-bahayCebu-green hover:bg-bahayCebu-green/90"
             onClick={(e) => e.stopPropagation()} // Prevent triggering the card click
           >
-            <Link to={`/property/${property.id}`}>
+            <Link to={`/properties/${property.id}`}>
               View Details
             </Link>
           </Button>

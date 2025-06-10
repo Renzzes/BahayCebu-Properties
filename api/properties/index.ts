@@ -25,7 +25,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description,
         images,
         videoUrl,
-        thumbnail
+        thumbnail,
+        unitTypes,
+        amenities,
+        residentialFeatures,
+        provisions,
+        buildingFeatures
       } = req.body;
 
       // Validate required fields
@@ -46,7 +51,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           description,
           images: images || [],
           videoUrl,
-          thumbnail
+          thumbnail,
+          unitTypes: unitTypes || [],
+          amenities: amenities || [],
+          residentialFeatures: residentialFeatures || [],
+          provisions: provisions || [],
+          buildingFeatures: buildingFeatures || []
         }
       });
 

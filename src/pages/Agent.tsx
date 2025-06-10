@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, UserPlus, Facebook, Instagram, Linkedin, Star, Award, Home, Briefcase, TrendingUp, Users } from 'lucide-react';
+import { MapPin, Phone, Mail, UserPlus, Star, Award, Home, Briefcase, TrendingUp, Users } from 'lucide-react';
+import { FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
 import { getAllAgentsPublic } from '@/data/agents';
 import type { Agent } from '@/data/agents';
 import { Badge } from "@/components/ui/badge";
@@ -214,9 +215,13 @@ const AgentPage: React.FC = () => {
                               href={agent.socialMedia.facebook}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-gray-600 hover:text-blue-600 transition-colors"
+                              className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-[#1877F2]/10 hover:bg-[#1877F2]/20 transition-all duration-300 transform hover:scale-110"
+                              title="Facebook Profile"
                             >
-                              <Facebook className="h-5 w-5" />
+                              <FaFacebookF className="h-5 w-5 text-[#1877F2] group-hover:text-[#1877F2]" />
+                              <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Visit Facebook Profile
+                              </span>
                             </a>
                           )}
                           {agent.socialMedia?.instagram && (
@@ -224,9 +229,13 @@ const AgentPage: React.FC = () => {
                               href={agent.socialMedia.instagram}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-gray-600 hover:text-pink-600 transition-colors"
+                              className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#F58529]/10 via-[#DD2A7B]/10 to-[#8134AF]/10 hover:from-[#F58529]/20 hover:via-[#DD2A7B]/20 hover:to-[#8134AF]/20 transition-all duration-300 transform hover:scale-110"
+                              title="Instagram Profile"
                             >
-                              <Instagram className="h-5 w-5" />
+                              <FaInstagram className="h-5 w-5 text-[#DD2A7B] group-hover:text-[#DD2A7B]" />
+                              <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Visit Instagram Profile
+                              </span>
                             </a>
                           )}
                           {agent.socialMedia?.linkedin && (
@@ -234,9 +243,13 @@ const AgentPage: React.FC = () => {
                               href={agent.socialMedia.linkedin}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-gray-600 hover:text-blue-700 transition-colors"
+                              className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-[#0A66C2]/10 hover:bg-[#0A66C2]/20 transition-all duration-300 transform hover:scale-110"
+                              title="LinkedIn Profile"
                             >
-                              <Linkedin className="h-5 w-5" />
+                              <FaLinkedinIn className="h-5 w-5 text-[#0A66C2] group-hover:text-[#0A66C2]" />
+                              <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                Visit LinkedIn Profile
+                              </span>
                             </a>
                           )}
                         </div>

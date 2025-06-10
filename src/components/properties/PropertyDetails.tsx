@@ -1,213 +1,281 @@
 import React from 'react';
-import { PropertyType } from '../../data/properties';
-import { MapPin, Bed, Bath, Home } from 'lucide-react';
+import { PropertyType } from '@/data/properties';
+import { MapPin, Bed, Bath, Home, Calendar, Ruler, Car, CheckCircle2, Star, Building2, Shield, Timer, Sparkles, Users, Plug, Video } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface PropertyDetailsProps {
   property: PropertyType;
 }
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
+  // Create a safe container for the embed code
+  const createMarkup = (videoUrl: string) => {
+    // Remove any extra whitespace and ensure the code is clean
+    const cleanedUrl = videoUrl.trim();
+    
+    // Check if the code is a URL
+    if (cleanedUrl.startsWith('http')) {
+      // Convert URL to embed code
+      if (cleanedUrl.includes('youtube.com') || cleanedUrl.includes('youtu.be')) {
+        // Extract video ID from YouTube URL
+        const videoId = cleanedUrl.includes('youtu.be') 
+          ? cleanedUrl.split('/').pop() 
+          : cleanedUrl.split('v=')[1]?.split('&')[0];
+        if (videoId) {
+          return { __html: `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>` };
+        }
+      } else if (cleanedUrl.includes('vimeo.com')) {
+        // Extract video ID from Vimeo URL
+        const videoId = cleanedUrl.split('/').pop();
+        if (videoId) {
+          return { __html: `<iframe width="100%" height="100%" src="https://player.vimeo.com/video/${videoId}" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>` };
+        }
+      }
+    }
+    
+    return { __html: '' };
+  };
+
+  // Debug log for property
+  console.log('Property data in PropertyDetails:', property);
+
   // Enhanced property features with categories
   const details = {
-    yearBuilt: '2020',
+    yearBuilt: '2023',
     lotSize: '300 m²',
     garage: '2 Cars',
     features: {
-      interior: [
-        'Air Conditioning',
+      interior: property.residentialFeatures || [
         'Modern Kitchen',
         'Master Bedroom with En-suite',
         'Walk-in Closets',
-        'Hardwood Flooring',
-        'High Ceilings',
-        'Built-in Storage',
-        'Laundry Room'
+        'High Ceilings'
       ],
-      exterior: [
+      exterior: property.buildingFeatures || [
         'Swimming Pool',
         'Garden/Landscaping',
         'Balcony/Terrace',
-        'Outdoor Dining Area',
-        'Parking Garage',
-        'Covered Patio',
-        'Outdoor Lighting',
-        'Irrigation System'
+        'Outdoor Dining Area'
       ],
-      amenities: [
+      amenities: property.amenities || [
         '24/7 Security',
         'CCTV Surveillance',
         'Gym/Fitness Center',
-        'Playground',
-        'Community Center',
-        'Visitor Parking',
-        'Maintenance Service',
-        'Concierge Service'
+        'Playground'
       ],
-      utilities: [
+      utilities: property.provisions || [
         'High-Speed Internet Ready',
         'Cable TV Ready',
         'Water Heater',
-        'Backup Generator',
-        'Solar Panels',
-        'Smart Home Features',
-        'Intercom System',
-        'Fire Safety System'
+        'Backup Generator'
       ]
     }
   };
 
+  const nearbyPlaces = [
+    'Adventist Hospital: Comprehensive healthcare services',
+    'University of San Carlos: Prestigious academic institution',
+    'Cebu City Medical Center: Major hospital for diverse care',
+    'Gaisano Capital South: Shopping and dining options',
+    'SM Seaside: Premier shopping and entertainment hub'
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Main Property Info */}
-      <div>
-        <h1 className="text-3xl md:text-4xl font-serif font-bold text-bahayCebu-darkGray mb-2">
-          {property.title}
-        </h1>
-        
-        <div className="flex items-center text-gray-500 mb-4">
-          <MapPin className="h-5 w-5 mr-1" />
-          <span>{property.location}</span>
+    <div className="space-y-10">
+      {/* Overview Section */}
+      <Card className="p-6 bg-white/50 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-6">
+          <Star className="h-5 w-5 text-bahayCebu-green" />
+          <h2 className="text-2xl font-serif font-semibold text-bahayCebu-darkGray">
+            Property Overview
+          </h2>
         </div>
-        
-        <div className="flex flex-wrap items-center gap-6 text-gray-700">
-          <div className="flex items-center">
-            <Bed className="h-5 w-5 mr-2 text-bahayCebu-green" />
-            <span>{property.bedrooms} Bedrooms</span>
-          </div>
-          
-          <div className="flex items-center">
-            <Bath className="h-5 w-5 mr-2 text-bahayCebu-green" />
-            <span>{property.bathrooms} Bathrooms</span>
-          </div>
-          
-          <div className="flex items-center">
-            <Home className="h-5 w-5 mr-2 text-bahayCebu-green" />
-            <span>{property.area} m²</span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Property Description */}
-      <div>
-        <h2 className="text-xl font-serif font-semibold mb-3 text-bahayCebu-darkGray">Description</h2>
-        <p className="text-gray-700 leading-relaxed">
-          {property.description || (
-            <>
-              This stunning {property.type.toLowerCase()} offers a perfect blend of luxury and comfort. 
-              Located in {property.location}, it provides easy access to local amenities while offering a 
-              peaceful living environment. The property features spacious rooms with modern finishes, 
-              high ceilings, and an abundance of natural light.
-              <br /><br />
-              The open-concept living area flows seamlessly into the dining room and kitchen, 
-              making it ideal for entertaining. The {property.bedrooms} bedrooms are well-proportioned, 
-              with the master bedroom offering an en-suite bathroom and walk-in closet. 
-              Outside, you'll find a beautifully landscaped garden with a private swimming pool.
-            </>
-          )}
-        </p>
-      </div>
-      
-      {/* Property Details */}
-      <div>
-        <h2 className="text-xl font-serif font-semibold mb-3 text-bahayCebu-darkGray">Property Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-gray-50 p-3 rounded-md">
-            <p className="text-sm text-gray-500">Property Type</p>
-            <p className="font-medium text-bahayCebu-darkGray">{property.type}</p>
-          </div>
-          
-          <div className="bg-gray-50 p-3 rounded-md">
-            <p className="text-sm text-gray-500">Year Built</p>
-            <p className="font-medium text-bahayCebu-darkGray">{details.yearBuilt}</p>
-          </div>
-          
-          <div className="bg-gray-50 p-3 rounded-md">
-            <p className="text-sm text-gray-500">Lot Size</p>
-            <p className="font-medium text-bahayCebu-darkGray">{details.lotSize}</p>
-          </div>
-          
-          <div className="bg-gray-50 p-3 rounded-md">
-            <p className="text-sm text-gray-500">Garage</p>
-            <p className="font-medium text-bahayCebu-darkGray">{details.garage}</p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Property Features */}
-      <div>
-        <h2 className="text-xl font-serif font-semibold mb-6 text-bahayCebu-darkGray">Features & Amenities</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Interior Features */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-bahayCebu-green mb-4 flex items-center">
-              <Home className="h-5 w-5 mr-2" />
-              Interior Features
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {details.features.interior.map((feature, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-bahayCebu-green mr-3"></div>
-                  <span className="text-gray-700">{feature}</span>
+
+        {/* Key Features */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-bahayCebu-green/10 flex items-center justify-center flex-shrink-0">
+                <Building2 className="h-5 w-5 text-bahayCebu-green" />
+              </div>
+              <div>
+                <h3 className="font-medium text-bahayCebu-darkGray mb-2">Mixed-Use Development</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  ARC Towers combines residential, office, and hotel components into a cohesive community, 
+                  enhancing urban living and convenience.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-bahayCebu-green/10 flex items-center justify-center flex-shrink-0">
+                <Shield className="h-5 w-5 text-bahayCebu-green" />
+              </div>
+              <div>
+                <h3 className="font-medium text-bahayCebu-darkGray mb-2">1-YEAR MONEY BACK GUARANTEE</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  With The ARC Towers Cebu 1-year money-back guarantee, you can put all your questions to rest. 
+                  Move in and experience the quality of life you've always wanted.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-bahayCebu-green/10 flex items-center justify-center flex-shrink-0">
+                <Timer className="h-5 w-5 text-bahayCebu-green" />
+              </div>
+              <div>
+                <h3 className="font-medium text-bahayCebu-darkGray mb-2">Prime Location</h3>
+                <div className="space-y-3">
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    Located at:
+                    <span className="block font-medium mt-1 text-bahayCebu-darkGray">
+                      N. Bacalso Ave, cor V Rama Ave
+                      <br />
+                      Cebu City, 6000 Cebu, PH
+                    </span>
+                  </p>
+                  
+                  <div>
+                    <p className="text-gray-600 text-sm mb-2">Walking distance to:</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-bahayCebu-green/80" />
+                        <span className="text-gray-600 text-sm">Robinsons Cybergate</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-bahayCebu-green/80" />
+                        <span className="text-gray-600 text-sm">Chong Hua Hospital</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-bahayCebu-green/80" />
+                        <span className="text-gray-600 text-sm">Vicente Sotto Hospitals</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-bahayCebu-green/80" />
+                        <span className="text-gray-600 text-sm">Cebu Institute of Technology-University</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
             </div>
           </div>
 
-          {/* Exterior Features */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-bahayCebu-green mb-4 flex items-center">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-              </svg>
-              Exterior Features
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {details.features.exterior.map((feature, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-bahayCebu-green mr-3"></div>
-                  <span className="text-gray-700">{feature}</span>
-                </div>
-              ))}
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-bahayCebu-green/10 flex items-center justify-center flex-shrink-0">
+                <Sparkles className="h-5 w-5 text-bahayCebu-green" />
+              </div>
+              <div>
+                <h3 className="font-medium text-bahayCebu-darkGray mb-2">Flexible Payment Options</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Choose from spot cash, bank financing, Pag-IBIG Fund, or rent-to-own schemes. Our team will guide 
+                  you through Pag-IBIG condo loan applications.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Community Amenities */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-bahayCebu-green mb-4 flex items-center">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-              Community Amenities
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {details.features.amenities.map((feature, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-bahayCebu-green mr-3"></div>
-                  <span className="text-gray-700">{feature}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Utilities & Technology */}
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-            <h3 className="text-lg font-semibold text-bahayCebu-green mb-4 flex items-center">
-              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Utilities & Technology
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {details.features.utilities.map((feature, index) => (
-                <div key={index} className="flex items-center">
-                  <div className="w-2 h-2 rounded-full bg-bahayCebu-green mr-3"></div>
-                  <span className="text-gray-700">{feature}</span>
-                </div>
-              ))}
+            <div>
+              <h3 className="font-medium text-bahayCebu-darkGray mb-3">Nearby Establishments</h3>
+              <div className="space-y-2">
+                {nearbyPlaces.map((place, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-bahayCebu-green/60" />
+                    <span className="text-gray-600 text-sm">{place}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Description */}
+        <div className="prose prose-gray max-w-none">
+          <p className="text-gray-600 leading-relaxed">
+            Looking for a condo in Cebu City? Check out ARC Towers, now available for sale! Choose from our 
+            various unit types including Studio Units and Studio Units with Balcony, perfect for those seeking a cozy 
+            living space in the city. Experience the quality of life you've always wanted with our innovative Mixed-Use Design, 
+            sustainable architecture, and robust safety measures including 24-hour security and backup power supply.
+          </p>
+        </div>
+      </Card>
+
+      {/* Video Section */}
+      {property.videoUrl && (
+        <Card className="p-6 bg-white/50 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-6">
+            <Video className="h-5 w-5 text-bahayCebu-green" />
+            <h2 className="text-2xl font-serif font-semibold text-bahayCebu-darkGray">
+              Property Video Tour
+            </h2>
+          </div>
+          <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+            <div 
+              className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-lg"
+              dangerouslySetInnerHTML={createMarkup(property.videoUrl)} 
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* Features Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[
+          { 
+            title: 'Interior Features',
+            icon: Home,
+            items: details.features.interior,
+            color: 'from-emerald-50 to-transparent'
+          },
+          { 
+            title: 'Exterior Features',
+            icon: Building2,
+            items: details.features.exterior,
+            color: 'from-sky-50 to-transparent'
+          },
+          { 
+            title: 'Community Amenities',
+            icon: Users,
+            items: details.features.amenities,
+            color: 'from-amber-50 to-transparent'
+          },
+          { 
+            title: 'Utilities & Provisions',
+            icon: Plug,
+            items: details.features.utilities,
+            color: 'from-violet-50 to-transparent'
+          }
+        ].map((section, index) => (
+          <Card 
+            key={index} 
+            className="overflow-hidden transition-all duration-300 hover:shadow-lg group"
+          >
+            <div className={`p-6 bg-gradient-to-br ${section.color}`}>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                  <section.icon className="h-5 w-5 text-bahayCebu-green" />
+                </div>
+                <h3 className="text-lg font-semibold text-bahayCebu-darkGray">
+                  {section.title}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {section.items.map((feature, idx) => (
+                  <div 
+                    key={idx} 
+                    className="flex items-center gap-3 p-3 rounded-lg bg-white/50 hover:bg-white hover:shadow-sm transition-all duration-200"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-bahayCebu-green/60" />
+                    <span className="text-gray-700">{feature}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        ))}
       </div>
     </div>
   );

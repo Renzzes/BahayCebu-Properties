@@ -1,3 +1,208 @@
+// Unit type enum
+export type UnitType = 
+  | 'Studio'
+  | 'Studio With Balcony'
+  | 'One-Bedroom'
+  | 'One-Bedroom With Balcony'
+  | 'One-Bedroom With Study'
+  | 'Two-Bedroom'
+  | 'Two-Bedroom With Balcony'
+  | 'Three-Bedroom'
+  | 'Three-Bedroom With Terrace'
+  | 'Loft Studio'
+  | 'One-Bedroom Loft'
+  | 'Two-Bedroom With Den'
+  | 'Penthouse'
+  | 'Junior One-Bedroom'
+  | 'Duplex Two-Bedroom';
+
+// Building amenities
+export type BuildingAmenity = 
+  | '4 Levels of Podium Parking'
+  | '4 High-Speed Elevators'
+  | 'Elevator Key Card Access'
+  | 'Fire Alarm System & Sprinklers'
+  | '24-Hour Security System'
+  | 'Building Management System'
+  | 'Main Lobby with Reception Area'
+  | 'Individual Mailboxes'
+  | 'Workspace and Study Rooms'
+  | 'Conference/Function Room'
+  | 'Fitness Gym'
+  | '25-Meter Swimming Pool and Sundeck'
+  | 'Kiddie Pool'
+  | 'Sky Garden'
+  | 'Viewing Deck'
+  | 'Concierge Services'
+  | 'High-Speed Wi-Fi in Common Areas'
+  | 'Bicycle Storage and Repair Station'
+  | 'Pet-Friendly Facilities with Pet Park'
+  | 'Children\'s Indoor Play Area'
+  | 'Outdoor BBQ and Picnic Area'
+  | 'Yoga and Meditation Space'
+  | 'Sauna and Spa Room'
+  | 'Game Room with Billiards and Table Tennis'
+  | 'Rooftop Lounge with Bar Area'
+  | 'Electric Vehicle Charging Stations'
+  | 'Car Wash Bay'
+  | 'Resident Mobile App for Building Services'
+  | 'Package Delivery Lockers'
+  | 'Landscaped Courtyard with Seating Areas'
+  | 'Outdoor Fitness Stations'
+  | 'Community Kitchen for Events'
+  | 'Library or Reading Nook'
+  | 'Rooftop Cinema or Outdoor Movie Area'
+  | 'Guest Suites for Visitors'
+  | 'Smart Home Integration in Common Areas'
+  | 'Motion-Activated Lighting in Hallways'
+  | 'Rainwater Harvesting System'
+  | 'Solar Panels for Energy Efficiency'
+  | 'On-Site Recycling and Composting Stations'
+  | 'Indoor Climbing Wall'
+  | 'Virtual Reality Gaming Room'
+  | 'Co-Working Business Lounge with Private Booths'
+  | 'Rooftop Jogging Track'
+  | 'Hydrotherapy Pool or Hot Tub'
+  | 'Art Studio or Creative Workshop Space'
+  | 'Music Practice Rooms with Soundproofing'
+  | 'On-Site Daycare or Childcare Center'
+  | 'Community Garden with Raised Planting Beds'
+  | 'Outdoor Amphitheater for Events'
+  | 'Shuttle Service to Nearby Transit Hubs'
+  | 'On-Site Café or Juice Bar'
+  | 'Dog Washing and Grooming Station'
+  | 'Multi-Sport Court'
+  | 'Resident Event Space with Stage'
+  | 'Smart Lockers for Dry Cleaning or Laundry Services'
+  | 'On-Site Bike-Sharing Program'
+  | 'Zen Water Feature or Reflection Pond'
+  | 'Outdoor Chess or Board Game Area'
+  | 'High-Tech Fitness Studio with Virtual Classes'
+  | 'Rooftop Fire Pits with Seating'
+  | 'Sensory Room for Relaxation'
+  | 'Dedicated Delivery Drop-Off Zone'
+  | 'Smart Thermostats in Common Areas'
+  | 'Green Wall or Vertical Garden'
+  | 'Indoor Aquaponics or Herb Garden'
+  | 'Private Dining Rooms for Resident Events'
+  | 'On-Site Fitness Trainers or Classes'
+  | 'Rooftop Stargazing Area with Telescopes'
+  | 'Automated Parking System for Efficiency'
+  | 'Indoor Golf Simulator'
+  | 'Karaoke Lounge'
+  | 'Craft Beer or Wine Tasting Room'
+  | 'Rooftop Herb and Vegetable Garden'
+  | 'Outdoor Yoga Lawn'
+  | 'Interactive Digital Art Installation'
+  | 'Skateboard or Rollerblade Mini-Park'
+  | 'On-Site Car Rental Service'
+  | 'Smart Mirrors in Fitness Areas'
+  | 'Resident Art Gallery or Exhibition Space'
+  | 'Soundproof Podcast Recording Studio'
+  | 'Outdoor Putting Green'
+  | 'Rooftop Infinity Pool'
+  | 'Community Book Exchange Station'
+  | 'Meditation Garden with Waterfall'
+  | 'On-Site Tailoring or Alteration Service'
+  | 'Virtual Concierge for 24/7 Assistance'
+  | 'Outdoor Sculpture Garden'
+  | 'High-Tech Laundry Rooms with App Notifications'
+  | 'Resident Carpool or Ride-Sharing Program'
+  | 'Indoor Zen Rock Garden'
+  | 'Outdoor Pet Agility Course'
+  | 'Smart Vending Machines for Snacks and Essentials'
+  | 'Rooftop Beehives for Local Honey Production'
+  | 'Interactive Kids\' Science Lab'
+  | 'On-Site Farmers\' Market Space'
+  | 'Rooftop Observatory with Astronomy Classes'
+  | 'Smart Irrigation System for Gardens'
+  | 'Resident Volunteer Program Hub'
+  | 'Multi-Faith Prayer or Meditation Room';
+
+// Residential features
+export type ResidentialFeature =
+  | 'Porcelain Tiles in the Dwelling Area'
+  | 'Painted Walls and Ceilings'
+  | 'Universal Type Convenience Outlet'
+  | 'Grease Trap'
+  | 'Kitchen Countertop (Quartz or Granite)'
+  | 'Upper and Lower Kitchen Cabinets'
+  | 'Engineered Wood Flooring in Bedrooms'
+  | 'LED Recessed Lighting'
+  | 'Built-In Wardrobes with Sliding Doors'
+  | 'High-Quality Stainless Steel Kitchen Sink'
+  | 'Modern Bathroom Fixtures'
+  | 'Ceramic Tiles in Bathrooms'
+  | 'Glass Shower Enclosures'
+  | 'Smart Home Lighting Controls'
+  | 'Soundproofed Interior Walls'
+  | 'Anti-Slip Tiles on Balconies'
+  | 'Frosted Glass Partitions for Privacy'
+  | 'Built-In Shoe Racks at Entryways'
+  | 'Natural Stone Accent Walls in Living Areas'
+  | 'Energy-Efficient Windows with UV Protection'
+  | 'Customizable Wall Shelving Units'
+  | 'Integrated USB Charging Ports in Outlets'
+  | 'High-Gloss Kitchen Backsplash'
+  | 'Smart Thermostat for Climate Control'
+  | 'Vinyl Flooring in Utility Areas';
+
+// Provisions
+export type PropertyProvision =
+  | 'Individual Electric and Water Meter'
+  | 'Provision for Cable TV, Telephone, and Internet Line'
+  | 'Provision for Induction Cooktop and Microwave'
+  | 'Ventilation for Kitchen and Toilets'
+  | 'Window-Type Air Conditioner Provision in All Units'
+  | 'Provision for Water Heater in Toilet'
+  | 'Washer/Dryer Provision for Each Unit'
+  | 'Smart Lock System Provision'
+  | 'Provision for Home Security System'
+  | 'Fiber-Optic Internet Wiring'
+  | 'Provision for Ceiling Fans in Living Areas'
+  | 'Hot and Cold Water Lines in Bathrooms'
+  | 'Provision for Smart Home Automation Hub'
+  | 'Dedicated Outlet for Electric Vehicle Charger'
+  | 'Provision for Wall-Mounted TV in Living Room'
+  | 'Exhaust Fan Provision in Laundry Area'
+  | 'Provision for Dishwasher in Larger Units'
+  | 'Pre-Wired Surround Sound System'
+  | 'Provision for Under-Cabinet Kitchen Lighting'
+  | 'Backup Battery Provision for Emergency Lighting';
+
+// Building features
+export type BuildingFeature =
+  | '4 Levels of Podium Parking'
+  | '4 High-Speed Elevators'
+  | 'Elevator Key Card Access'
+  | '100% Backup Power'
+  | 'Fire Alarm System & Sprinklers'
+  | '24-Hour Security System'
+  | 'Designed by LPPA and Master Planned by Broadway Malyan'
+  | 'Building Management System'
+  | 'Wi-Fi at Selected Amenity Areas'
+  | 'Material Recovery Facility'
+  | 'Complete Information Directory'
+  | '2 Fire Exit Stairs'
+  | 'Landscaped Areas'
+  | '5-Storey Commercial Space'
+  | 'Automated Parking Guidance System'
+  | 'CCTV Surveillance in Common Areas'
+  | 'Solar-Powered Common Area Lighting'
+  | 'Rainwater Harvesting System'
+  | 'Centralized Waste Management System'
+  | 'Smart Building Access Control'
+  | 'Energy-Efficient HVAC Systems'
+  | 'Green Roof with Native Plants'
+  | 'Electric Vehicle Charging Stations'
+  | 'Bicycle Parking with Repair Station'
+  | 'Resident Mobile App for Building Services'
+  | 'High-Efficiency Elevators with Regenerative Drives'
+  | 'Acoustic Insulation for Noise Reduction'
+  | 'On-Site Property Management Office'
+  | 'Package Delivery Lockers'
+  | 'Seismic-Resilient Structural Design';
+
 export interface AdminProperty {
   id: string;
   name: string;
@@ -5,6 +210,7 @@ export interface AdminProperty {
   location: string;
   description: string;
   image: string;
+  images?: string[];
   price: number;
   units: number;
   occupancyRate: number;
@@ -16,6 +222,11 @@ export interface AdminProperty {
   featured?: boolean;
   videoUrl?: string;
   thumbnail?: string;
+  unitTypes: string[];
+  amenities: string[];
+  residentialFeatures: string[];
+  provisions: string[];
+  buildingFeatures: string[];
   stats: {
     views: number;
     leads: number;
@@ -26,18 +237,25 @@ export interface AdminProperty {
 export interface PropertyType {
   id: string;
   title: string;
+  description?: string;
+  type: 'Condo' | 'Land' | 'House' | 'Villa';
   price: number;
   location: string;
   bedrooms: number;
   bathrooms: number;
   area: number;
   image: string;
-  featured?: boolean;
-  type: 'House' | 'Condo' | 'Villa' | 'Land';
-  description?: string;
   images?: string[];
   videoUrl?: string;
   thumbnail?: string;
+  unitTypes?: string[];
+  amenities?: string[];
+  residentialFeatures?: string[];
+  provisions?: string[];
+  buildingFeatures?: string[];
+  featured?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 // Add type definition for API response
@@ -66,7 +284,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja 85018',
     location: 'Jogja, Indonesia',
     description: 'Luxurious residential complex featuring modern amenities and stunning views of the surrounding landscape. Perfect for families seeking comfort and convenience.',
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 500000,
     units: 86,
     occupancyRate: 78,
@@ -76,8 +295,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Oct. 12',
     createdAt: '2024-01-12T10:00:00Z',
     featured: true,
-    videoUrl: 'https://example.com/video1.mp4',
-    thumbnail: 'https://example.com/thumbnail1.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 3233, leads: 67, applications: 8 }
   },
   {
@@ -86,7 +310,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja 85018',
     location: 'Jogja, Indonesia',
     description: 'Contemporary high-rise living with panoramic city views and premium facilities. Experience urban lifestyle at its finest.',
-    image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 450000,
     units: 86,
     occupancyRate: 78,
@@ -96,8 +321,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Nov. 22',
     createdAt: '2024-02-15T14:30:00Z',
     featured: true,
-    videoUrl: 'https://example.com/video2.mp4',
-    thumbnail: 'https://example.com/thumbnail2.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 7239, leads: 38, applications: 5 }
   },
   {
@@ -106,7 +336,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja',
     location: 'Jogja, Indonesia',
     description: 'Serene residential community designed for peaceful living with lush gardens and family-friendly amenities.',
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 350000,
     units: 86,
     occupancyRate: 78,
@@ -116,8 +347,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Dec. 16',
     createdAt: '2024-03-01T09:15:00Z',
     featured: false,
-    videoUrl: 'https://example.com/video3.mp4',
-    thumbnail: 'https://example.com/thumbnail3.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 7899, leads: 318, applications: 0 }
   },
   {
@@ -126,7 +362,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja 85018',
     location: 'Jogja, Indonesia',
     description: 'Eco-friendly development surrounded by nature, offering sustainable living without compromising on modern comforts.',
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 400000,
     units: 86,
     occupancyRate: 78,
@@ -136,8 +373,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Oct. 12',
     createdAt: '2024-01-20T16:45:00Z',
     featured: true,
-    videoUrl: 'https://example.com/video4.mp4',
-    thumbnail: 'https://example.com/thumbnail4.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 3233, leads: 67, applications: 8 }
   },
   {
@@ -146,7 +388,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja 85018',
     location: 'Jogja, Indonesia',
     description: 'Premium apartment complex with world-class facilities and sophisticated design for discerning residents.',
-    image: 'https://images.unsplash.com/photo-1460317442991-0ec209397118?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 600000,
     units: 86,
     occupancyRate: 78,
@@ -156,8 +399,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Nov. 22',
     createdAt: '2024-02-28T11:20:00Z',
     featured: true,
-    videoUrl: 'https://example.com/video5.mp4',
-    thumbnail: 'https://example.com/thumbnail5.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 7239, leads: 38, applications: 5 }
   },
   {
@@ -166,7 +414,8 @@ const globalProperties: AdminProperty[] = [
     address: '3825 E Prawirotaman Ave, Jogja',
     location: 'Jogja, Indonesia',
     description: 'Compact yet comfortable living spaces perfect for young professionals and small families in the heart of the city.',
-    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=250&fit=crop&crop=center',
+    image: '',
+    images: [],
     price: 300000,
     units: 86,
     occupancyRate: 78,
@@ -176,8 +425,13 @@ const globalProperties: AdminProperty[] = [
     lastUpdated: 'Dec. 16',
     createdAt: '2024-03-10T13:50:00Z',
     featured: false,
-    videoUrl: 'https://example.com/video6.mp4',
-    thumbnail: 'https://example.com/thumbnail6.jpg',
+    videoUrl: '',
+    thumbnail: '',
+    unitTypes: [],
+    amenities: [],
+    residentialFeatures: [],
+    provisions: [],
+    buildingFeatures: [],
     stats: { views: 7899, leads: 318, applications: 0 }
   }
 ];
@@ -189,14 +443,14 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     if (!response.ok) throw new Error('Failed to fetch properties');
     const data = await response.json();
     
-    // Convert API data to AdminProperty format
     return data.map((property: PropertyApiResponse) => ({
       id: property.id,
       name: property.title,
       address: property.location,
       location: property.location.split(',')[0].trim(),
       description: property.description || '',
-      image: property.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
+      image: property.images?.[0] || '',
+      images: property.images || [],
       price: property.price,
       units: property.bedrooms,
       occupancyRate: 0,
@@ -208,11 +462,16 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
       featured: property.featured,
       videoUrl: property.videoUrl || '',
       thumbnail: property.thumbnail || '',
+      unitTypes: [],
+      amenities: [],
+      residentialFeatures: [],
+      provisions: [],
+      buildingFeatures: [],
       stats: { views: 0, leads: 0, applications: 0 }
     }));
   } catch (error) {
     console.error('Error fetching properties:', error);
-    return globalProperties; // Return mock data if API fails
+    return globalProperties;
   }
 };
 
@@ -241,9 +500,14 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
         type: property.propertyType,
         featured: property.featured,
         description: property.description,
-        images: [property.image],
+        images: property.images,
         videoUrl: property.videoUrl,
-        thumbnail: property.thumbnail
+        thumbnail: property.thumbnail,
+        unitTypes: property.unitTypes,
+        amenities: property.amenities,
+        residentialFeatures: property.residentialFeatures,
+        provisions: property.provisions,
+        buildingFeatures: property.buildingFeatures
       })
     });
 
@@ -258,6 +522,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
       location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
+      images: data.images,
       price: data.price,
       units: data.bedrooms,
       occupancyRate: 0,
@@ -269,6 +534,11 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
+      unitTypes: data.unitTypes || [],
+      amenities: data.amenities || [],
+      residentialFeatures: data.residentialFeatures || [],
+      provisions: data.provisions || [],
+      buildingFeatures: data.buildingFeatures || [],
       stats: { views: 0, leads: 0, applications: 0 }
     };
   } catch (error) {
@@ -292,9 +562,14 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
         type: updates.propertyType,
         featured: updates.featured,
         description: updates.description,
-        images: updates.image ? [updates.image] : undefined,
+        images: updates.images,
         videoUrl: updates.videoUrl,
-        thumbnail: updates.thumbnail
+        thumbnail: updates.thumbnail,
+        unitTypes: updates.unitTypes,
+        amenities: updates.amenities,
+        residentialFeatures: updates.residentialFeatures,
+        provisions: updates.provisions,
+        buildingFeatures: updates.buildingFeatures
       })
     });
     
@@ -308,6 +583,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
       location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
+      images: data.images,
       price: data.price,
       units: data.bedrooms,
       occupancyRate: updates.occupancyRate || 0,
@@ -319,6 +595,11 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
+      unitTypes: data.unitTypes || [],
+      amenities: data.amenities || [],
+      residentialFeatures: data.residentialFeatures || [],
+      provisions: data.provisions || [],
+      buildingFeatures: data.buildingFeatures || [],
       stats: { views: 0, leads: 0, applications: 0 }
     };
   } catch (error) {
@@ -342,7 +623,14 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
 export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
   try {
     const response = await fetch(`/api/properties/${id}`);
-    if (!response.ok) throw new Error('Failed to fetch property');
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log('Property not found:', id);
+        return null;
+      }
+      throw new Error('Failed to fetch property');
+    }
+    
     const data = await response.json();
     
     return {
@@ -352,6 +640,7 @@ export const getPropertyById = async (id: string): Promise<AdminProperty | null>
       location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
+      images: data.images || [],
       price: data.price,
       units: data.bedrooms,
       occupancyRate: 0,
@@ -363,6 +652,11 @@ export const getPropertyById = async (id: string): Promise<AdminProperty | null>
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
+      unitTypes: data.unitTypes || [],
+      amenities: data.amenities || [],
+      residentialFeatures: data.residentialFeatures || [],
+      provisions: data.provisions || [],
+      buildingFeatures: data.buildingFeatures || [],
       stats: { views: 0, leads: 0, applications: 0 }
     };
   } catch (error) {
@@ -395,7 +689,7 @@ export const convertAdminPropertyToPropertyType = (adminProperty: AdminProperty)
     image: adminProperty.image,
     type: propertyType,
     description: adminProperty.description,
-    images: [adminProperty.image],
+    images: adminProperty.images,
     featured: adminProperty.featured,
     videoUrl: adminProperty.videoUrl,
     thumbnail: adminProperty.thumbnail
@@ -431,16 +725,9 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 4,
     bathrooms: 3,
     area: 250,
-    image: 'https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80',
-    featured: true,
+    image: '',
     type: 'Villa',
-    images: [
-      'https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80'
-    ]
+    images: []
   },
   '2': {
     id: '2',
@@ -450,14 +737,9 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 2,
     bathrooms: 2,
     area: 120,
-    image: 'https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&q=80',
-    featured: true,
+    image: '',
     type: 'Condo',
-    images: [
-      'https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80'
-    ]
+    images: []
   },
   '3': {
     id: '3',
@@ -467,14 +749,9 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 5,
     bathrooms: 4,
     area: 350,
-    image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80',
-    featured: true,
+    image: '',
     type: 'House',
-    images: [
-      'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80'
-    ]
+    images: []
   },
   '4': {
     id: '4',
@@ -484,13 +761,9 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 4,
     bathrooms: 4,
     area: 280,
-    image: 'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
+    image: '',
     type: 'House',
-    images: [
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80'
-    ]
+    images: []
   },
   '5': {
     id: '5',
@@ -500,13 +773,9 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 1,
     bathrooms: 1,
     area: 45,
-    image: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80',
+    image: '',
     type: 'Condo',
-    images: [
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80'
-    ]
+    images: []
   },
   '6': {
     id: '6',
@@ -516,12 +785,214 @@ export const staticProperties: Record<string, PropertyType & { description?: str
     bedrooms: 0,
     bathrooms: 0,
     area: 1000,
-    image: 'https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&q=80',
+    image: '',
     type: 'Land',
-    images: [
-      'https://images.unsplash.com/photo-1721322800607-8c38375eef04?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80',
-      'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80'
-    ]
+    images: []
   }
-}; 
+};
+
+// Available options arrays
+export const UNIT_TYPES: UnitType[] = [
+  'Studio',
+  'Studio With Balcony',
+  'One-Bedroom',
+  'One-Bedroom With Balcony',
+  'One-Bedroom With Study',
+  'Two-Bedroom',
+  'Two-Bedroom With Balcony',
+  'Three-Bedroom',
+  'Three-Bedroom With Terrace',
+  'Loft Studio',
+  'One-Bedroom Loft',
+  'Two-Bedroom With Den',
+  'Penthouse',
+  'Junior One-Bedroom',
+  'Duplex Two-Bedroom'
+];
+
+export const BUILDING_AMENITIES: BuildingAmenity[] = [
+  '4 Levels of Podium Parking',
+  '4 High-Speed Elevators',
+  'Elevator Key Card Access',
+  'Fire Alarm System & Sprinklers',
+  '24-Hour Security System',
+  'Building Management System',
+  'Main Lobby with Reception Area',
+  'Individual Mailboxes',
+  'Workspace and Study Rooms',
+  'Conference/Function Room',
+  'Fitness Gym',
+  '25-Meter Swimming Pool and Sundeck',
+  'Kiddie Pool',
+  'Sky Garden',
+  'Viewing Deck',
+  'Concierge Services',
+  'High-Speed Wi-Fi in Common Areas',
+  'Bicycle Storage and Repair Station',
+  'Pet-Friendly Facilities with Pet Park',
+  'Children\'s Indoor Play Area',
+  'Outdoor BBQ and Picnic Area',
+  'Yoga and Meditation Space',
+  'Sauna and Spa Room',
+  'Game Room with Billiards and Table Tennis',
+  'Rooftop Lounge with Bar Area',
+  'Electric Vehicle Charging Stations',
+  'Car Wash Bay',
+  'Resident Mobile App for Building Services',
+  'Package Delivery Lockers',
+  'Landscaped Courtyard with Seating Areas',
+  'Outdoor Fitness Stations',
+  'Community Kitchen for Events',
+  'Library or Reading Nook',
+  'Rooftop Cinema or Outdoor Movie Area',
+  'Guest Suites for Visitors',
+  'Smart Home Integration in Common Areas',
+  'Motion-Activated Lighting in Hallways',
+  'Rainwater Harvesting System',
+  'Solar Panels for Energy Efficiency',
+  'On-Site Recycling and Composting Stations',
+  'Indoor Climbing Wall',
+  'Virtual Reality Gaming Room',
+  'Co-Working Business Lounge with Private Booths',
+  'Rooftop Jogging Track',
+  'Hydrotherapy Pool or Hot Tub',
+  'Art Studio or Creative Workshop Space',
+  'Music Practice Rooms with Soundproofing',
+  'On-Site Daycare or Childcare Center',
+  'Community Garden with Raised Planting Beds',
+  'Outdoor Amphitheater for Events',
+  'Shuttle Service to Nearby Transit Hubs',
+  'On-Site Café or Juice Bar',
+  'Dog Washing and Grooming Station',
+  'Multi-Sport Court',
+  'Resident Event Space with Stage',
+  'Smart Lockers for Dry Cleaning or Laundry Services',
+  'On-Site Bike-Sharing Program',
+  'Zen Water Feature or Reflection Pond',
+  'Outdoor Chess or Board Game Area',
+  'High-Tech Fitness Studio with Virtual Classes',
+  'Rooftop Fire Pits with Seating',
+  'Sensory Room for Relaxation',
+  'Dedicated Delivery Drop-Off Zone',
+  'Smart Thermostats in Common Areas',
+  'Green Wall or Vertical Garden',
+  'Indoor Aquaponics or Herb Garden',
+  'Private Dining Rooms for Resident Events',
+  'On-Site Fitness Trainers or Classes',
+  'Rooftop Stargazing Area with Telescopes',
+  'Automated Parking System for Efficiency',
+  'Indoor Golf Simulator',
+  'Karaoke Lounge',
+  'Craft Beer or Wine Tasting Room',
+  'Rooftop Herb and Vegetable Garden',
+  'Outdoor Yoga Lawn',
+  'Interactive Digital Art Installation',
+  'Skateboard or Rollerblade Mini-Park',
+  'On-Site Car Rental Service',
+  'Smart Mirrors in Fitness Areas',
+  'Resident Art Gallery or Exhibition Space',
+  'Soundproof Podcast Recording Studio',
+  'Outdoor Putting Green',
+  'Rooftop Infinity Pool',
+  'Community Book Exchange Station',
+  'Meditation Garden with Waterfall',
+  'On-Site Tailoring or Alteration Service',
+  'Virtual Concierge for 24/7 Assistance',
+  'Outdoor Sculpture Garden',
+  'High-Tech Laundry Rooms with App Notifications',
+  'Resident Carpool or Ride-Sharing Program',
+  'Indoor Zen Rock Garden',
+  'Outdoor Pet Agility Course',
+  'Smart Vending Machines for Snacks and Essentials',
+  'Rooftop Beehives for Local Honey Production',
+  'Interactive Kids\' Science Lab',
+  'On-Site Farmers\' Market Space',
+  'Rooftop Observatory with Astronomy Classes',
+  'Smart Irrigation System for Gardens',
+  'Resident Volunteer Program Hub',
+  'Multi-Faith Prayer or Meditation Room'
+];
+
+export const RESIDENTIAL_FEATURES: ResidentialFeature[] = [
+  'Porcelain Tiles in the Dwelling Area',
+  'Painted Walls and Ceilings',
+  'Universal Type Convenience Outlet',
+  'Grease Trap',
+  'Kitchen Countertop (Quartz or Granite)',
+  'Upper and Lower Kitchen Cabinets',
+  'Engineered Wood Flooring in Bedrooms',
+  'LED Recessed Lighting',
+  'Built-In Wardrobes with Sliding Doors',
+  'High-Quality Stainless Steel Kitchen Sink',
+  'Modern Bathroom Fixtures',
+  'Ceramic Tiles in Bathrooms',
+  'Glass Shower Enclosures',
+  'Smart Home Lighting Controls',
+  'Soundproofed Interior Walls',
+  'Anti-Slip Tiles on Balconies',
+  'Frosted Glass Partitions for Privacy',
+  'Built-In Shoe Racks at Entryways',
+  'Natural Stone Accent Walls in Living Areas',
+  'Energy-Efficient Windows with UV Protection',
+  'Customizable Wall Shelving Units',
+  'Integrated USB Charging Ports in Outlets',
+  'High-Gloss Kitchen Backsplash',
+  'Smart Thermostat for Climate Control',
+  'Vinyl Flooring in Utility Areas'
+];
+
+export const PROPERTY_PROVISIONS: PropertyProvision[] = [
+  'Individual Electric and Water Meter',
+  'Provision for Cable TV, Telephone, and Internet Line',
+  'Provision for Induction Cooktop and Microwave',
+  'Ventilation for Kitchen and Toilets',
+  'Window-Type Air Conditioner Provision in All Units',
+  'Provision for Water Heater in Toilet',
+  'Washer/Dryer Provision for Each Unit',
+  'Smart Lock System Provision',
+  'Provision for Home Security System',
+  'Fiber-Optic Internet Wiring',
+  'Provision for Ceiling Fans in Living Areas',
+  'Hot and Cold Water Lines in Bathrooms',
+  'Provision for Smart Home Automation Hub',
+  'Dedicated Outlet for Electric Vehicle Charger',
+  'Provision for Wall-Mounted TV in Living Room',
+  'Exhaust Fan Provision in Laundry Area',
+  'Provision for Dishwasher in Larger Units',
+  'Pre-Wired Surround Sound System',
+  'Provision for Under-Cabinet Kitchen Lighting',
+  'Backup Battery Provision for Emergency Lighting'
+];
+
+export const BUILDING_FEATURES: BuildingFeature[] = [
+  '4 Levels of Podium Parking',
+  '4 High-Speed Elevators',
+  'Elevator Key Card Access',
+  '100% Backup Power',
+  'Fire Alarm System & Sprinklers',
+  '24-Hour Security System',
+  'Designed by LPPA and Master Planned by Broadway Malyan',
+  'Building Management System',
+  'Wi-Fi at Selected Amenity Areas',
+  'Material Recovery Facility',
+  'Complete Information Directory',
+  '2 Fire Exit Stairs',
+  'Landscaped Areas',
+  '5-Storey Commercial Space',
+  'Automated Parking Guidance System',
+  'CCTV Surveillance in Common Areas',
+  'Solar-Powered Common Area Lighting',
+  'Rainwater Harvesting System',
+  'Centralized Waste Management System',
+  'Smart Building Access Control',
+  'Energy-Efficient HVAC Systems',
+  'Green Roof with Native Plants',
+  'Electric Vehicle Charging Stations',
+  'Bicycle Parking with Repair Station',
+  'Resident Mobile App for Building Services',
+  'High-Efficiency Elevators with Regenerative Drives',
+  'Acoustic Insulation for Noise Reduction',
+  'On-Site Property Management Office',
+  'Package Delivery Lockers',
+  'Seismic-Resilient Structural Design'
+]; 

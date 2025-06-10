@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,16 @@ export interface FilterValues {
   bedrooms: string;
 }
 
-const PropertyFilter: React.FC<FilterProps> = ({ onFilter, initialValues }) => {
+const PropertyFilter: React.FC<FilterProps> = ({ 
+  onFilter, 
+  initialValues = {
+    location: '',
+    minPrice: '',
+    maxPrice: '',
+    propertyType: '',
+    bedrooms: ''
+  } 
+}) => {
   const [filters, setFilters] = useState<FilterValues>({
     location: '',
     minPrice: '',
@@ -160,16 +168,6 @@ const PropertyFilter: React.FC<FilterProps> = ({ onFilter, initialValues }) => {
       </div>
     </form>
   );
-};
-
-PropertyFilter.defaultProps = {
-  initialValues: {
-    location: '',
-    minPrice: '',
-    maxPrice: '',
-    propertyType: '',
-    bedrooms: ''
-  }
 };
 
 export default PropertyFilter;

@@ -20,7 +20,12 @@ model Property {
   description String?
   images      String[] // Array of image URLs
   videoUrl    String?  // Optional video URL
-  thumbnail   String?  // Optional video thumbnail URL
+  thumbnail   String?  // Optional thumbnail URL
+  unitTypes   String[] @default([])
+  amenities   String[] @default([])
+  residentialFeatures String[] @default([])
+  provisions  String[] @default([])
+  buildingFeatures String[] @default([])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

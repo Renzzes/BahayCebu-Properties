@@ -19,7 +19,7 @@ let globalUser: AdminUser = {
   id: '1',
   name: 'Admin User',
   email: 'admin@bahaycebuproperties.com',
-  password: 'admin123456', // In real app, this would be hashed
+  password: '', // Will be set during signup
   role: 'admin',
   createdAt: new Date().toISOString(),
   lastLogin: new Date().toISOString(),
@@ -32,6 +32,11 @@ let globalUser: AdminUser = {
 
 // User management functions
 export const getCurrentUser = (): AdminUser => {
+  // Get user data from localStorage if it exists
+  const storedUser = localStorage.getItem('adminUser');
+  if (storedUser) {
+    globalUser = JSON.parse(storedUser);
+  }
   return { ...globalUser };
 };
 
@@ -40,16 +45,19 @@ export const updateUserProfile = (updates: Partial<Pick<AdminUser, 'name' | 'ema
     ...globalUser,
     ...updates,
   };
+  // Save to localStorage
+  localStorage.setItem('adminUser', JSON.stringify(globalUser));
   return { ...globalUser };
 };
 
 export const updateUserPassword = (newPassword: string): boolean => {
   try {
-    // In a real application, you would hash the password here
     globalUser = {
       ...globalUser,
       password: newPassword,
     };
+    // Save to localStorage
+    localStorage.setItem('adminUser', JSON.stringify(globalUser));
     return true;
   } catch (error) {
     return false;
@@ -64,6 +72,8 @@ export const updateUserPreferences = (preferences: Partial<AdminUser['preference
       ...preferences,
     },
   };
+  // Save to localStorage
+  localStorage.setItem('adminUser', JSON.stringify(globalUser));
   return { ...globalUser };
 };
 
@@ -76,4 +86,16 @@ export const updateLastLogin = (): void => {
     ...globalUser,
     lastLogin: new Date().toISOString(),
   };
+  // Save to localStorage
+  localStorage.setItem('adminUser', JSON.stringify(globalUser));
+};
+
+// New function to set initial user data during signup
+export const setInitialUserData = (userData: Partial<AdminUser>): void => {
+  globalUser = {
+    ...globalUser,
+    ...userData,
+  };
+  // Save to localStorage
+  localStorage.setItem('adminUser', JSON.stringify(globalUser));
 }; 

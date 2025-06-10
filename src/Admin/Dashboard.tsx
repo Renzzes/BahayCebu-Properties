@@ -9,10 +9,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { Checkbox } from '../components/ui/checkbox';
-import { Upload, Plus, Home, MessageSquare, Building, User, Eye, Users, FileText, Edit3, Trash2, LogOut, Camera, EyeOff, Mail, Phone, MapPin, Star, Facebook, Instagram, Linkedin, Pencil, AlertCircle } from 'lucide-react';
+import { Upload, Plus, Home, MessageSquare, Building, User, Eye, Users, FileText, Edit3, Trash2, LogOut, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin } from 'lucide-react';
 import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty } from '../data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
+import { showSuccessAlert, showErrorAlert, showConfirmationDialog, showLoadingAlert } from '@/utils/sweetAlert';
+import Swal from 'sweetalert2';
+import ImageCropper from '../components/ImageCropper';
+import PropertyGallery from '@/components/ui/PropertyGallery';
+import { cn } from '../lib/utils';
+import SearchableMultiSelect from '../components/ui/SearchableMultiSelect';
+import { 
+  UnitType, 
+  BuildingAmenity, 
+  ResidentialFeature, 
+  PropertyProvision, 
+  BuildingFeature,
+  UNIT_TYPES,
+  BUILDING_AMENITIES,
+  RESIDENTIAL_FEATURES,
+  PROPERTY_PROVISIONS,
+  BUILDING_FEATURES
+} from '../data/properties';
 
 const SPECIALIZATIONS = [
   'Residential Sales',
@@ -36,6 +54,54 @@ const SPECIALIZATIONS = [
   'Real Estate Financing Basics',
   'Real Estate Team Collaboration & Mentorship'
 ] as const;
+
+interface PropertyFormData {
+  name: string;
+  address: string;
+  location: string;
+  description: string;
+  image: string;
+  images: string[];
+  price: string;
+  units: string;
+  occupancyRate: string;
+  status: AdminProperty['status'];
+  propertyType: AdminProperty['propertyType'];
+  listingType: AdminProperty['listingType'];
+  featured: boolean;
+  videoUrl: string;
+  thumbnail: string;
+  unitTypes: string[];
+  amenities: string[];
+  residentialFeatures: string[];
+  provisions: string[];
+  buildingFeatures: string[];
+  createdAt: string;
+}
+
+const defaultFormData: PropertyFormData = {
+  name: '',
+  address: '',
+  location: '',
+  description: '',
+  image: '',
+  images: [],
+  price: '',
+  units: '',
+  occupancyRate: '',
+  status: 'Active',
+  propertyType: 'Condo',
+  listingType: 'For Sale',
+  featured: false,
+  videoUrl: '',
+  thumbnail: '',
+  unitTypes: [],
+  amenities: [],
+  residentialFeatures: [],
+  provisions: [],
+  buildingFeatures: [],
+  createdAt: new Date().toISOString()
+};
 
 const AdminDashboard = () => {
   const [selectedMenu, setSelectedMenu] = useState(() => {
@@ -92,6 +158,29 @@ const AdminDashboard = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string>('');
+
+  // Load user data when component mounts and when profile menu is selected
+  useEffect(() => {
+    const loadUserData = () => {
+      const userData = getCurrentUser();
+      setCurrentUser(userData);
+      // Update profile form with current user data
+      setProfileForm({
+        name: userData.name,
+        email: userData.email,
+        profilePicture: userData.profilePicture || ''
+      });
+      // Update password form with current password
+      setPasswordForm(prev => ({
+        ...prev,
+        currentPassword: userData.password
+      }));
+    };
+
+    loadUserData();
+  }, [selectedMenu]);
 
   // Property filtering state
   const [propertyTypeFilter, setPropertyTypeFilter] = useState<string>('all');
@@ -106,42 +195,13 @@ const AdminDashboard = () => {
 
   // Password form data
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
+    currentPassword: currentUser.password,
     newPassword: '',
     confirmPassword: ''
   });
 
-  const [newProperty, setNewProperty] = useState({
-    name: '',
-    address: '',
-    description: '',
-    image: '',
-    price: '',
-    units: '',
-    occupancyRate: '',
-    status: 'Active' as AdminProperty['status'],
-    propertyType: 'Condo' as AdminProperty['propertyType'],
-    listingType: 'For Sale' as AdminProperty['listingType'],
-    featured: false,
-    thumbnail: '',
-    videoUrl: ''
-  });
-
-  const [editProperty, setEditProperty] = useState({
-    name: '',
-    address: '',
-    description: '',
-    image: '',
-    price: '',
-    units: '',
-    occupancyRate: '',
-    status: 'Active' as AdminProperty['status'],
-    propertyType: 'Condo' as AdminProperty['propertyType'],
-    listingType: 'For Sale' as AdminProperty['listingType'],
-    featured: false,
-    videoUrl: '',
-    thumbnail: ''
-  });
+  const [newProperty, setNewProperty] = useState<PropertyFormData>(defaultFormData);
+  const [editProperty, setEditProperty] = useState<PropertyFormData>(defaultFormData);
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
@@ -216,12 +276,15 @@ const AdminDashboard = () => {
 
   const navigate = useNavigate();
 
-  const handleSignOut = () => {
-    // Handle sign out logic here
-    console.log('Signing out...');
-    // You can add logout API call or redirect logic here
-    alert('Signed out successfully!');
-    navigate('/');
+  const handleSignOut = async () => {
+    const result = await showConfirmationDialog('Sign Out', 'Are you sure you want to sign out?');
+    
+    if (result.isConfirmed) {
+      // Handle sign out logic here
+      console.log('Signing out...');
+      await showSuccessAlert('Goodbye!', 'You have been signed out successfully.');
+      navigate('/');
+    }
   };
 
   // Profile management handlers
@@ -230,14 +293,24 @@ const AdminDashboard = () => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setProfileForm(prev => ({ ...prev, profilePicture: e.target?.result as string }));
+        setTempImageSrc(e.target?.result as string);
+        setIsCropperOpen(true);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleEditProfile = () => {
-    if (profileForm.name && profileForm.email) {
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setProfileForm(prev => ({ ...prev, profilePicture: croppedImageUrl }));
+  };
+
+  const handleEditProfile = async () => {
+    if (!profileForm.name || !profileForm.email) {
+      showErrorAlert('Validation Error', 'Please fill in all required fields.');
+      return;
+    }
+
+    try {
       const updatedUser = updateUserProfile({
         name: profileForm.name,
         email: profileForm.email,
@@ -245,63 +318,73 @@ const AdminDashboard = () => {
       });
       setCurrentUser(updatedUser);
       setIsEditProfileOpen(false);
-      alert('Profile updated successfully!');
-    } else {
-      alert('Please fill in all required fields.');
+      showSuccessAlert('Profile Updated', 'Your profile has been updated successfully.');
+    } catch (error) {
+      showErrorAlert('Update Failed', 'Failed to update profile. Please try again.');
     }
-  };
-
-  const handleChangePassword = () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      alert('Please fill in all password fields.');
-      return;
-    }
-
-    if (!verifyCurrentPassword(passwordForm.currentPassword)) {
-      alert('Current password is incorrect.');
-      return;
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('New passwords do not match.');
-      return;
-    }
-
-    if (passwordForm.newPassword.length < 8) {
-      alert('New password must be at least 8 characters long.');
-      return;
-    }
-
-    const success = updateUserPassword(passwordForm.newPassword);
-    if (success) {
-      setPasswordForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setIsChangePasswordOpen(false);
-      alert('Password changed successfully!');
-    } else {
-      alert('Failed to update password. Please try again.');
-    }
-  };
-
-  const openEditProfileDialog = () => {
-    setProfileForm({
-      name: currentUser.name,
-      email: currentUser.email,
-      profilePicture: currentUser.profilePicture || ''
-    });
-    setIsEditProfileOpen(true);
   };
 
   const openChangePasswordDialog = () => {
+    const userData = getCurrentUser(); // Get latest user data
     setPasswordForm({
-      currentPassword: '',
+      currentPassword: userData.password,
       newPassword: '',
       confirmPassword: ''
     });
     setIsChangePasswordOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      showErrorAlert('Validation Error', 'Please fill in all password fields.');
+      return;
+    }
+
+    if (!verifyCurrentPassword(passwordForm.currentPassword)) {
+      showErrorAlert('Invalid Password', 'Current password is incorrect.');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      showErrorAlert('Password Mismatch', 'New passwords do not match.');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      showErrorAlert('Invalid Password', 'New password must be at least 8 characters long.');
+      return;
+    }
+
+    await showLoadingAlert('Updating password...');
+    try {
+      const success = updateUserPassword(passwordForm.newPassword);
+      if (success) {
+        setCurrentUser(getCurrentUser()); // Update the current user state
+        setPasswordForm({
+          currentPassword: passwordForm.newPassword, // Update current password to the new one
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setIsChangePasswordOpen(false);
+        await Swal.close();
+        await showSuccessAlert('Password Updated', 'Your password has been changed successfully.');
+      } else {
+        throw new Error('Failed to update password');
+      }
+    } catch (error) {
+      await Swal.close();
+      showErrorAlert('Update Failed', 'Failed to update password. Please try again.');
+    }
+  };
+
+  const openEditProfileDialog = () => {
+    const userData = getCurrentUser(); // Get latest user data
+    setProfileForm({
+      name: userData.name,
+      email: userData.email,
+      profilePicture: userData.profilePicture || ''
+    });
+    setIsEditProfileOpen(true);
   };
 
   const handlePreferenceChange = (key: keyof AdminUser['preferences'], value: boolean) => {
@@ -350,40 +433,41 @@ const AdminDashboard = () => {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (isEdit) {
-          setEditProperty(prev => ({ ...prev, image: e.target?.result as string }));
-        } else {
-          setNewProperty(prev => ({ ...prev, image: e.target?.result as string }));
-        }
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (isEdit) {
+            setEditProperty(prev => ({
+              ...prev,
+              image: e.target?.result as string, // Keep for backward compatibility
+              images: [...(prev.images || []), e.target?.result as string]
+            }));
+          } else {
+            setNewProperty(prev => ({
+              ...prev,
+              image: e.target?.result as string, // Keep for backward compatibility
+              images: [...(prev.images || []), e.target?.result as string]
+            }));
+          }
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
   const handleAddProperty = async () => {
     if (newProperty.name && newProperty.address && newProperty.units && newProperty.description) {
       try {
-        const addedProperty = await addProperty({
-          name: newProperty.name,
-          address: newProperty.address,
-          description: newProperty.description,
-          image: newProperty.image || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
+        const propertyData: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'> = {
+          ...newProperty,
           price: parseInt(newProperty.price) || 0,
-          units: parseInt(newProperty.units),
-          occupancyRate: parseInt(newProperty.occupancyRate) || 0,
-          status: newProperty.status,
-          propertyType: newProperty.propertyType,
-          listingType: newProperty.listingType,
-          featured: newProperty.featured,
-          videoUrl: newProperty.videoUrl || '',
-          thumbnail: newProperty.thumbnail || '',
-          location: newProperty.address.split(',')[0].trim(),
-          createdAt: new Date().toISOString()
-        });
+          units: parseInt(newProperty.units) || 0,
+          occupancyRate: parseInt(newProperty.occupancyRate) || 0
+        };
+
+        await addProperty(propertyData);
         
         // Update the properties state with the new data
         const updatedProperties = await getAllProperties();
@@ -391,21 +475,7 @@ const AdminDashboard = () => {
         setFilteredProperties(updatedProperties);
         
         // Reset the form
-        setNewProperty({
-          name: '',
-          address: '',
-          description: '',
-          image: '',
-          price: '',
-          units: '',
-          occupancyRate: '',
-          status: 'Active',
-          propertyType: 'Condo',
-          listingType: 'For Sale',
-          featured: false,
-          thumbnail: '',
-          videoUrl: ''
-        });
+        setNewProperty(defaultFormData);
         
         // Close the dialog and show success message
         setIsAddPropertyOpen(false);
@@ -420,52 +490,37 @@ const AdminDashboard = () => {
   };
 
   const handleEditProperty = async () => {
-    if (editingProperty && editProperty.name && editProperty.address && editProperty.units && editProperty.description) {
+    if (editProperty.name && editProperty.address && editProperty.units && editProperty.description && editingProperty) {
       try {
-        const updates = {
-          name: editProperty.name,
-          address: editProperty.address,
-          description: editProperty.description,
-          image: editProperty.image || editingProperty.image,
-          price: parseInt(editProperty.price) || editingProperty.price,
-          units: parseInt(editProperty.units),
-          occupancyRate: parseInt(editProperty.occupancyRate),
-          status: editProperty.status,
-          propertyType: editProperty.propertyType,
-          listingType: editProperty.listingType,
-          featured: editProperty.featured,
-          videoUrl: editProperty.videoUrl || '',
-          thumbnail: editProperty.thumbnail || ''
-        };
+        showLoadingAlert('Updating property...');
         
-        await updateProperty(editingProperty.id, updates);
+        const propertyData: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'> = {
+          ...editProperty,
+          price: parseInt(editProperty.price) || 0,
+          units: parseInt(editProperty.units) || 0,
+          occupancyRate: parseInt(editProperty.occupancyRate) || 0,
+          videoUrl: editProperty.videoUrl || '' // Ensure videoUrl is included
+        };
+
+        await updateProperty(editingProperty.id, propertyData);
+        
+        // Update the properties state with the new data
         const updatedProperties = await getAllProperties();
         setProperties(updatedProperties);
         setFilteredProperties(updatedProperties);
         
-        setEditingProperty(null);
-        setEditProperty({
-          name: '',
-          address: '',
-          description: '',
-          image: '',
-          price: '',
-          units: '',
-          occupancyRate: '',
-          status: 'Active',
-          propertyType: 'Condo',
-          listingType: 'For Sale',
-          featured: false,
-          videoUrl: '',
-          thumbnail: ''
-        });
+        // Reset the form and close dialog
+        setEditProperty(defaultFormData);
         setIsEditPropertyOpen(false);
+
+        // Show success message
+        showSuccessAlert('Success!', 'Property has been updated successfully');
       } catch (error) {
         console.error('Error updating property:', error);
-        alert('Failed to update property. Please try again.');
+        showErrorAlert('Error!', 'Failed to update property. Please try again.');
       }
     } else {
-      alert('Please fill in all required fields.');
+      showErrorAlert('Warning!', 'Please fill in all required fields.');
     }
   };
 
@@ -487,8 +542,10 @@ const AdminDashboard = () => {
     setEditProperty({
       name: property.name,
       address: property.address,
+      location: property.location,
       description: property.description,
       image: property.image,
+      images: property.images || [],
       price: property.price.toString(),
       units: property.units.toString(),
       occupancyRate: property.occupancyRate.toString(),
@@ -497,7 +554,13 @@ const AdminDashboard = () => {
       listingType: property.listingType,
       featured: property.featured || false,
       videoUrl: property.videoUrl || '',
-      thumbnail: property.thumbnail || ''
+      thumbnail: property.thumbnail || '',
+      unitTypes: property.unitTypes || [],
+      amenities: property.amenities || [],
+      residentialFeatures: property.residentialFeatures || [],
+      provisions: property.provisions || [],
+      buildingFeatures: property.buildingFeatures || [],
+      createdAt: property.createdAt
     });
     setIsEditPropertyOpen(true);
   };
@@ -710,69 +773,29 @@ const AdminDashboard = () => {
 
   const handleEditAgent = async () => {
     if (!editingAgent) {
-      alert('No agent selected for editing');
+      showErrorAlert('Error', 'No agent selected for editing');
       return;
     }
 
-    // Since we've checked editingAgent is not null, we can safely use it
-    const agent = editingAgent;
-
     try {
-      // Validate required fields
-      if (!agent.name?.trim()) {
-        alert('Please enter the agent\'s name');
-        return;
-      }
-      if (!agent.title?.trim()) {
-        alert('Please enter the agent\'s title');
-        return;
-      }
-      if (!agent.email?.trim()) {
-        alert('Please enter the agent\'s email');
-        return;
-      }
-      if (!agent.phone?.trim()) {
-        alert('Please enter the agent\'s phone number');
-        return;
-      }
-      if (!agent.location?.trim()) {
-        alert('Please enter the agent\'s location');
-        return;
-      }
-      if (!agent.description?.trim()) {
-        alert('Please enter the agent\'s description');
-        return;
-      }
-      if (!agent.specializations?.length) {
-        alert('Please select at least one specialization');
-        return;
-      }
-
-      // Show loading state
       setIsLoadingAgents(true);
+      await showLoadingAlert('Updating agent...');
 
-      // Prepare the update data
+      // Prepare update data
       const updateData = {
-        name: agent.name.trim(),
-        title: agent.title.trim(),
-        email: agent.email.trim(),
-        phone: agent.phone.trim(),
-        location: agent.location.trim(),
-        description: agent.description.trim(),
-        specializations: agent.specializations || [],
-        listings: typeof agent.listings === 'number' ? agent.listings : 0,
-        deals: typeof agent.deals === 'number' ? agent.deals : 0,
-        rating: typeof agent.rating === 'number' ? agent.rating : 0,
-        image: agent.image || null,
-        socialMedia: {
-          facebook: agent.socialMedia?.facebook || '',
-          instagram: agent.socialMedia?.instagram || '',
-          linkedin: agent.socialMedia?.linkedin || ''
-        }
+        name: editingAgent.name,
+        email: editingAgent.email,
+        phone: editingAgent.phone,
+        title: editingAgent.title,
+        location: editingAgent.location,
+        description: editingAgent.description,
+        specializations: editingAgent.specializations,
+        image: editingAgent.image,
+        socialMedia: editingAgent.socialMedia
       };
 
       // Update the agent
-      await updateAgent(agent.id, updateData);
+      await updateAgent(editingAgent.id, updateData);
       
       // Reload the agents list
       await loadAgents();
@@ -781,17 +804,19 @@ const AdminDashboard = () => {
       setIsEditAgentOpen(false);
       setEditingAgent(null);
       
-      alert('Agent updated successfully!');
+      await Swal.close();
+      await showSuccessAlert('Agent Updated', 'Agent information has been updated successfully.');
     } catch (error) {
       console.error('Error updating agent:', error);
+      await Swal.close();
       if (error instanceof Error) {
         if (error.message.includes('email already exists')) {
-          alert('An agent with this email address already exists. Please use a different email.');
+          showErrorAlert('Update Failed', 'An agent with this email address already exists. Please use a different email.');
         } else {
-          alert(`Failed to update agent: ${error.message}`);
+          showErrorAlert('Update Failed', `Failed to update agent: ${error.message}`);
         }
       } else {
-        alert('Failed to update agent. Please try again.');
+        showErrorAlert('Update Failed', 'Failed to update agent. Please try again.');
       }
     } finally {
       setIsLoadingAgents(false);
@@ -1086,29 +1111,53 @@ const AdminDashboard = () => {
                     
                     {/* Property Image */}
                     <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Image</h3>
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Images</h3>
                       <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                        {editProperty.image ? (
+                        {(editProperty.images?.length ?? 0) > 0 ? (
                           <div className="space-y-6">
-                            <img src={editProperty.image} alt="Preview" className="max-h-64 mx-auto rounded-2xl shadow-lg object-cover" />
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setEditProperty(prev => ({ ...prev, image: '' }))}
-                              className="border-gray-300 text-gray-600 hover:bg-gray-100 rounded-xl"
-                            >
-                              Remove Image
-                            </Button>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {editProperty.images?.map((img, index) => (
+                                <div key={index} className="relative group">
+                                  <img src={img} alt={`Preview ${index + 1}`} className="h-40 w-full object-cover rounded-lg shadow-md" />
+                                  <button 
+                                    onClick={() => setEditProperty(prev => ({
+                                      ...prev,
+                                      images: prev.images?.filter((_, i) => i !== index) || [],
+                                      image: index === 0 ? prev.images?.[1] || '' : prev.image
+                                    }))}
+                                    className="absolute top-2 right-2 bg-white/90 text-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <Label htmlFor="edit-image-upload" className="cursor-pointer">
+                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Add More Images</span>
+                                <Input
+                                  id="edit-image-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => handleImageUpload(e, true)}
+                                  className="hidden"
+                                />
+                              </Label>
+                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
+                            </div>
                           </div>
                         ) : (
                           <div className="space-y-6">
                             <Upload className="mx-auto h-16 w-16 text-gray-400" />
                             <div>
                               <Label htmlFor="edit-image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Image</span>
+                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Images</span>
                                 <Input
                                   id="edit-image-upload"
                                   type="file"
                                   accept="image/*"
+                                  multiple
                                   onChange={(e) => handleImageUpload(e, true)}
                                   className="hidden"
                                 />
@@ -1131,10 +1180,10 @@ const AdminDashboard = () => {
                             type="url"
                             value={editProperty.videoUrl || ''}
                             onChange={(e) => setEditProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
-                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                            placeholder="Enter YouTube or Vimeo video URL"
                             className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
                           />
-                          <p className="text-sm text-gray-500">Paste a YouTube or Vimeo video URL</p>
+                          <p className="text-sm text-gray-500">Add a video URL from YouTube or Vimeo</p>
                         </div>
                         <div className="space-y-3">
                           <Label htmlFor="edit-thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
@@ -1149,6 +1198,71 @@ const AdminDashboard = () => {
                           <p className="text-sm text-gray-500">URL for video thumbnail image</p>
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Unit Types */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Unit Types</h3>
+                      <SearchableMultiSelect
+                        options={UNIT_TYPES}
+                        selectedValues={editProperty.unitTypes}
+                        onChange={(values) => {
+                          setEditProperty(prev => ({ ...prev, unitTypes: values as UnitType[] }));
+                        }}
+                        placeholder="Select unit types..."
+                      />
+                    </div>
+
+                    {/* Building Amenities */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
+                      <SearchableMultiSelect
+                        options={BUILDING_AMENITIES}
+                        selectedValues={editProperty.amenities}
+                        onChange={(values) => {
+                          setEditProperty(prev => ({ ...prev, amenities: values as BuildingAmenity[] }));
+                        }}
+                        placeholder="Select amenities..."
+                      />
+                    </div>
+
+                    {/* Residential Features */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
+                      <SearchableMultiSelect
+                        options={RESIDENTIAL_FEATURES}
+                        selectedValues={editProperty.residentialFeatures}
+                        onChange={(values) => {
+                          setEditProperty(prev => ({ ...prev, residentialFeatures: values as ResidentialFeature[] }));
+                        }}
+                        placeholder="Select residential features..."
+                      />
+                    </div>
+
+                    {/* Provisions */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
+                      <SearchableMultiSelect
+                        options={PROPERTY_PROVISIONS}
+                        selectedValues={editProperty.provisions}
+                        onChange={(values) => {
+                          setEditProperty(prev => ({ ...prev, provisions: values as PropertyProvision[] }));
+                        }}
+                        placeholder="Select provisions..."
+                      />
+                    </div>
+
+                    {/* Building Features */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
+                      <SearchableMultiSelect
+                        options={BUILDING_FEATURES}
+                        selectedValues={editProperty.buildingFeatures}
+                        onChange={(values) => {
+                          setEditProperty(prev => ({ ...prev, buildingFeatures: values as BuildingFeature[] }));
+                        }}
+                        placeholder="Select building features..."
+                      />
                     </div>
                     
                     {/* Action Buttons */}
@@ -1167,6 +1281,31 @@ const AdminDashboard = () => {
                         Update Property
                       </Button>
                     </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* Delete Property Dialog */}
+              <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Delete Property</DialogTitle>
+                    <p className="text-bahayCebu-darkGray/60 mt-2">Are you sure you want to delete this property? This action cannot be undone.</p>
+                  </DialogHeader>
+                  <div className="flex justify-end space-x-4 pt-6">
+                    <Button 
+                      variant="outline" 
+                      className="px-6 py-2 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      onClick={() => setIsDeleteDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={() => editingProperty && handleDeleteProperty(editingProperty.id)}
+                      className="px-6 py-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white shadow-lg rounded-xl"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -1248,167 +1387,223 @@ const AdminDashboard = () => {
                 </Card>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 gap-6">
                     {currentProperties.map((property) => (
-                      <Card key={property.id} className="overflow-hidden border-0 shadow-md bg-white rounded-2xl">
-                        <div className="aspect-[4/3] relative overflow-hidden rounded-t-2xl">
-                          <img
-                            src={property.image}
-                            alt={property.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center';
-                            }}
-                          />
-                          
-                          {/* Price Badge on Image */}
-                          <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md border border-white/20 px-3 py-2 rounded-xl shadow-lg">
-                            <div className="text-lg font-bold text-bahayCebu-green">₱{property.price.toLocaleString()}</div>
-                          </div>
-                          
-                          {/* Action Buttons */}
-                          <div className="absolute top-4 right-4 flex space-x-2">
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-10 w-10 p-0 bg-white/95 hover:bg-white hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
-                              onClick={() => openEditDialog(property)}
+                      <Card key={property.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                        <div className="flex flex-col md:flex-row">
+                          {/* Property Image - Left Side */}
+                          <div className="relative w-full md:w-1/3">
+                            <PropertyGallery 
+                              images={property.images?.length ? property.images : [property.image]} 
+                              className="h-full object-cover"
+                            />
+                            <Badge 
+                              variant="outline" 
+                              className={cn(
+                                "absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-medium",
+                                getStatusColor(property.status)
+                              )}
                             >
-                              <Edit3 className="h-4 w-4 text-bahayCebu-green" />
-                            </Button>
-                            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-                              <DialogTrigger asChild>
+                              {property.status}
+                            </Badge>
+                            {property.featured && (
+                              <Badge 
+                                variant="outline" 
+                                className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-medium bg-bahayCebu-terracotta/10 text-bahayCebu-terracotta border-bahayCebu-terracotta/20"
+                              >
+                                Featured
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Property Content - Right Side */}
+                          <div className="flex-1 md:max-h-[600px] md:overflow-y-auto">
+                            <CardContent className="p-6 space-y-6">
+                              <div className="space-y-4">
+                                {/* Property Name and Status */}
+                                <div>
+                                  <h3 className="font-serif font-bold text-xl text-bahayCebu-darkGray mb-2">{property.name}</h3>
+                                  <div className="flex items-center gap-2">
+                                    <Badge className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20 font-medium px-3 py-1 text-xs rounded-full">
+                                      {property.propertyType}
+                                    </Badge>
+                                    <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-medium px-3 py-1 text-xs rounded-full">
+                                      {property.listingType}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Location and Address */}
+                                <div className="space-y-2">
+                                  <div className="flex items-start gap-2">
+                                    <MapPin className="h-4 w-4 text-bahayCebu-green mt-1" />
+                                    <div>
+                                      <p className="text-bahayCebu-darkGray font-medium">{property.location}</p>
+                                      <p className="text-bahayCebu-darkGray/70 text-sm">{property.address}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Description */}
+                                <div className="text-bahayCebu-darkGray/60 text-sm leading-relaxed">
+                                  <p>
+                                    {expandedDescriptions.has(property.id) 
+                                      ? property.description 
+                                      : truncateDescription(property.description, 100)}
+                                  </p>
+                                  {property.description.length > 100 && (
+                                    <button
+                                      onClick={() => toggleDescription(property.id)}
+                                      className="text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium mt-1 transition-colors"
+                                    >
+                                      {expandedDescriptions.has(property.id) ? 'Show less' : 'Read more'}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Property Details */}
+                                <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
+                                  <div className="space-y-3">
+                                    <div>
+                                      <p className="text-xs text-gray-500">Price</p>
+                                      <p className="font-bold text-bahayCebu-green">₱{parseInt(property.price.toString()).toLocaleString()}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500">Total Units</p>
+                                      <p className="font-bold text-bahayCebu-darkGray">{property.units}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500">Occupancy Rate</p>
+                                      <p className="font-bold text-bahayCebu-darkGray">{property.occupancyRate}%</p>
+                                    </div>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <p className="text-xs text-gray-500">Created</p>
+                                      <p className="font-medium text-bahayCebu-darkGray">{new Date(property.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div>
+                                      <p className="text-xs text-gray-500">Last Updated</p>
+                                      <p className="font-medium text-bahayCebu-darkGray">{property.lastUpdated}</p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Features and Amenities */}
+                                <div className="space-y-3">
+                                  {property.unitTypes && property.unitTypes.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-2">Unit Types</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {property.unitTypes.map((type, index) => (
+                                          <Badge key={index} variant="outline" className="bg-gray-50">
+                                            {type}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {property.amenities && property.amenities.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-2">Amenities</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {property.amenities.map((amenity, index) => (
+                                          <Badge key={index} variant="outline" className="bg-gray-50">
+                                            {amenity}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {property.residentialFeatures && property.residentialFeatures.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-2">Residential Features</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {property.residentialFeatures.map((feature, index) => (
+                                          <Badge key={index} variant="outline" className="bg-gray-50">
+                                            {feature}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {property.buildingFeatures && property.buildingFeatures.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-2">Building Features</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {property.buildingFeatures.map((feature, index) => (
+                                          <Badge key={index} variant="outline" className="bg-gray-50">
+                                            {feature}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {property.provisions && property.provisions.length > 0 && (
+                                    <div>
+                                      <p className="text-xs text-gray-500 mb-2">Provisions</p>
+                                      <div className="flex flex-wrap gap-2">
+                                        {property.provisions.map((provision, index) => (
+                                          <Badge key={index} variant="outline" className="bg-gray-50">
+                                            {provision}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Performance Stats */}
+                                <div>
+                                  <div className="text-center mb-3">
+                                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">30-Day Performance</span>
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-3 text-center">
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-gray-500">Views</div>
+                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.views.toLocaleString()}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-gray-500">Leads</div>
+                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.leads}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                      <div className="text-xs text-gray-500">Applications</div>
+                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.applications}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Card Actions */}
+                              <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 flex items-center justify-center gap-2 border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green/10"
+                                  onClick={() => openEditDialog(property)}
+                                >
+                                  <Edit3 className="h-4 w-4" />
+                                  <span>Edit</span>
+                                </Button>
                                 <Button
                                   variant="destructive"
-                                  size="sm"
-                                  className="h-10 w-10 p-0 bg-bahayCebu-terracotta/95 hover:bg-bahayCebu-terracotta hover:scale-110 transition-all duration-300 shadow-xl backdrop-blur-md border-0 rounded-xl"
+                                  className="flex-1 flex items-center justify-center gap-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90"
+                                  onClick={() => {
+                                    setEditingProperty(property);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                  <span>Delete</span>
                                 </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-                                <DialogHeader>
-                                  <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Delete Property</DialogTitle>
-                                  <p className="text-bahayCebu-darkGray/60 mt-2">Are you sure you want to delete this property? This action cannot be undone.</p>
-                                </DialogHeader>
-                                <div className="flex justify-end space-x-4 pt-6">
-                                  <Button 
-                                    variant="outline" 
-                                    className="px-6 py-2 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
-                                    onClick={() => setIsDeleteDialogOpen(false)}
-                                  >
-                                    Cancel
-                                  </Button>
-                                  <Button 
-                                    onClick={() => {
-                                      handleDeleteProperty(property.id);
-                                      setIsDeleteDialogOpen(false);
-                                    }}
-                                    className="px-6 py-2 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white shadow-lg rounded-xl"
-                                  >
-                                    Delete Property
-                                  </Button>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
+                              </div>
+                            </CardContent>
                           </div>
                         </div>
-
-                        <CardHeader className="p-6 pb-4">
-                          <div className="space-y-4">
-                            {/* Property Name */}
-                            <div>
-                              <h3 className="font-serif font-bold text-xl text-bahayCebu-darkGray mb-2 line-clamp-1">{property.name}</h3>
-                            </div>
-
-                            {/* Category Badges */}
-                            <div className="flex items-center gap-2">
-                              <Badge className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20 font-medium px-3 py-1 text-xs rounded-full">
-                                {property.propertyType}
-                              </Badge>
-                              <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-medium px-3 py-1 text-xs rounded-full">
-                                {property.listingType}
-                              </Badge>
-                            </div>
-
-                            {/* Status Badge */}
-                            <div className="flex justify-between items-center">
-                              <Badge className={`${getStatusColor(property.status)} font-medium px-3 py-1 rounded-full border text-xs`}>
-                                {property.status}
-                              </Badge>
-                              <span className="text-gray-400 text-xs">Updated {property.lastUpdated}</span>
-                            </div>
-
-                            {/* Address */}
-                            <div className="space-y-2">
-                              <p className="text-bahayCebu-darkGray/70 text-sm line-clamp-1">{property.address}</p>
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                              <div className="text-bahayCebu-darkGray/60 text-xs leading-relaxed">
-                                <p>
-                                  {expandedDescriptions.has(property.id) 
-                                    ? property.description 
-                                    : truncateDescription(property.description, 80)}
-                                </p>
-                                {property.description.length > 80 && (
-                                  <button
-                                    onClick={() => toggleDescription(property.id)}
-                                    className="text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium mt-1 transition-colors"
-                                  >
-                                    {expandedDescriptions.has(property.id) ? 'Show less' : 'Read more'}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
-
-                        <CardContent className="px-6 pb-6 space-y-4">
-                          {/* Property Stats */}
-                          <div className="flex items-center justify-between text-sm bg-gray-50 rounded-xl p-3">
-                            <div className="text-center">
-                              <div className="font-bold text-bahayCebu-darkGray">{property.units}</div>
-                              <div className="text-gray-500 text-xs">Units</div>
-                            </div>
-                            <div className="w-px h-6 bg-gray-200"></div>
-                            <div className="text-center">
-                              <div className="font-bold text-bahayCebu-green">{property.occupancyRate}%</div>
-                              <div className="text-gray-500 text-xs">Occupied</div>
-                            </div>
-                          </div>
-                          
-                          {/* View Listing Button */}
-                          <Button 
-                            variant="outline" 
-                            className="w-full border-2 border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white transition-all duration-300 rounded-xl h-10 font-medium text-sm"
-                            onClick={() => navigate(`/property/${property.id}`)}
-                          >
-                            View Listing Details
-                          </Button>
-                          
-                          {/* Performance Stats */}
-                          <div className="border-t border-gray-100 pt-4">
-                            <div className="text-center mb-3">
-                              <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">30-Day Performance</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-3 text-center">
-                              <div className="space-y-1">
-                                <div className="text-xs text-gray-500">Views</div>
-                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.views.toLocaleString()}</div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="text-xs text-gray-500">Leads</div>
-                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.leads}</div>
-                              </div>
-                              <div className="space-y-1">
-                                <div className="text-xs text-gray-500">Applications</div>
-                                <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.applications}</div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
                       </Card>
                     ))}
                   </div>
@@ -1614,29 +1809,53 @@ const AdminDashboard = () => {
                     
                     {/* Property Image */}
                     <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Image</h3>
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Images</h3>
                       <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                        {newProperty.image ? (
+                        {(newProperty.images?.length ?? 0) > 0 ? (
                           <div className="space-y-6">
-                            <img src={newProperty.image} alt="Preview" className="max-h-64 mx-auto rounded-2xl shadow-lg object-cover" />
-                            <Button 
-                              variant="outline" 
-                              onClick={() => setNewProperty(prev => ({ ...prev, image: '' }))}
-                              className="border-gray-300 text-gray-600 hover:bg-gray-100 rounded-xl"
-                            >
-                              Remove Image
-                            </Button>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {newProperty.images?.map((img, index) => (
+                                <div key={index} className="relative group">
+                                  <img src={img} alt={`Preview ${index + 1}`} className="h-40 w-full object-cover rounded-lg shadow-md" />
+                                  <button 
+                                    onClick={() => setNewProperty(prev => ({
+                                      ...prev,
+                                      images: prev.images?.filter((_, i) => i !== index) || [],
+                                      image: index === 0 ? prev.images?.[1] || '' : prev.image
+                                    }))}
+                                    className="absolute top-2 right-2 bg-white/90 text-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            <div>
+                              <Label htmlFor="image-upload" className="cursor-pointer">
+                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Add More Images</span>
+                                <Input
+                                  id="image-upload"
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => handleImageUpload(e, false)}
+                                  className="hidden"
+                                />
+                              </Label>
+                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
+                            </div>
                           </div>
                         ) : (
                           <div className="space-y-6">
                             <Upload className="mx-auto h-16 w-16 text-gray-400" />
                             <div>
                               <Label htmlFor="image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Image</span>
+                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Images</span>
                                 <Input
                                   id="image-upload"
                                   type="file"
                                   accept="image/*"
+                                  multiple
                                   onChange={(e) => handleImageUpload(e, false)}
                                   className="hidden"
                                 />
@@ -1653,16 +1872,16 @@ const AdminDashboard = () => {
                       <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-indigo-500 pl-4">Video Information</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
-                          <Label htmlFor="video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
+                          <Label htmlFor="add-video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
                           <Input
-                            id="video-url"
+                            id="add-video-url"
                             type="url"
                             value={newProperty.videoUrl || ''}
                             onChange={(e) => setNewProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
-                            placeholder="Enter video URL (YouTube, Vimeo, etc.)"
+                            placeholder="Enter YouTube or Vimeo video URL"
                             className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
                           />
-                          <p className="text-sm text-gray-500">Paste a YouTube or Vimeo video URL</p>
+                          <p className="text-sm text-gray-500">Add a video URL from YouTube or Vimeo</p>
                         </div>
                         <div className="space-y-3">
                           <Label htmlFor="thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
@@ -1677,6 +1896,71 @@ const AdminDashboard = () => {
                           <p className="text-sm text-gray-500">URL for video thumbnail image</p>
                         </div>
                       </div>
+                    </div>
+                    
+                    {/* Unit Types */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Unit Types</h3>
+                      <SearchableMultiSelect
+                        options={UNIT_TYPES}
+                        selectedValues={newProperty.unitTypes}
+                        onChange={(values) => {
+                          setNewProperty(prev => ({ ...prev, unitTypes: values as UnitType[] }));
+                        }}
+                        placeholder="Select unit types..."
+                      />
+                    </div>
+
+                    {/* Building Amenities */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
+                      <SearchableMultiSelect
+                        options={BUILDING_AMENITIES}
+                        selectedValues={newProperty.amenities}
+                        onChange={(values) => {
+                          setNewProperty(prev => ({ ...prev, amenities: values as BuildingAmenity[] }));
+                        }}
+                        placeholder="Select amenities..."
+                      />
+                    </div>
+
+                    {/* Residential Features */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
+                      <SearchableMultiSelect
+                        options={RESIDENTIAL_FEATURES}
+                        selectedValues={newProperty.residentialFeatures}
+                        onChange={(values) => {
+                          setNewProperty(prev => ({ ...prev, residentialFeatures: values as ResidentialFeature[] }));
+                        }}
+                        placeholder="Select residential features..."
+                      />
+                    </div>
+
+                    {/* Provisions */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
+                      <SearchableMultiSelect
+                        options={PROPERTY_PROVISIONS}
+                        selectedValues={newProperty.provisions}
+                        onChange={(values) => {
+                          setNewProperty(prev => ({ ...prev, provisions: values as PropertyProvision[] }));
+                        }}
+                        placeholder="Select provisions..."
+                      />
+                    </div>
+
+                    {/* Building Features */}
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
+                      <SearchableMultiSelect
+                        options={BUILDING_FEATURES}
+                        selectedValues={newProperty.buildingFeatures}
+                        onChange={(values) => {
+                          setNewProperty(prev => ({ ...prev, buildingFeatures: values as BuildingFeature[] }));
+                        }}
+                        placeholder="Select building features..."
+                      />
                     </div>
                     
                     {/* Action Buttons */}
@@ -1853,17 +2137,17 @@ const AdminDashboard = () => {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center space-x-4">
-                      {currentUser.profilePicture ? (
-                        <img 
-                          src={currentUser.profilePicture} 
-                          alt="Profile" 
-                          className="w-16 h-16 rounded-full object-cover border-2 border-bahayCebu-green/20"
-                        />
-                      ) : (
-                        <div className="w-16 h-16 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
-                          <User className="h-8 w-8 text-white" />
-                        </div>
-                      )}
+                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {currentUser.profilePicture ? (
+                          <img 
+                            src={currentUser.profilePicture} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <User className="h-8 w-8 text-gray-400" />
+                        )}
+                      </div>
                       <div>
                         <h4 className="font-medium text-bahayCebu-darkGray">{currentUser.name}</h4>
                         <p className="text-sm text-bahayCebu-darkGray/60">{currentUser.email}</p>
@@ -2067,9 +2351,13 @@ const AdminDashboard = () => {
                                 href={agent.socialMedia.facebook}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-700"
+                                className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-blue-50 hover:bg-blue-100 transition-all duration-300 transform hover:scale-110"
+                                title="Facebook Profile"
                               >
-                                <Facebook className="h-5 w-5" />
+                                <Facebook className="h-5 w-5 text-blue-600 group-hover:text-blue-700" />
+                                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                  Facebook
+                                </span>
                               </a>
                             )}
                             {agent?.socialMedia?.instagram && (
@@ -2077,9 +2365,13 @@ const AdminDashboard = () => {
                                 href={agent.socialMedia.instagram}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-pink-600 hover:text-pink-700"
+                                className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-pink-50 hover:bg-pink-100 transition-all duration-300 transform hover:scale-110"
+                                title="Instagram Profile"
                               >
-                                <Instagram className="h-5 w-5" />
+                                <Instagram className="h-5 w-5 text-pink-600 group-hover:text-pink-700" />
+                                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                  Instagram
+                                </span>
                               </a>
                             )}
                             {agent?.socialMedia?.linkedin && (
@@ -2087,9 +2379,13 @@ const AdminDashboard = () => {
                                 href={agent.socialMedia.linkedin}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-700 hover:text-blue-800"
+                                className="group relative flex items-center justify-center w-10 h-10 rounded-full bg-blue-50 hover:bg-blue-100 transition-all duration-300 transform hover:scale-110"
+                                title="LinkedIn Profile"
                               >
-                                <Linkedin className="h-5 w-5" />
+                                <Linkedin className="h-5 w-5 text-blue-700 group-hover:text-blue-800" />
+                                <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                                  LinkedIn
+                                </span>
                               </a>
                             )}
                           </div>
@@ -2156,17 +2452,17 @@ const AdminDashboard = () => {
             <div className="space-y-2">
               <Label className="text-bahayCebu-darkGray font-medium">Profile Picture</Label>
               <div className="flex items-center space-x-6">
-                {profileForm.profilePicture ? (
-                  <img 
-                    src={profileForm.profilePicture} 
-                    alt="Profile Preview" 
-                    className="w-24 h-24 rounded-full object-cover border-2 border-bahayCebu-green/20"
-                  />
-                ) : (
-                  <div className="w-24 h-24 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
-                    <User className="h-12 w-12 text-white" />
-                  </div>
-                )}
+                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                  {profileForm.profilePicture ? (
+                    <img 
+                      src={profileForm.profilePicture} 
+                      alt="Profile Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-12 w-12 text-gray-400" />
+                  )}
+                </div>
                 <div className="flex-1">
                   <div className="border-2 border-dashed border-bahayCebu-green/30 rounded-xl p-6 text-center bg-bahayCebu-green/5 hover:bg-bahayCebu-green/10 transition-colors">
                     {profileForm.profilePicture ? (
@@ -2277,6 +2573,7 @@ const AdminDashboard = () => {
                   onChange={(e) => setPasswordForm(prev => ({ ...prev, currentPassword: e.target.value }))}
                   placeholder="Enter current password"
                   className="border-bahayCebu-green/20 focus:border-bahayCebu-green pr-10"
+                  readOnly
                 />
                 <button
                   type="button"
@@ -2611,7 +2908,10 @@ const AdminDashboard = () => {
                 </Button>
                 <Button
                   type="button"
-                  onClick={handleEditAgent}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleEditAgent();
+                  }}
                   className="h-12 px-8 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white"
                 >
                   Save Changes
@@ -2888,6 +3188,12 @@ const AdminDashboard = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <ImageCropper
+        isOpen={isCropperOpen}
+        onClose={() => setIsCropperOpen(false)}
+        imageSrc={tempImageSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 };

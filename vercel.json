@@ -14,11 +14,19 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/api/$1"
+      "dest": "/api/$1.ts"
     },
     {
-      "src": "/(.*)",
-      "dest": "/$1"
+      "src": "^/assets/(.*)",
+      "dest": "/assets/$1"
+    },
+    {
+      "src": "^/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": ".*",
+      "dest": "/index.html"
     }
   ]
 } 

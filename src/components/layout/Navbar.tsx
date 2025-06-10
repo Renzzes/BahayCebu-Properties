@@ -24,6 +24,9 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { showSuccessAlert, showErrorAlert, showLoadingAlert, showToast } from '@/utils/sweetAlert';
+import Swal from 'sweetalert2';
+import { setInitialUserData } from '@/data/userData';
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -82,54 +85,164 @@ const Navbar: React.FC = () => {
   });
 
   const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
-    console.log('Login submitted with values:', values); // Debug log
+    console.log('Login submitted with values:', values);
+    Swal.fire({
+      title: 'Logging in...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      willOpen: () => {
+        Swal.showLoading();
+      },
+      didOpen: () => {
+        handleLoginRequest(values);
+      }
+    });
+  };
+
+  const handleLoginRequest = async (values: z.infer<typeof loginSchema>) => {
     try {
-      const res = await fetch('/api/login', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-        credentials: 'include',
+        body: JSON.stringify(values)
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-      alert('Login successful!');
-      setIsAuthDialogOpen(false);
-      navigate('/admin');
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(err.message);
-      } else {
-        alert('An unknown error occurred.');
+
+      const responseText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid response from server');
       }
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Close loading alert
+      Swal.close();
+      
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login Successful!',
+        text: 'Welcome back!',
+        timer: 1500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        willClose: () => {
+          setIsAuthDialogOpen(false);
+          navigate('/admin');
+        }
+      });
+    } catch (err: unknown) {
+      console.error('Login error:', err);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: err instanceof Error ? err.message : 'An unknown error occurred.',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      loginForm.reset();
     }
   };
 
   const onSignupSubmit = async (values: z.infer<typeof signupSchema>) => {
-    console.log('Signup submitted with values:', values); // Explicit debug log
+    console.log('Signup submitted with values:', values);
+    Swal.fire({
+      title: 'Creating account...',
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      willOpen: () => {
+        Swal.showLoading();
+      },
+      didOpen: () => {
+        handleSignupRequest(values);
+      }
+    });
+  };
+
+  const handleSignupRequest = async (values: z.infer<typeof signupSchema>) => {
     try {
-      const res = await fetch('/api/signup', {
+      console.log('Sending signup request with values:', {
+        name: values.name,
+        email: values.email,
+        passwordLength: values.password.length
+      });
+
+      const res = await fetch('http://localhost:4000/api/auth/signup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           name: values.name,
           email: values.email,
           password: values.password,
-        }),
-        credentials: 'include',
+        })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Signup failed');
-      alert('Signup successful! You can now log in.');
-      setIsAuthDialogOpen(false);
-      signupForm.reset();
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        alert(err.message);
-        signupForm.reset(); // Clear form on error (e.g., "Email already exists")
-      } else {
-        alert('An unknown error occurred.');
-        signupForm.reset();
+
+      let data;
+      const responseText = await res.text();
+      console.log('Raw server response:', responseText);
+      
+      try {
+        data = JSON.parse(responseText);
+        console.log('Parsed server response:', data);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid response from server');
       }
+
+      if (!res.ok) {
+        throw new Error(data.message || data.error || 'Signup failed');
+      }
+
+      // Save user data
+      setInitialUserData({
+        name: values.name,
+        email: values.email,
+        password: values.password,
+      });
+
+      // Close loading alert
+      Swal.close();
+      
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Account Created Successfully!',
+        text: 'You can now log in to your account.',
+        timer: 1500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+        willClose: () => {
+          setIsAuthDialogOpen(false);
+          signupForm.reset();
+          setAuthMode('login');
+        }
+      });
+    } catch (err: unknown) {
+      console.error('Signup error:', err);
+      let errorMessage = 'An unknown error occurred.';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        errorMessage = String(err.message);
+      }
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Signup Failed',
+        text: errorMessage,
+        timer: 3000,
+        showConfirmButton: true
+      });
+      signupForm.reset();
     }
   };
 

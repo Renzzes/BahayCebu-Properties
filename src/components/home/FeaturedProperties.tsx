@@ -9,11 +9,11 @@ const FeaturedProperties: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFeatured = () => {
+    const fetchFeatured = async () => {
       setLoading(true);
       try {
         // Get featured properties from the centralized property management system
-        const featured = getFeaturedPropertiesAsPropertyType();
+        const featured = await getFeaturedPropertiesAsPropertyType();
         setFeaturedProperties(featured);
       } catch (err) {
         setFeaturedProperties([]);

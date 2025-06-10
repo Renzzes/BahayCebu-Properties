@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AgentProvider } from "@/contexts/AgentContext";
 import ChatwayWidget from "@/components/ChatwayWidget";
 
@@ -33,6 +33,15 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen">{children}</div>
 );
 
+// Component to handle conditional rendering of ChatwayWidget
+const ChatwayWidgetWrapper = () => {
+  const location = useLocation();
+  if (location.pathname.startsWith('/admin')) {
+    return null;
+  }
+  return <ChatwayWidget />;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -45,13 +54,13 @@ const App = () => {
               <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
               <Route path="/about" element={<MainLayout><About /></MainLayout>} />
               <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
-              <Route path="/admin/*" element={<AdminDashboard />} />
+              <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
               <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
             </Routes>
+            <ChatwayWidgetWrapper />
+            <Toaster />
+            <Sonner />
           </BrowserRouter>
-          <Toaster />
-          <Sonner />
-          <ChatwayWidget />
         </AgentProvider>
       </TooltipProvider>
     </QueryClientProvider>

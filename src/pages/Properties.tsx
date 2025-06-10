@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import PropertyCard, { PropertyType } from '@/components/properties/PropertyCard';
+import PropertyCard from '@/components/properties/PropertyCard';
 import PropertyFilter, { FilterValues } from '@/components/properties/PropertyFilter';
-import { getAllPropertiesAsPropertyType } from '@/data/properties';
+import { getAllPropertiesAsPropertyType, PropertyType } from '@/data/properties';
 
 const Properties: React.FC = () => {
   const [searchParams] = useSearchParams();

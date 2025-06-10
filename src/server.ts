@@ -12,12 +12,17 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 const corsOptions = {
-	origin: ["http://localhost:8080", "http://localhost:3000"], // Allow both development and production URLs
+	origin: ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"], // Allow Vite's default port
 	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+	allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
 	optionsSuccessStatus: 200,
 };
 
 app.use(cors(corsOptions));
+
+// Enable pre-flight requests for all routes
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -60,35 +65,197 @@ app.get("/api/properties/:id", async (req: Request, res: Response) => {
 	}
 });
 
-app.post("/api/signup", async (req: Request, res: Response) => {
+// Signup endpoint
+app.post("/api/auth/signup", async (req: Request, res: Response) => {
+	console.log("=== Signup Request ===");
+	console.log("Request body:", req.body);
 	console.log("Database URL:", process.env.DATABASE_URL);
-	console.log("Signup request from:", req.headers.origin);
+	console.log("Request headers:", req.headers);
+	
 	const { email, password, name } = req.body;
 	
-	if (!name) {
-		return res.status(400).json({ error: "Name is required" });
-	}
+	// Validation logging
+	console.log("Validation checks:");
+	console.log("- Name provided:", !!name);
+	console.log("- Email provided:", !!email);
+	console.log("- Password provided:", !!password);
+	console.log("- Password length:", password?.length);
 	
-	const hashedPassword = await bcrypt.hash(password, 10);
+	if (!name) {
+		console.log("Validation failed: Name is required");
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Name is required"
+		});
+	}
 
-	// Debug: Check if the email already exists
-	const existingUser = await prisma.user.findUnique({
-		where: { email: email },
-	});
-	console.log("Existing user check:", existingUser);
+	if (!email) {
+		console.log("Validation failed: Email is required");
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Email is required"
+		});
+	}
+
+	if (!password) {
+		console.log("Validation failed: Password is required");
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Password is required"
+		});
+	}
+
+	if (password.length < 8) {
+		console.log("Validation failed: Password too short");
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Password must be at least 8 characters long"
+		});
+	}
 
 	try {
-		const user = await prisma.user.create({
-			data: { email, password: hashedPassword, name },
-		});
-		console.log("User created:", user);
-		return res.status(201).json({ id: user.id, email: user.email, name: user.name });
-	} catch (err: unknown) {
-		console.error("Signup error details. Email attempted:", email, "Full error:", err);
-		if (typeof err === 'object' && err !== null && 'code' in err && err.code === "P2002") {
-			return res.status(400).json({ error: "Email already exists" });
+		// Test database connection first
+		console.log("Testing database connection...");
+		try {
+			await prisma.$connect();
+			console.log("Database connection successful");
+		} catch (dbError) {
+			console.error("Database connection error:", dbError);
+			return res.status(500).json({
+				error: "Server Error",
+				message: "Database connection failed"
+			});
 		}
-		return res.status(400).json({ error: "Signup failed", details: err instanceof Error ? err.message : String(err) });
+		
+		const hashedPassword = await bcrypt.hash(password, 10);
+		console.log("Password hashed successfully");
+
+		// Debug: Check if the email already exists
+		const existingUser = await prisma.user.findUnique({
+			where: { email: email },
+		});
+		console.log("Existing user check:", existingUser ? "User exists" : "No existing user");
+
+		if (existingUser) {
+			console.log("Signup failed: Email already exists");
+			return res.status(400).json({ 
+				error: "Validation Error",
+				message: "An account with this email already exists"
+			});
+		}
+
+		const user = await prisma.user.create({
+			data: { 
+				email, 
+				password: hashedPassword, 
+				name 
+			},
+		});
+		console.log("User created successfully:", { id: user.id, email: user.email, name: user.name });
+
+		return res.status(201).json({ 
+			id: user.id, 
+			email: user.email, 
+			name: user.name,
+			message: "Account created successfully"
+		});
+	} catch (err: unknown) {
+		console.error("=== Signup Error ===");
+		console.error("Error details:", err);
+		console.error("Email attempted:", email);
+		
+		if (err instanceof Error) {
+			console.error("Error message:", err.message);
+			console.error("Error stack:", err.stack);
+		}
+
+		if (typeof err === 'object' && err !== null && 'code' in err && err.code === "P2002") {
+			return res.status(400).json({ 
+				error: "Validation Error",
+				message: "An account with this email already exists"
+			});
+		}
+
+		return res.status(500).json({ 
+			error: "Server Error",
+			message: "Failed to create account. Please try again later.",
+			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
+		});
+	} finally {
+		try {
+			await prisma.$disconnect();
+			console.log("Database disconnected successfully");
+		} catch (disconnectError) {
+			console.error("Error disconnecting from database:", disconnectError);
+		}
+	}
+});
+
+// Login endpoint
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+	const { email, password } = req.body;
+	console.log("Login attempt with email:", email);
+	
+	if (!email || !password) {
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Email and password are required"
+		});
+	}
+
+	try {
+		// Test database connection
+		try {
+			await prisma.$connect();
+			console.log('Database connection successful');
+		} catch (dbError) {
+			console.error('Database connection error:', dbError);
+			return res.status(500).json({ 
+				error: "Server Error",
+				message: "Unable to connect to the database. Please try again later."
+			});
+		}
+
+		const user = await prisma.user.findUnique({ where: { email } });
+		
+		if (!user) {
+			console.log("User not found:", email);
+			return res.status(401).json({ 
+				error: "Authentication Error",
+				message: "Invalid email or password"
+			});
+		}
+
+		const isValid = await bcrypt.compare(password, user.password);
+		
+		if (!isValid) {
+			console.log("Invalid password for user:", email);
+			return res.status(401).json({ 
+				error: "Authentication Error",
+				message: "Invalid email or password"
+			});
+		}
+
+		console.log("Login successful for user:", email);
+		return res.status(200).json({
+			id: user.id,
+			email: user.email,
+			name: user.name,
+			message: "Login successful"
+		});
+	} catch (err) {
+		console.error("Login error:", err);
+		return res.status(500).json({
+			error: "Server Error",
+			message: "Failed to process login. Please try again later.",
+			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
+		});
+	} finally {
+		try {
+			await prisma.$disconnect();
+		} catch (disconnectError) {
+			console.error('Error disconnecting from database:', disconnectError);
+		}
 	}
 });
 
@@ -107,7 +274,12 @@ app.post("/api/properties", async (req: Request, res: Response) => {
 			description,
 			images,
 			videoUrl,
-			thumbnail
+			thumbnail,
+			unitTypes,
+			amenities,
+			residentialFeatures,
+			provisions,
+			buildingFeatures
 		} = req.body;
 
 		// Validate required fields
@@ -128,7 +300,12 @@ app.post("/api/properties", async (req: Request, res: Response) => {
 				description,
 				images: images || [],
 				videoUrl,
-				thumbnail
+				thumbnail,
+				unitTypes: unitTypes || [],
+				amenities: amenities || [],
+				residentialFeatures: residentialFeatures || [],
+				provisions: provisions || [],
+				buildingFeatures: buildingFeatures || []
 			}
 		});
 
@@ -154,7 +331,12 @@ app.put("/api/properties/:id", async (req: Request, res: Response) => {
 			description,
 			images,
 			videoUrl,
-			thumbnail
+			thumbnail,
+			unitTypes,
+			amenities,
+			residentialFeatures,
+			provisions,
+			buildingFeatures
 		} = req.body;
 
 		const property = await prisma.property.update({
@@ -171,7 +353,12 @@ app.put("/api/properties/:id", async (req: Request, res: Response) => {
 				description,
 				images,
 				videoUrl,
-				thumbnail
+				thumbnail,
+				unitTypes: unitTypes || [],
+				amenities: amenities || [],
+				residentialFeatures: residentialFeatures || [],
+				provisions: provisions || [],
+				buildingFeatures: buildingFeatures || []
 			}
 		});
 		return res.json(property);
@@ -189,30 +376,6 @@ app.delete("/api/properties/:id", async (req: Request, res: Response) => {
 		return res.status(204).end();
 	} catch (err) {
 		return res.status(400).json({ error: "Not found", details: err });
-	}
-});
-
-// Login endpoint
-app.post("/api/login", async (req: Request, res: Response) => {
-	const { email, password } = req.body;
-	console.log("Login attempt with email:", email);
-	
-	try {
-		const user = await prisma.user.findUnique({ where: { email } });
-		console.log("User found:", user ? "Yes" : "No");
-		
-		if (!user) return res.status(401).json({ error: "Invalid credentials" });
-
-		console.log("Comparing password with hash...");
-		const isValid = await bcrypt.compare(password, user.password);
-		console.log("Password valid:", isValid);
-		
-		if (!isValid) return res.status(401).json({ error: "Invalid credentials" });
-
-		return res.json({ id: user.id, email: user.email, name: user.name });
-	} catch (err) {
-		console.error("Login error:", err);
-		return res.status(500).json({ error: "Login failed", details: err });
 	}
 });
 
