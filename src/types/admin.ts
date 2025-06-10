@@ -13,7 +13,9 @@ export interface AdminProperty {
   featured: boolean;
   videoUrl?: string;
   thumbnail?: string;
-  lastUpdated?: string;
+  lastUpdated: string;
+  createdAt: string;
+  location: string;
   stats: {
     views: number;
     leads: number;

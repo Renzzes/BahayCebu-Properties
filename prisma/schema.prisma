@@ -34,14 +34,19 @@ model User {
 }
 
 model Agent {
-  id          String   @id @default(uuid())
-  name        String
-  title       String
-  email       String   @unique
-  phone       String
-  location    String
-  description String
-  image       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(uuid())
+  name            String
+  title           String
+  email           String   @unique
+  phone           String
+  location        String
+  description     String
+  image           String?
+  specializations String[]
+  listings        Int      @default(0)
+  deals           Int      @default(0)
+  rating          Float    @default(0)
+  socialMedia     Json     @default("{\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":\"\"}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

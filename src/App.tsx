@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
 import About from "./pages/About";
-import Contact from "./pages/Contact";
+import Agent from "./pages/Agent";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./Admin/Dashboard";
 
@@ -31,40 +31,26 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen">{children}</div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Admin routes */}
-          <Route path="/admin/*" element={
-            <AdminLayout>
-              <Routes>
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="" element={<AdminDashboard />} />
-              </Routes>
-            </AdminLayout>
-          } />
-          
-          {/* Main website routes with Navbar and Footer */}
-          <Route path="/*" element={
-            <MainLayout>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/properties" element={<Properties />} />
-                <Route path="/property/:id" element={<PropertyDetail />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </MainLayout>
-          } />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+            <Route path="/properties" element={<MainLayout><Properties /></MainLayout>} />
+            <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
+            <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+            <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+          </Routes>
+          <Toaster />
+          <Sonner />
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

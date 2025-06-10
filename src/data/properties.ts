@@ -2,6 +2,7 @@ export interface AdminProperty {
   id: string;
   name: string;
   address: string;
+  location: string;
   description: string;
   image: string;
   price: number;
@@ -11,6 +12,7 @@ export interface AdminProperty {
   propertyType: 'Condo' | 'House and Lot' | 'Land';
   listingType: 'For Sale' | 'For Rent' | 'Resale';
   lastUpdated: string;
+  createdAt: string;
   featured?: boolean;
   videoUrl?: string;
   thumbnail?: string;
@@ -62,6 +64,7 @@ const globalProperties: AdminProperty[] = [
     id: '1',
     name: 'Prawira Valley',
     address: '3825 E Prawirotaman Ave, Jogja 85018',
+    location: 'Jogja, Indonesia',
     description: 'Luxurious residential complex featuring modern amenities and stunning views of the surrounding landscape. Perfect for families seeking comfort and convenience.',
     image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
     price: 500000,
@@ -71,6 +74,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'House and Lot',
     listingType: 'For Sale',
     lastUpdated: 'Oct. 12',
+    createdAt: '2024-01-12T10:00:00Z',
     featured: true,
     videoUrl: 'https://example.com/video1.mp4',
     thumbnail: 'https://example.com/thumbnail1.jpg',
@@ -80,6 +84,7 @@ const globalProperties: AdminProperty[] = [
     id: '2',
     name: 'Skyline Retreat',
     address: '3825 E Prawirotaman Ave, Jogja 85018',
+    location: 'Jogja, Indonesia',
     description: 'Contemporary high-rise living with panoramic city views and premium facilities. Experience urban lifestyle at its finest.',
     image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=250&fit=crop&crop=center',
     price: 450000,
@@ -89,6 +94,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'Condo',
     listingType: 'For Sale',
     lastUpdated: 'Nov. 22',
+    createdAt: '2024-02-15T14:30:00Z',
     featured: true,
     videoUrl: 'https://example.com/video2.mp4',
     thumbnail: 'https://example.com/thumbnail2.jpg',
@@ -98,6 +104,7 @@ const globalProperties: AdminProperty[] = [
     id: '3',
     name: 'Harmony Haven',
     address: '3825 E Prawirotaman Ave, Jogja',
+    location: 'Jogja, Indonesia',
     description: 'Serene residential community designed for peaceful living with lush gardens and family-friendly amenities.',
     image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=250&fit=crop&crop=center',
     price: 350000,
@@ -107,6 +114,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'House and Lot',
     listingType: 'For Rent',
     lastUpdated: 'Dec. 16',
+    createdAt: '2024-03-01T09:15:00Z',
     featured: false,
     videoUrl: 'https://example.com/video3.mp4',
     thumbnail: 'https://example.com/thumbnail3.jpg',
@@ -116,6 +124,7 @@ const globalProperties: AdminProperty[] = [
     id: '4',
     name: 'Greenview Estates',
     address: '3825 E Prawirotaman Ave, Jogja 85018',
+    location: 'Jogja, Indonesia',
     description: 'Eco-friendly development surrounded by nature, offering sustainable living without compromising on modern comforts.',
     image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=250&fit=crop&crop=center',
     price: 400000,
@@ -125,6 +134,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'House and Lot',
     listingType: 'Resale',
     lastUpdated: 'Oct. 12',
+    createdAt: '2024-01-20T16:45:00Z',
     featured: true,
     videoUrl: 'https://example.com/video4.mp4',
     thumbnail: 'https://example.com/thumbnail4.jpg',
@@ -134,6 +144,7 @@ const globalProperties: AdminProperty[] = [
     id: '5',
     name: 'Sapphire Suites',
     address: '3825 E Prawirotaman Ave, Jogja 85018',
+    location: 'Jogja, Indonesia',
     description: 'Premium apartment complex with world-class facilities and sophisticated design for discerning residents.',
     image: 'https://images.unsplash.com/photo-1460317442991-0ec209397118?w=400&h=250&fit=crop&crop=center',
     price: 600000,
@@ -143,6 +154,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'Condo',
     listingType: 'For Sale',
     lastUpdated: 'Nov. 22',
+    createdAt: '2024-02-28T11:20:00Z',
     featured: true,
     videoUrl: 'https://example.com/video5.mp4',
     thumbnail: 'https://example.com/thumbnail5.jpg',
@@ -152,6 +164,7 @@ const globalProperties: AdminProperty[] = [
     id: '6',
     name: 'Urban Nest',
     address: '3825 E Prawirotaman Ave, Jogja',
+    location: 'Jogja, Indonesia',
     description: 'Compact yet comfortable living spaces perfect for young professionals and small families in the heart of the city.',
     image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=250&fit=crop&crop=center',
     price: 300000,
@@ -161,6 +174,7 @@ const globalProperties: AdminProperty[] = [
     propertyType: 'Land',
     listingType: 'For Sale',
     lastUpdated: 'Dec. 16',
+    createdAt: '2024-03-10T13:50:00Z',
     featured: false,
     videoUrl: 'https://example.com/video6.mp4',
     thumbnail: 'https://example.com/thumbnail6.jpg',
@@ -180,6 +194,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
       id: property.id,
       name: property.title,
       address: property.location,
+      location: property.location.split(',')[0].trim(),
       description: property.description || '',
       image: property.images?.[0] || 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=250&fit=crop&crop=center',
       price: property.price,
@@ -189,6 +204,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
       propertyType: property.type as AdminProperty['propertyType'],
       listingType: 'For Sale',
       lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: property.updatedAt,
       featured: property.featured,
       videoUrl: property.videoUrl || '',
       thumbnail: property.thumbnail || '',
@@ -196,7 +212,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     }));
   } catch (error) {
     console.error('Error fetching properties:', error);
-    return [];
+    return globalProperties; // Return mock data if API fails
   }
 };
 
@@ -239,6 +255,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
       id: data.id,
       name: data.title,
       address: data.location,
+      location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
       price: data.price,
@@ -248,6 +265,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
       propertyType: data.type as AdminProperty['propertyType'],
       listingType: 'For Sale',
       lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: data.updatedAt,
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
@@ -287,6 +305,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
       id: data.id,
       name: data.title,
       address: data.location,
+      location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
       price: data.price,
@@ -296,6 +315,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
       propertyType: data.type as AdminProperty['propertyType'],
       listingType: updates.listingType || 'For Sale',
       lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: data.updatedAt,
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
@@ -329,6 +349,7 @@ export const getPropertyById = async (id: string): Promise<AdminProperty | null>
       id: data.id,
       name: data.title,
       address: data.location,
+      location: data.location.split(',')[0].trim(),
       description: data.description || '',
       image: data.images?.[0] || '',
       price: data.price,
@@ -338,6 +359,7 @@ export const getPropertyById = async (id: string): Promise<AdminProperty | null>
       propertyType: data.type as AdminProperty['propertyType'],
       listingType: 'For Sale',
       lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: data.updatedAt,
       featured: data.featured,
       videoUrl: data.videoUrl || '',
       thumbnail: data.thumbnail || '',
@@ -397,7 +419,7 @@ export const getFeaturedPropertiesAsPropertyType = async (): Promise<PropertyTyp
 };
 
 // Initial admin properties data (for backward compatibility)
-export const initialAdminProperties: AdminProperty[] = getAllProperties();
+export const initialAdminProperties = globalProperties;
 
 // Static properties for the main website (keeping existing ones for fallback)
 export const staticProperties: Record<string, PropertyType & { description?: string, images?: string[] }> = {

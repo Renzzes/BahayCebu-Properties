@@ -8,13 +8,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
-import { Upload, Plus, Home, MessageSquare, Building, User, Eye, Users, FileText, Edit3, Trash2, LogOut, Camera, EyeOff } from 'lucide-react';
+import { Checkbox } from '../components/ui/checkbox';
+import { Upload, Plus, Home, MessageSquare, Building, User, Eye, Users, FileText, Edit3, Trash2, LogOut, Camera, EyeOff, Mail, Phone, MapPin, Star, Facebook, Instagram, Linkedin, Pencil, AlertCircle } from 'lucide-react';
 import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty } from '../data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
 
+const SPECIALIZATIONS = [
+  'Residential Sales',
+  'Commercial Property Sales',
+  'Property Leasing & Rentals',
+  'Buyer & Seller Representation',
+  'Real Estate Marketing & Advertising',
+  'Property Valuation & Pricing Strategy',
+  'Real Estate Negotiation',
+  'Local Market Analysis',
+  'Investment Property Sales',
+  'Open House Management',
+  'Real Estate Social Media Marketing',
+  'Contract Preparation & Documentation',
+  'Lead Generation & Client Prospecting',
+  'First-Time Homebuyer Guidance',
+  'Client Relationship Management',
+  'Property Staging Consultation',
+  'Real Estate Legal Compliance',
+  'CRM & Listing Platform Proficiency',
+  'Real Estate Financing Basics',
+  'Real Estate Team Collaboration & Mentorship'
+] as const;
+
 const AdminDashboard = () => {
-  const [selectedMenu, setSelectedMenu] = useState('Properties');
+  const [selectedMenu, setSelectedMenu] = useState(() => {
+    // Get the saved menu from localStorage or default to 'Properties'
+    return localStorage.getItem('selectedMenu') || 'Properties';
+  });
+  
+  // Save selectedMenu to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('selectedMenu', selectedMenu);
+  }, [selectedMenu]);
+
   const [isAddPropertyOpen, setIsAddPropertyOpen] = useState(false);
   const [isEditPropertyOpen, setIsEditPropertyOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -111,26 +144,65 @@ const AdminDashboard = () => {
   });
 
   const [agents, setAgents] = useState<Agent[]>([]);
+  const [isLoadingAgents, setIsLoadingAgents] = useState(true);
   const [isAddAgentOpen, setIsAddAgentOpen] = useState(false);
   const [isEditAgentOpen, setIsEditAgentOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [newAgent, setNewAgent] = useState({
     name: '',
-    title: '',
+    title: 'Senior Real Estate Consultant',
+    description: '',
     email: '',
     phone: '',
-    location: '',
-    description: '',
-    image: ''
+    location: 'Cebu City, Philippines',
+    specializations: [] as string[],
+    listings: 0,
+    deals: 0,
+    rating: 0,
+    image: '',
+    socialMedia: {
+      facebook: '',
+      instagram: '',
+      linkedin: ''
+    }
   });
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        if (selectedMenu === 'Properties') {
+          await loadProperties();
+        } else if (selectedMenu === 'Agent') {
+          setIsLoadingAgents(true);
+          const agentData = await getAllAgents();
+          setAgents(agentData || []);
+          setIsLoadingAgents(false);
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error);
+        setAgents([]);
+        setIsLoadingAgents(false);
+      }
+    };
+    loadInitialData();
+  }, [selectedMenu]);
 
   // Load agents on mount
   useEffect(() => {
-    const loadAgents = async () => {
-      const agentData = await getAllAgents();
-      setAgents(agentData);
+    const loadInitialAgents = async () => {
+      try {
+        setIsLoadingAgents(true);
+        const agentData = await getAllAgents();
+        setAgents(agentData || []);
+      } catch (error) {
+        console.error('Error loading agents:', error);
+        setAgents([]);
+      } finally {
+        setIsLoadingAgents(false);
+      }
     };
-    loadAgents();
+    loadInitialAgents();
   }, []);
 
   const menuItems = [
@@ -308,7 +380,9 @@ const AdminDashboard = () => {
           listingType: newProperty.listingType,
           featured: newProperty.featured,
           videoUrl: newProperty.videoUrl || '',
-          thumbnail: newProperty.thumbnail || ''
+          thumbnail: newProperty.thumbnail || '',
+          location: newProperty.address.split(',')[0].trim(),
+          createdAt: new Date().toISOString()
         });
         
         // Update the properties state with the new data
@@ -479,61 +553,67 @@ const AdminDashboard = () => {
         alert('Please enter the agent\'s description');
         return;
       }
-
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(newAgent.email.trim())) {
-        alert('Please enter a valid email address');
+      if (!newAgent.specializations.length) {
+        alert('Please select at least one specialization');
         return;
       }
 
+      // Prepare the agent data
       const agentData = {
-        ...newAgent,
-        // Trim all string fields
         name: newAgent.name.trim(),
         title: newAgent.title.trim(),
         email: newAgent.email.trim(),
         phone: newAgent.phone.trim(),
         location: newAgent.location.trim(),
-        description: newAgent.description.trim()
+        description: newAgent.description.trim(),
+        specializations: newAgent.specializations,
+        listings: typeof newAgent.listings === 'number' ? newAgent.listings : 0,
+        deals: typeof newAgent.deals === 'number' ? newAgent.deals : 0,
+        rating: typeof newAgent.rating === 'number' ? newAgent.rating : 0,
+        image: newAgent.image || null,
+        socialMedia: {
+          facebook: newAgent.socialMedia?.facebook || '',
+          instagram: newAgent.socialMedia?.instagram || '',
+          linkedin: newAgent.socialMedia?.linkedin || ''
+        }
       };
-      
+
+      // Create the agent
       await createAgent(agentData);
+      
+      // Reload the entire agents list to ensure we have the latest data
       const updatedAgents = await getAllAgents();
       setAgents(updatedAgents);
       
+      // Reset form and close dialog
       setNewAgent({
         name: '',
-        title: '',
+        title: 'Senior Real Estate Consultant',
+        description: '',
         email: '',
         phone: '',
-        location: '',
-        description: '',
-        image: ''
+        location: 'Cebu City, Philippines',
+        specializations: [],
+        listings: 0,
+        deals: 0,
+        rating: 0,
+        image: '',
+        socialMedia: {
+          facebook: '',
+          instagram: '',
+          linkedin: ''
+        }
       });
       setIsAddAgentOpen(false);
+      
+      alert('Agent added successfully!');
     } catch (error) {
       console.error('Error adding agent:', error);
-      if (error instanceof Error && error.message.includes('Unique constraint')) {
-        alert('An agent with this email already exists. Please use a different email address.');
+      if (error instanceof Error && error.message.includes('email already exists')) {
+        alert('An agent with this email address already exists. Please use a different email.');
       } else {
         alert('Failed to add agent. Please try again.');
       }
-    }
-  };
-
-  const handleEditAgent = async () => {
-    if (!editingAgent) return;
-
-    try {
-      await updateAgent(editingAgent.id, editingAgent);
-      const updatedAgents = await getAllAgents();
-      setAgents(updatedAgents);
-      setIsEditAgentOpen(false);
-      setEditingAgent(null);
-    } catch (error) {
-      console.error('Error updating agent:', error);
-      alert('Failed to update agent. Please try again.');
     }
   };
 
@@ -586,6 +666,138 @@ const AdminDashboard = () => {
     setIsDeleteAllDialogOpen(false);
   }, [selectedMenu]);
 
+  const handleMenuClick = (menuId: string) => {
+    if (menuId === 'SignOut') {
+      handleSignOut();
+      return;
+    }
+    
+    setSelectedMenu(menuId);
+    setCurrentPage(1);
+
+    // Load data based on selected menu
+    if (menuId === 'Properties') {
+      loadProperties();
+    } else if (menuId === 'Agent') {
+      loadAgents();
+    }
+  };
+
+  const loadProperties = async () => {
+    try {
+      const propertyData = await getAllProperties();
+      setProperties(propertyData);
+      setFilteredProperties(propertyData);
+    } catch (error) {
+      console.error('Error loading properties:', error);
+      setProperties([]);
+      setFilteredProperties([]);
+    }
+  };
+
+  const loadAgents = async () => {
+    try {
+      setIsLoadingAgents(true);
+      const agentData = await getAllAgents();
+      setAgents(agentData || []);
+    } catch (error) {
+      console.error('Error loading agents:', error);
+      setAgents([]);
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
+
+  const handleEditAgent = async () => {
+    if (!editingAgent) {
+      alert('No agent selected for editing');
+      return;
+    }
+
+    // Since we've checked editingAgent is not null, we can safely use it
+    const agent = editingAgent;
+
+    try {
+      // Validate required fields
+      if (!agent.name?.trim()) {
+        alert('Please enter the agent\'s name');
+        return;
+      }
+      if (!agent.title?.trim()) {
+        alert('Please enter the agent\'s title');
+        return;
+      }
+      if (!agent.email?.trim()) {
+        alert('Please enter the agent\'s email');
+        return;
+      }
+      if (!agent.phone?.trim()) {
+        alert('Please enter the agent\'s phone number');
+        return;
+      }
+      if (!agent.location?.trim()) {
+        alert('Please enter the agent\'s location');
+        return;
+      }
+      if (!agent.description?.trim()) {
+        alert('Please enter the agent\'s description');
+        return;
+      }
+      if (!agent.specializations?.length) {
+        alert('Please select at least one specialization');
+        return;
+      }
+
+      // Show loading state
+      setIsLoadingAgents(true);
+
+      // Prepare the update data
+      const updateData = {
+        name: agent.name.trim(),
+        title: agent.title.trim(),
+        email: agent.email.trim(),
+        phone: agent.phone.trim(),
+        location: agent.location.trim(),
+        description: agent.description.trim(),
+        specializations: agent.specializations || [],
+        listings: typeof agent.listings === 'number' ? agent.listings : 0,
+        deals: typeof agent.deals === 'number' ? agent.deals : 0,
+        rating: typeof agent.rating === 'number' ? agent.rating : 0,
+        image: agent.image || null,
+        socialMedia: {
+          facebook: agent.socialMedia?.facebook || '',
+          instagram: agent.socialMedia?.instagram || '',
+          linkedin: agent.socialMedia?.linkedin || ''
+        }
+      };
+
+      // Update the agent
+      await updateAgent(agent.id, updateData);
+      
+      // Reload the agents list
+      await loadAgents();
+     
+      // Close the dialog and reset state
+      setIsEditAgentOpen(false);
+      setEditingAgent(null);
+      
+      alert('Agent updated successfully!');
+    } catch (error) {
+      console.error('Error updating agent:', error);
+      if (error instanceof Error) {
+        if (error.message.includes('email already exists')) {
+          alert('An agent with this email address already exists. Please use a different email.');
+        } else {
+          alert(`Failed to update agent: ${error.message}`);
+        }
+      } else {
+        alert('Failed to update agent. Please try again.');
+      }
+    } finally {
+      setIsLoadingAgents(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-bahayCebu-beige flex">
       {/* Sidebar */}
@@ -611,21 +823,16 @@ const AdminDashboard = () => {
             const Icon = item.icon;
             const isActive = selectedMenu === item.id;
             const isSignOut = item.id === 'SignOut';
+            
             return (
               <button
                 key={item.id}
-                onClick={() => {
-                  if (isSignOut) {
-                    handleSignOut();
-                  } else {
-                    setSelectedMenu(item.id);
-                  }
-                }}
+                onClick={() => handleMenuClick(item.id)}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                   isSignOut
-                    ? 'text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/10 hover:text-bahayCebu-terracotta'
+                    ? 'text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/10'
                     : isActive 
-                      ? 'bg-bahayCebu-green text-white shadow-md shadow-bahayCebu-green/25' 
+                    ? 'bg-bahayCebu-green text-white'
                       : 'text-bahayCebu-darkGray hover:bg-bahayCebu-green/5 hover:text-bahayCebu-green'
                 }`}
               >
@@ -1724,471 +1931,215 @@ const AdminDashboard = () => {
 
           {selectedMenu === 'Agent' && (
             <div className="space-y-8">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-4xl font-serif font-light text-bahayCebu-darkGray mb-2">Agent Management</h1>
-                  <p className="text-bahayCebu-darkGray/60 text-lg">Manage your real estate agent information</p>
-                </div>
-                {agents.length === 0 && (
+              {/* Header Section */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-4xl font-serif text-bahayCebu-darkGray">Agent Management</h1>
+                    <p className="text-gray-500 mt-1">Manage your real estate agents</p>
+                  </div>
                   <Button 
                     onClick={() => setIsAddAgentOpen(true)}
-                    className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                    className="flex items-center gap-2 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-4 py-2 rounded-lg"
                   >
                     <Plus className="w-5 h-5" />
-                    <span className="font-medium">Add Agent</span>
+                    Add Agent
                   </Button>
-                )}
+                </div>
               </div>
 
-              {agents.length === 0 ? (
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardContent className="p-12 text-center">
-                    <div className="w-20 h-20 bg-bahayCebu-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <User className="h-10 w-10 text-bahayCebu-green" />
-                    </div>
-                    <h3 className="text-2xl font-serif font-bold text-bahayCebu-darkGray mb-4">No Agent Added Yet</h3>
-                    <p className="text-bahayCebu-darkGray/60 max-w-md mx-auto leading-relaxed">
-                      Add your real estate agent information to display on the website.
-                    </p>
-                    <Button 
-                      onClick={() => setIsAddAgentOpen(true)}
-                      className="mt-6 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-6 py-2"
-                    >
-                      Add Agent
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 gap-6">
-                  {agents.map((agent) => (
-                    <Card key={agent.id} className="overflow-hidden border-0 shadow-md bg-white rounded-2xl">
-                      <div className="flex items-start space-x-6 p-6">
-                        <div className="w-48 h-48 relative rounded-xl overflow-hidden">
-                          {agent.image ? (
-                            <img
-                              src={agent.image}
-                              alt={agent.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green flex items-center justify-center">
-                              <User className="h-16 w-16 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="flex-1 space-y-4">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h3 className="text-2xl font-serif font-bold text-bahayCebu-darkGray">{agent.name}</h3>
-                              <p className="text-bahayCebu-green font-medium">{agent.title}</p>
-                            </div>
-                            <div className="flex space-x-2">
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="h-10 w-10 p-0 bg-white hover:bg-gray-50 transition-all duration-300 shadow-xl border-gray-200 rounded-xl"
-                                onClick={() => {
-                                  setEditingAgent(agent);
-                                  setIsEditAgentOpen(true);
-                                }}
-                              >
-                                <Edit3 className="h-4 w-4 text-bahayCebu-green" />
-                              </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                className="h-10 w-10 p-0 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 transition-all duration-300 shadow-xl border-0 rounded-xl"
-                                onClick={() => handleDeleteAgent(agent.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-sm text-bahayCebu-darkGray/60">Email</p>
-                              <p className="text-bahayCebu-darkGray">{agent.email}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-bahayCebu-darkGray/60">Phone</p>
-                              <p className="text-bahayCebu-darkGray">{agent.phone}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-bahayCebu-darkGray/60">Location</p>
-                              <p className="text-bahayCebu-darkGray">{agent.location}</p>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <p className="text-sm text-bahayCebu-darkGray/60">About</p>
-                            <p className="text-bahayCebu-darkGray">{agent.description}</p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
+              {/* Loading State */}
+              {isLoadingAgents && (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-bahayCebu-green"></div>
                 </div>
               )}
 
-              {/* Add Agent Dialog */}
-              <Dialog 
-                open={isAddAgentOpen} 
-                onOpenChange={(open) => {
-                  setIsAddAgentOpen(open);
-                  if (!open) {
-                    setNewAgent({
-                      name: '',
-                      title: '',
-                      email: '',
-                      phone: '',
-                      location: '',
-                      description: '',
-                      image: ''
-                    });
-                  }
-                }}
-              >
-                <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-                  <DialogHeader className="pb-6 border-b border-gray-100">
-                    <DialogTitle className="text-3xl font-serif font-light text-bahayCebu-darkGray">Add New Agent</DialogTitle>
-                    <p className="text-bahayCebu-darkGray/60 mt-2">Fill in the agent details to create their profile</p>
-                  </DialogHeader>
-                  <div className="space-y-8 pt-6">
-                    {/* Agent Image Upload */}
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-8 bg-bahayCebu-green rounded-full"></div>
-                        <h3 className="text-lg font-medium text-bahayCebu-darkGray">Profile Photo</h3>
-                      </div>
-                      <div className="border-2 border-dashed border-bahayCebu-green/30 rounded-2xl p-8 text-center bg-gradient-to-br from-bahayCebu-beige/30 to-bahayCebu-green/5 hover:bg-gradient-to-br hover:from-bahayCebu-beige/40 hover:to-bahayCebu-green/10 transition-all duration-300">
-                        {newAgent.image ? (
-                          <div className="space-y-6">
-                            <div className="relative w-48 h-48 mx-auto">
-                              <img 
-                                src={newAgent.image} 
-                                alt="Preview" 
-                                className="w-full h-full object-cover rounded-2xl shadow-lg"
-                              />
-                              <Button 
-                                variant="destructive"
-                                size="icon"
-                                className="absolute -top-2 -right-2 h-8 w-8 rounded-full shadow-lg bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90"
-                                onClick={() => setNewAgent(prev => ({ ...prev, image: '' }))}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <p className="text-sm text-bahayCebu-darkGray/60">
-                              Click the button below to change the photo
-                            </p>
-                            <Label 
-                              htmlFor="agent-image-upload" 
-                              className="inline-flex items-center space-x-2 cursor-pointer bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors"
-                            >
-                              <Camera className="h-5 w-5 text-bahayCebu-green" />
-                              <span className="text-sm font-medium text-bahayCebu-darkGray">Change Photo</span>
-                              <Input
-                                id="agent-image-upload"
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => handleAgentImageUpload(e, false)}
-                                className="hidden"
-                              />
-                            </Label>
-                          </div>
-                        ) : (
-                          <div className="space-y-6">
-                            <div className="w-48 h-48 mx-auto bg-white rounded-2xl shadow-md flex flex-col items-center justify-center border-2 border-dashed border-bahayCebu-green/20">
-                              <Camera className="h-12 w-12 text-bahayCebu-green/40 mb-4" />
-                              <Label htmlFor="agent-image-upload" className="cursor-pointer">
-                                <div className="text-center">
-                                  <span className="inline-flex items-center space-x-2 bg-bahayCebu-green/10 px-4 py-2 rounded-xl text-bahayCebu-green hover:bg-bahayCebu-green/20 transition-colors">
-                                    <Upload className="h-4 w-4" />
-                                    <span className="font-medium">Upload Photo</span>
-                                  </span>
-                                  <Input
-                                    id="agent-image-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleAgentImageUpload(e, false)}
-                                    className="hidden"
-                                  />
-                                  <p className="text-xs text-bahayCebu-darkGray/60 mt-2">
-                                    PNG, JPG or GIF (max. 10MB)
-                                  </p>
-                                </div>
-                              </Label>
-                            </div>
-                            <p className="text-sm text-bahayCebu-darkGray/60">
-                              Upload a professional photo to enhance the agent's profile
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Personal Information */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-8 bg-bahayCebu-terracotta rounded-full"></div>
-                        <h3 className="text-lg font-medium text-bahayCebu-darkGray">Personal Information</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-bahayCebu-beige/30 to-white p-6 rounded-2xl">
-                        <div className="space-y-2">
-                          <Label htmlFor="agent-name" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Full Name <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Input
-                            id="agent-name"
-                            value={newAgent.name}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Enter agent's full name"
-                            className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="agent-title" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Job Title <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Input
-                            id="agent-title"
-                            value={newAgent.title}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="e.g. Senior Property Consultant"
-                            className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Contact Information */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-8 bg-blue-500 rounded-full"></div>
-                        <h3 className="text-lg font-medium text-bahayCebu-darkGray">Contact Information</h3>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gradient-to-br from-blue-50/50 to-white p-6 rounded-2xl">
-                        <div className="space-y-2">
-                          <Label htmlFor="agent-email" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Email Address <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Input
-                            id="agent-email"
-                            type="email"
-                            value={newAgent.email}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, email: e.target.value }))}
-                            placeholder="Enter email address"
-                            className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="agent-phone" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Phone Number <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Input
-                            id="agent-phone"
-                            value={newAgent.phone}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, phone: e.target.value }))}
-                            placeholder="Enter phone number"
-                            className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
-                          />
-                        </div>
-                        <div className="col-span-2 space-y-2">
-                          <Label htmlFor="agent-location" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Office Location <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Input
-                            id="agent-location"
-                            value={newAgent.location}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, location: e.target.value }))}
-                            placeholder="Enter office location"
-                            className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* About Section */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-8 bg-purple-500 rounded-full"></div>
-                        <h3 className="text-lg font-medium text-bahayCebu-darkGray">About</h3>
-                      </div>
-                      <div className="bg-gradient-to-br from-purple-50/50 to-white p-6 rounded-2xl">
-                        <div className="space-y-2">
-                          <Label htmlFor="agent-description" className="text-sm font-medium text-bahayCebu-darkGray">
-                            Professional Bio <span className="text-bahayCebu-terracotta">*</span>
-                          </Label>
-                          <Textarea
-                            id="agent-description"
-                            value={newAgent.description}
-                            onChange={(e) => setNewAgent(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="Write a brief description about the agent's experience, specialties, and achievements..."
-                            rows={4}
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl resize-none bg-white"
-                          />
-                          <p className="text-xs text-bahayCebu-darkGray/60">
-                            This bio will be displayed on the homepage and agent's profile.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex justify-end space-x-4 pt-6 border-t border-gray-100">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsAddAgentOpen(false)}
-                        className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={handleAddAgent}
-                        className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
-                      >
-                        Add Agent
-                      </Button>
-                    </div>
+              {/* Error State */}
+              {!isLoadingAgents && !agents && (
+                <div className="flex flex-col items-center justify-center h-64">
+                  <div className="text-bahayCebu-terracotta mb-2">
+                    <AlertCircle className="h-12 w-12" />
                   </div>
-                </DialogContent>
-              </Dialog>
+                  <h3 className="text-xl font-medium text-bahayCebu-darkGray">Failed to load agents</h3>
+                  <p className="text-gray-500 mt-1">Please try refreshing the page</p>
+                </div>
+              )}
 
-              {/* Edit Agent Dialog */}
-              <Dialog 
-                open={isEditAgentOpen} 
-                onOpenChange={(open) => {
-                  setIsEditAgentOpen(open);
-                  if (!open) {
-                    setEditingAgent(null);
-                  }
-                }}
-              >
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Edit Agent</DialogTitle>
-                  </DialogHeader>
-                  {editingAgent && (
-                    <div className="space-y-6">
-                      {/* Agent Image Upload */}
-                      <div className="space-y-2">
-                        <Label className="text-bahayCebu-darkGray font-medium">Agent Photo</Label>
-                        <div className="border-2 border-dashed border-bahayCebu-green/30 rounded-xl p-6 text-center bg-bahayCebu-green/5 hover:bg-bahayCebu-green/10 transition-colors">
-                          {editingAgent.image ? (
-                            <div className="space-y-6">
-                              <img src={editingAgent.image} alt="Preview" className="max-h-64 mx-auto rounded-xl shadow-lg object-cover" />
-                              <Button 
-                                variant="outline" 
-                                onClick={() => setEditingAgent(prev => ({ ...prev!, image: '' }))}
-                                className="border-gray-300 text-gray-600 hover:bg-gray-100 rounded-xl"
-                              >
-                                Remove Image
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="space-y-6">
-                              <Upload className="mx-auto h-16 w-16 text-gray-400" />
-                              <div>
-                                <Label htmlFor="edit-agent-image-upload" className="cursor-pointer">
-                                  <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Agent Photo</span>
-                                  <Input
-                                    id="edit-agent-image-upload"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => handleAgentImageUpload(e, true)}
-                                    className="hidden"
-                                  />
-                                </Label>
-                                <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
+              {/* Empty State */}
+              {!isLoadingAgents && agents && agents.length === 0 && (
+                <div className="flex flex-col items-center justify-center h-64">
+                  <div className="text-bahayCebu-green mb-2">
+                    <Users className="h-12 w-12" />
+                  </div>
+                  <h3 className="text-xl font-medium text-bahayCebu-darkGray">No agents found</h3>
+                  <p className="text-gray-500 mt-1">Click the "Add Agent" button to add your first agent</p>
+                </div>
+              )}
+
+              {/* Agents Grid */}
+              {!isLoadingAgents && agents && agents.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {agents.map((agent) => (
+                    <div key={agent?.id || 'temp-key'} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                      <div className="p-6 space-y-6">
+                        {/* Header - Image and Basic Info */}
+                        <div className="flex items-start space-x-4">
+                          <div className="relative w-32 h-32 flex-shrink-0">
+                            {agent?.image ? (
+                              <img
+                                src={agent.image}
+                                alt={agent?.name || 'Agent'}
+                                className="w-32 h-32 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
+                                style={{ objectPosition: '50% 25%' }}
+                              />
+                            ) : (
+                              <div className="w-32 h-32 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
+                                <User className="h-12 w-12 text-white" />
                               </div>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-xl font-semibold text-bahayCebu-darkGray truncate">{agent?.name || 'Unnamed Agent'}</h3>
+                            <p className="text-sm text-gray-500">{agent?.title || 'Real Estate Agent'}</p>
+                            <p className="text-sm text-gray-500 mt-1">{agent?.location || 'Location not specified'}</p>
+                          </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            <span>{agent?.email || 'Email not provided'}</span>
+                          </div>
+                          <div className="flex items-center space-x-2 text-sm text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            <span>{agent?.phone || 'Phone not provided'}</span>
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <h4 className="text-sm font-medium text-bahayCebu-darkGray mb-2">About</h4>
+                          <p className="text-sm text-gray-600 line-clamp-3">{agent?.description || 'No description available'}</p>
+                        </div>
+
+                        {/* Specializations */}
+                        <div>
+                          <h4 className="text-sm font-medium text-bahayCebu-darkGray mb-2">Specializations</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {(agent?.specializations || []).map((specialization) => (
+                              <span
+                                key={specialization}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-bahayCebu-green/10 text-bahayCebu-green"
+                              >
+                                {specialization}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Performance Metrics */}
+                        <div>
+                          <h4 className="text-sm font-medium text-bahayCebu-darkGray mb-3">Performance Metrics</h4>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-semibold text-bahayCebu-darkGray">{agent?.listings || 0}</div>
+                              <div className="text-xs text-gray-500">Active Listings</div>
                             </div>
-                          )}
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-semibold text-bahayCebu-darkGray">{agent?.deals || 0}</div>
+                              <div className="text-xs text-gray-500">Closed Deals</div>
+                            </div>
+                            <div className="text-center p-3 bg-gray-50 rounded-lg">
+                              <div className="text-lg font-semibold text-bahayCebu-darkGray">{(agent?.rating || 0).toFixed(1)}</div>
+                              <div className="text-xs text-gray-500">Rating</div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Agent Details */}
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-agent-name" className="text-bahayCebu-darkGray font-medium">Full Name</Label>
-                          <Input
-                            id="edit-agent-name"
-                            value={editingAgent.name}
-                            onChange={(e) => setEditingAgent(prev => ({ ...prev!, name: e.target.value }))}
-                            className="border-bahayCebu-green/20 focus:border-bahayCebu-green"
-                          />
+                        {/* Social Media Links */}
+                        <div>
+                          <h4 className="text-sm font-medium text-bahayCebu-darkGray mb-3">Social Media</h4>
+                          <div className="flex space-x-4">
+                            {agent?.socialMedia?.facebook && (
+                              <a
+                                href={agent.socialMedia.facebook}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Facebook className="h-5 w-5" />
+                              </a>
+                            )}
+                            {agent?.socialMedia?.instagram && (
+                              <a
+                                href={agent.socialMedia.instagram}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-pink-600 hover:text-pink-700"
+                              >
+                                <Instagram className="h-5 w-5" />
+                              </a>
+                            )}
+                            {agent?.socialMedia?.linkedin && (
+                              <a
+                                href={agent.socialMedia.linkedin}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-700 hover:text-blue-800"
+                              >
+                                <Linkedin className="h-5 w-5" />
+                              </a>
+                            )}
+                          </div>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-agent-title" className="text-bahayCebu-darkGray font-medium">Title</Label>
-                          <Input
-                            id="edit-agent-title"
-                            value={editingAgent.title}
-                            onChange={(e) => setEditingAgent(prev => ({ ...prev!, title: e.target.value }))}
-                            className="border-bahayCebu-green/20 focus:border-bahayCebu-green"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-agent-email" className="text-bahayCebu-darkGray font-medium">Email</Label>
-                          <Input
-                            id="edit-agent-email"
-                            type="email"
-                            value={editingAgent.email}
-                            onChange={(e) => setEditingAgent(prev => ({ ...prev!, email: e.target.value }))}
-                            className="border-bahayCebu-green/20 focus:border-bahayCebu-green"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-agent-phone" className="text-bahayCebu-darkGray font-medium">Phone</Label>
-                          <Input
-                            id="edit-agent-phone"
-                            value={editingAgent.phone}
-                            onChange={(e) => setEditingAgent(prev => ({ ...prev!, phone: e.target.value }))}
-                            className="border-bahayCebu-green/20 focus:border-bahayCebu-green"
-                          />
-                        </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-agent-location" className="text-bahayCebu-darkGray font-medium">Location</Label>
-                        <Input
-                          id="edit-agent-location"
-                          value={editingAgent.location}
-                          onChange={(e) => setEditingAgent(prev => ({ ...prev!, location: e.target.value }))}
-                          className="border-bahayCebu-green/20 focus:border-bahayCebu-green"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-agent-description" className="text-bahayCebu-darkGray font-medium">Description</Label>
-                        <Textarea
-                          id="edit-agent-description"
-                          value={editingAgent.description}
-                          onChange={(e) => setEditingAgent(prev => ({ ...prev!, description: e.target.value }))}
-                          rows={4}
-                          className="border-bahayCebu-green/20 focus:border-bahayCebu-green resize-none"
-                        />
-                      </div>
-                      
-                      <div className="flex justify-end space-x-4 pt-4">
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setIsEditAgentOpen(false)}
-                          className="px-6 py-2 border-bahayCebu-darkGray/20 text-bahayCebu-darkGray hover:bg-bahayCebu-darkGray/5"
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          onClick={handleEditAgent}
-                          className="px-6 py-2 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg"
-                        >
-                          Save Changes
-                        </Button>
+                        {/* Action Buttons */}
+                        <div className="flex justify-end space-x-2 pt-4 border-t border-gray-100">
+                          <Button
+                            onClick={() => {
+                              setEditingAgent({
+                                ...agent,
+                                name: agent.name || '',
+                                title: agent.title || 'Senior Real Estate Consultant',
+                                email: agent.email || '',
+                                phone: agent.phone || '',
+                                location: agent.location || 'Cebu City, Philippines',
+                                description: agent.description || '',
+                                specializations: agent.specializations || [],
+                                listings: agent.listings || 0,
+                                deals: agent.deals || 0,
+                                rating: agent.rating || 0,
+                                image: agent.image || null,
+                                socialMedia: {
+                                  facebook: agent.socialMedia?.facebook || '',
+                                  instagram: agent.socialMedia?.instagram || '',
+                                  linkedin: agent.socialMedia?.linkedin || ''
+                                }
+                              });
+                              setIsEditAgentOpen(true);
+                            }}
+                            variant="outline"
+                            className="text-bahayCebu-green border-bahayCebu-green hover:bg-bahayCebu-green/10"
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteAgent(agent.id)}
+                            variant="destructive"
+                            className="bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </DialogContent>
-              </Dialog>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -2394,6 +2345,546 @@ const AdminDashboard = () => {
                 Change Password
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Agent Dialog */}
+      <Dialog open={isEditAgentOpen} onOpenChange={setIsEditAgentOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif">Edit Agent</DialogTitle>
+          </DialogHeader>
+          {editingAgent && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
+                {/* Left Column - Basic Info & Image */}
+                <div className="space-y-6">
+                  <div className="flex justify-center">
+                    <div className="relative w-40 h-40">
+                      {editingAgent.image ? (
+                        <img 
+                          src={editingAgent.image} 
+                          alt="Agent Preview" 
+                          className="w-40 h-40 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
+                          style={{ objectPosition: '50% 25%' }}
+                        />
+                      ) : (
+                        <div className="w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
+                          <User className="h-16 w-16 text-white" />
+                        </div>
+                      )}
+                      <Label 
+                        htmlFor="agent-image-upload-edit" 
+                        className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <Camera className="w-5 h-5 text-bahayCebu-green" />
+                        <Input
+                          id="agent-image-upload-edit"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleAgentImageUpload(e, true)}
+                          className="hidden"
+                        />
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-agent-name" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Name <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Input
+                        id="edit-agent-name"
+                        value={editingAgent.name}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, name: e.target.value }))}
+                        placeholder="e.g. Maria Santos"
+                        className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-agent-title" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Title <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Input
+                        id="edit-agent-title"
+                        value={editingAgent.title}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, title: e.target.value }))}
+                        placeholder="e.g. Senior Real Estate Consultant"
+                        className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-agent-description" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Description <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Textarea
+                        id="edit-agent-description"
+                        value={editingAgent.description}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, description: e.target.value }))}
+                        placeholder="Enter agent description"
+                        className="min-h-[100px] border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Agent Stats */}
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-bahayCebu-darkGray">Performance Metrics</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="edit-agent-listings" className="text-sm font-medium text-bahayCebu-darkGray">
+                          Active Listings
+                        </Label>
+                        <Input
+                          id="edit-agent-listings"
+                          type="number"
+                          min="0"
+                          value={editingAgent.listings}
+                          onChange={(e) => setEditingAgent(prev => ({ ...prev!, listings: parseInt(e.target.value) || 0 }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-agent-deals" className="text-sm font-medium text-bahayCebu-darkGray">
+                          Closed Deals
+                        </Label>
+                        <Input
+                          id="edit-agent-deals"
+                          type="number"
+                          min="0"
+                          value={editingAgent.deals}
+                          onChange={(e) => setEditingAgent(prev => ({ ...prev!, deals: parseInt(e.target.value) || 0 }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-agent-rating" className="text-sm font-medium text-bahayCebu-darkGray">
+                          Rating (0-5)
+                        </Label>
+                        <Input
+                          id="edit-agent-rating"
+                          type="number"
+                          min="0"
+                          max="5"
+                          step="0.1"
+                          value={editingAgent.rating}
+                          onChange={(e) => setEditingAgent(prev => ({ ...prev!, rating: parseFloat(e.target.value) || 0 }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Contact & Specializations */}
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-agent-email" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Email <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Input
+                        id="edit-agent-email"
+                        type="email"
+                        value={editingAgent.email}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, email: e.target.value }))}
+                        placeholder="e.g. agent@example.com"
+                        className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-agent-phone" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Phone <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Input
+                        id="edit-agent-phone"
+                        value={editingAgent.phone}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, phone: e.target.value }))}
+                        placeholder="e.g. +63 123 456 7890"
+                        className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-agent-location" className="text-sm font-medium text-bahayCebu-darkGray">
+                        Location <span className="text-bahayCebu-terracotta">*</span>
+                      </Label>
+                      <Input
+                        id="edit-agent-location"
+                        value={editingAgent.location}
+                        onChange={(e) => setEditingAgent(prev => ({ ...prev!, location: e.target.value }))}
+                        placeholder="e.g. Cebu City"
+                        className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Specializations */}
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium text-bahayCebu-darkGray">
+                      Specializations <span className="text-bahayCebu-terracotta">*</span>
+                    </Label>
+                    <div className="grid grid-cols-1 gap-3 border rounded-xl p-4 max-h-[300px] overflow-y-auto bg-white">
+                      {SPECIALIZATIONS.map((specialization) => (
+                        <div key={specialization} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                          <Checkbox
+                            id={`edit-${specialization}`}
+                            checked={editingAgent.specializations.includes(specialization)}
+                            onCheckedChange={(checked) => {
+                              setEditingAgent(prev => ({
+                                ...prev!,
+                                specializations: checked
+                                  ? [...prev!.specializations, specialization]
+                                  : prev!.specializations.filter(s => s !== specialization)
+                              }));
+                            }}
+                            className="border-2 border-bahayCebu-green/30 data-[state=checked]:bg-bahayCebu-green data-[state=checked]:border-bahayCebu-green"
+                          />
+                          <Label htmlFor={`edit-${specialization}`} className="text-sm cursor-pointer flex-1">
+                            {specialization}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Social Media Links */}
+                  <div className="space-y-4">
+                    <Label className="text-sm font-medium text-bahayCebu-darkGray">
+                      Social Media Links
+                    </Label>
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-3">
+                        <Facebook className="w-5 h-5 text-blue-600" />
+                        <Input
+                          placeholder="Facebook Profile URL"
+                          value={editingAgent.socialMedia.facebook}
+                          onChange={(e) => setEditingAgent(prev => ({
+                            ...prev!,
+                            socialMedia: { ...prev!.socialMedia, facebook: e.target.value }
+                          }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Instagram className="w-5 h-5 text-pink-600" />
+                        <Input
+                          placeholder="Instagram Profile URL"
+                          value={editingAgent.socialMedia.instagram}
+                          onChange={(e) => setEditingAgent(prev => ({
+                            ...prev!,
+                            socialMedia: { ...prev!.socialMedia, instagram: e.target.value }
+                          }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <Linkedin className="w-5 h-5 text-blue-700" />
+                        <Input
+                          placeholder="LinkedIn Profile URL"
+                          value={editingAgent.socialMedia.linkedin}
+                          onChange={(e) => setEditingAgent(prev => ({
+                            ...prev!,
+                            socialMedia: { ...prev!.socialMedia, linkedin: e.target.value }
+                          }))}
+                          className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditAgentOpen(false)}
+                  className="h-12 px-6 border-gray-200 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleEditAgent}
+                  className="h-12 px-8 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white"
+                >
+                  Save Changes
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Agent Dialog */}
+      <Dialog open={isAddAgentOpen} onOpenChange={setIsAddAgentOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif">Add New Agent</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
+            {/* Left Column - Basic Info & Image */}
+            <div className="space-y-6">
+              <div className="flex justify-center">
+                <div className="relative w-40 h-40">
+                  {newAgent.image ? (
+                    <img 
+                      src={newAgent.image} 
+                      alt="Agent Preview" 
+                      className="w-40 h-40 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
+                      style={{ objectPosition: '50% 25%' }}
+                    />
+                  ) : (
+                    <div className="w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
+                      <User className="h-16 w-16 text-white" />
+                    </div>
+                  )}
+                  <Label 
+                    htmlFor="agent-image-upload" 
+                    className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Camera className="w-5 h-5 text-bahayCebu-green" />
+                    <Input
+                      id="agent-image-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleAgentImageUpload(e, false)}
+                      className="hidden"
+                    />
+                  </Label>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="agent-name" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Name <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Input
+                    id="agent-name"
+                    value={newAgent.name}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g. Maria Santos"
+                    className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="agent-title" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Title <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Input
+                    id="agent-title"
+                    value={newAgent.title}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="e.g. Senior Real Estate Consultant"
+                    className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="agent-description" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Description <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Textarea
+                    id="agent-description"
+                    value={newAgent.description}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter agent description"
+                    className="min-h-[100px] border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Agent Stats */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-bahayCebu-darkGray">Performance Metrics</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="agent-listings" className="text-sm font-medium text-bahayCebu-darkGray">
+                      Active Listings
+                    </Label>
+                    <Input
+                      id="agent-listings"
+                      type="number"
+                      min="0"
+                      value={newAgent.listings}
+                      onChange={(e) => setNewAgent(prev => ({ ...prev, listings: parseInt(e.target.value) || 0 }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="agent-deals" className="text-sm font-medium text-bahayCebu-darkGray">
+                      Closed Deals
+                    </Label>
+                    <Input
+                      id="agent-deals"
+                      type="number"
+                      min="0"
+                      value={newAgent.deals}
+                      onChange={(e) => setNewAgent(prev => ({ ...prev, deals: parseInt(e.target.value) || 0 }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="agent-rating" className="text-sm font-medium text-bahayCebu-darkGray">
+                      Rating (0-5)
+                    </Label>
+                    <Input
+                      id="agent-rating"
+                      type="number"
+                      min="0"
+                      max="5"
+                      step="0.1"
+                      value={newAgent.rating}
+                      onChange={(e) => setNewAgent(prev => ({ ...prev, rating: parseFloat(e.target.value) || 0 }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Contact & Specializations */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="agent-email" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Email <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Input
+                    id="agent-email"
+                    type="email"
+                    value={newAgent.email}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="e.g. agent@example.com"
+                    className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="agent-phone" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Phone <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Input
+                    id="agent-phone"
+                    value={newAgent.phone}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="e.g. +63 123 456 7890"
+                    className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="agent-location" className="text-sm font-medium text-bahayCebu-darkGray">
+                    Location <span className="text-bahayCebu-terracotta">*</span>
+                  </Label>
+                  <Input
+                    id="agent-location"
+                    value={newAgent.location}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g. Cebu City"
+                    className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Specializations */}
+              <div className="space-y-4">
+                <Label className="text-sm font-medium text-bahayCebu-darkGray">
+                  Specializations <span className="text-bahayCebu-terracotta">*</span>
+                </Label>
+                <div className="grid grid-cols-1 gap-3 border rounded-xl p-4 max-h-[300px] overflow-y-auto bg-white">
+                  {SPECIALIZATIONS.map((specialization) => (
+                    <div key={specialization} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                      <Checkbox
+                        id={`add-${specialization}`}
+                        checked={newAgent.specializations.includes(specialization)}
+                        onCheckedChange={(checked) => {
+                          setNewAgent(prev => ({
+                            ...prev,
+                            specializations: checked
+                              ? [...prev.specializations, specialization]
+                              : prev.specializations.filter(s => s !== specialization)
+                          }));
+                        }}
+                        className="border-2 border-bahayCebu-green/30 data-[state=checked]:bg-bahayCebu-green data-[state=checked]:border-bahayCebu-green"
+                      />
+                      <Label htmlFor={`add-${specialization}`} className="text-sm cursor-pointer flex-1">
+                        {specialization}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Social Media Links */}
+              <div className="space-y-4">
+                <h3 className="font-medium text-bahayCebu-darkGray">Social Media Links</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Facebook className="w-5 h-5 text-blue-600" />
+                    <Input
+                      placeholder="Facebook Profile URL"
+                      value={newAgent.socialMedia.facebook}
+                      onChange={(e) => setNewAgent(prev => ({
+                        ...prev,
+                        socialMedia: { ...prev.socialMedia, facebook: e.target.value }
+                      }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Instagram className="w-5 h-5 text-pink-600" />
+                    <Input
+                      placeholder="Instagram Profile URL"
+                      value={newAgent.socialMedia.instagram}
+                      onChange={(e) => setNewAgent(prev => ({
+                        ...prev,
+                        socialMedia: { ...prev.socialMedia, instagram: e.target.value }
+                      }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Linkedin className="w-5 h-5 text-blue-700" />
+                    <Input
+                      placeholder="LinkedIn Profile URL"
+                      value={newAgent.socialMedia.linkedin}
+                      onChange={(e) => setNewAgent(prev => ({
+                        ...prev,
+                        socialMedia: { ...prev.socialMedia, linkedin: e.target.value }
+                      }))}
+                      className="h-12 border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAddAgentOpen(false)}
+              className="h-12 px-6 border-gray-200 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAddAgent}
+              className="h-12 px-8 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white"
+            >
+              Add Agent
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

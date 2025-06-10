@@ -1,31 +1,7 @@
-
 import React from 'react';
 import { Check } from 'lucide-react';
 
 const About: React.FC = () => {
-  const teamMembers = [
-    {
-      name: 'Maria Santos',
-      role: 'CEO & Founder',
-      image: 'https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&q=80',
-    },
-    {
-      name: 'Juan Reyes',
-      role: 'Senior Property Agent',
-      image: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&q=80',
-    },
-    {
-      name: 'Ana Garcia',
-      role: 'Marketing Director',
-      image: 'https://images.unsplash.com/photo-1487958449943-2429e8be8625?auto=format&fit=crop&q=80',
-    },
-    {
-      name: 'Pedro Lim',
-      role: 'Property Consultant',
-      image: 'https://images.unsplash.com/photo-1524230572899-a752b3835840?auto=format&fit=crop&q=80',
-    }
-  ];
-
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -122,34 +98,6 @@ const About: React.FC = () => {
                 Understanding our clients' needs is our priority. We listen, advise, and work tirelessly to deliver results.
               </p>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Our Team */}
-      <section className="section-padding bg-white">
-        <div className="container-custom">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-serif font-bold mb-4 text-bahayCebu-darkGray">Meet Our Team</h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              Our experienced professionals are dedicated to helping you find the perfect property in Cebu.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {teamMembers.map((member, index) => (
-              <div key={index} className="bg-bahayCebu-beige rounded-lg overflow-hidden shadow-sm">
-                <img 
-                  src={member.image}
-                  alt={member.name}
-                  className="w-full h-64 object-cover object-center"
-                />
-                <div className="p-4 text-center">
-                  <h3 className="font-serif text-lg font-semibold text-bahayCebu-darkGray">{member.name}</h3>
-                  <p className="text-gray-600">{member.role}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

@@ -282,7 +282,20 @@ app.get("/api/agents/latest", async (_req: Request, res: Response) => {
 // Create new agent
 app.post("/api/agents", async (req: Request, res: Response) => {
 	try {
-		const { name, title, email, phone, location, description, image } = req.body;
+		const { 
+			name, 
+			title, 
+			email, 
+			phone, 
+			location, 
+			description, 
+			image,
+			specializations,
+			listings,
+			deals,
+			rating,
+			socialMedia
+		} = req.body;
 		
 		if (!name || !title || !email || !phone || !location || !description) {
 			return res.status(400).json({ error: 'Missing required fields' });
@@ -296,7 +309,16 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 				phone,
 				location,
 				description,
-				image: image || null
+				image: image || null,
+				specializations: specializations || [],
+				listings: listings || 0,
+				deals: deals || 0,
+				rating: rating || 0,
+				socialMedia: socialMedia || {
+					facebook: '',
+					instagram: '',
+					linkedin: ''
+				}
 			}
 		});
 		
@@ -313,17 +335,83 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 // Update agent
 app.put("/api/agents/:id", async (req: Request, res: Response) => {
 	try {
-		const agent = await prisma.agent.update({
-			where: { id: req.params.id },
-			data: req.body
+		// Log the incoming request data
+		console.log('Update agent request - ID:', req.params.id);
+		console.log('Update agent request - Body:', JSON.stringify(req.body, null, 2));
+
+		// Validate required fields
+		const { name, title, email, phone, location, description, image, specializations, listings, deals, rating, socialMedia } = req.body;
+
+		if (!name || !title || !email || !phone || !location || !description) {
+			console.log('Missing required fields:', { name, title, email, phone, location, description });
+			return res.status(400).json({ error: 'Missing required fields' });
+		}
+
+		// Check if the agent exists first
+		const existingAgentCheck = await prisma.agent.findUnique({
+			where: { id: req.params.id }
 		});
-		return res.json(agent);
+
+		if (!existingAgentCheck) {
+			console.log('Agent not found:', req.params.id);
+			return res.status(404).json({ error: 'Agent not found' });
+		}
+
+		// Check if email is being changed and if it's already in use by another agent
+		const existingAgent = await prisma.agent.findFirst({
+			where: {
+				email,
+				NOT: {
+					id: req.params.id
+				}
+			}
+		});
+
+		if (existingAgent) {
+			console.log('Email already in use:', email);
+			return res.status(400).json({ error: 'An agent with this email already exists' });
+		}
+
+		// Prepare the update data with proper type handling
+		const updateData = {
+			name: String(name),
+			title: String(title),
+			email: String(email),
+			phone: String(phone),
+			location: String(location),
+			description: String(description),
+			image: image || null,
+			specializations: Array.isArray(specializations) ? specializations : [],
+			listings: Number(listings) || 0,
+			deals: Number(deals) || 0,
+			rating: Number(rating) || 0,
+			socialMedia: {
+				facebook: socialMedia?.facebook || '',
+				instagram: socialMedia?.instagram || '',
+				linkedin: socialMedia?.linkedin || ''
+			}
+		};
+
+		console.log('Update data prepared:', JSON.stringify(updateData, null, 2));
+
+		// Update agent
+		const updatedAgent = await prisma.agent.update({
+			where: { id: req.params.id },
+			data: updateData
+		});
+
+		console.log('Agent updated successfully:', JSON.stringify(updatedAgent, null, 2));
+		return res.json(updatedAgent);
 	} catch (error) {
-		console.error('Error updating agent:', error);
+		console.error('Detailed error in update agent:', error);
+		if (error instanceof Error) {
+			console.error('Error message:', error.message);
+			console.error('Error stack:', error.stack);
+		}
 		if (error instanceof Error && error.message.includes('Record to update not found')) {
 			return res.status(404).json({ error: 'Agent not found' });
 		}
-		return res.status(500).json({ error: 'Failed to update agent' });
+		return res.status(500).json({ error: 'Failed to update agent', details: error instanceof Error ? error.message : 'Unknown error' });
 	}
 });
 

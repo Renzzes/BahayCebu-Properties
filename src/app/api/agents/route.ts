@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     const data = await request.json();
     
-    // Validate the data
+    // Validate the required fields
     if (!data.name || !data.title || !data.email || !data.phone || !data.location || !data.description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -56,7 +56,16 @@ export async function POST(request: NextRequest) {
         phone: data.phone,
         location: data.location,
         description: data.description,
-        image: data.image || null
+        image: data.image || null,
+        specializations: data.specializations || [],
+        listings: data.listings || 0,
+        deals: data.deals || 0,
+        rating: data.rating || 0,
+        socialMedia: data.socialMedia || {
+          facebook: '',
+          instagram: '',
+          linkedin: ''
+        }
       }
     });
     

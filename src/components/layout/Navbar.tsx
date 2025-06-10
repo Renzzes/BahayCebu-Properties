@@ -94,7 +94,7 @@ const Navbar: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Login failed');
       alert('Login successful!');
       setIsAuthDialogOpen(false);
-      navigate('/admin/dashboard');
+      navigate('/admin');
     } catch (err: unknown) {
       if (err instanceof Error) {
         alert(err.message);
@@ -161,7 +161,7 @@ const Navbar: React.FC = () => {
             About
           </Link>
           <Link to="/contact" className="text-bahayCebu-darkGray hover:text-bahayCebu-green font-medium transition-colors relative after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-bahayCebu-green after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left">
-            Contact
+            Agent
           </Link>
         </nav>
 
@@ -193,7 +193,7 @@ const Navbar: React.FC = () => {
               About
             </Link>
             <Link to="/contact" onClick={toggleMenu} className="text-bahayCebu-darkGray hover:text-bahayCebu-green py-2 font-medium border-b border-gray-100 transition-colors relative">
-              Contact
+              Agent
             </Link>
             <div className="pt-4 flex flex-col space-y-2">
               <Button variant="outline" className="border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white" onClick={() => { toggleMenu(); openAuthDialog('login'); }}>
