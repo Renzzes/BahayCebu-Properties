@@ -17,8 +17,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!property) {
         return res.status(404).json({ error: "Property not found" });
       }
+
+      // Ensure array fields are initialized
+      const response = {
+        ...property,
+        images: property.images || [],
+        unitTypes: property.unitTypes || [],
+        amenities: property.amenities || [],
+        residentialFeatures: property.residentialFeatures || [],
+        provisions: property.provisions || [],
+        buildingFeatures: property.buildingFeatures || []
+      };
       
-      return res.status(200).json(property);
+      return res.status(200).json(response);
     } catch (err) {
       console.error('Error fetching property:', err);
       return res.status(500).json({ error: "Server error", details: err });

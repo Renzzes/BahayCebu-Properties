@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Property" ALTER COLUMN "amenities" DROP DEFAULT,
+ALTER COLUMN "buildingFeatures" DROP DEFAULT,
+ALTER COLUMN "provisions" DROP DEFAULT,
+ALTER COLUMN "residentialFeatures" DROP DEFAULT,
+ALTER COLUMN "unitTypes" DROP DEFAULT;

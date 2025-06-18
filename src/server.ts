@@ -262,50 +262,37 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 // Create a new property
 app.post("/api/properties", async (req: Request, res: Response) => {
 	try {
-		const {
-			title,
-			price,
-			location,
-			bedrooms,
-			bathrooms,
-			area,
-			type,
-			featured,
-			description,
-			images,
-			videoUrl,
-			thumbnail,
-			unitTypes,
-			amenities,
-			residentialFeatures,
-			provisions,
-			buildingFeatures
-		} = req.body;
-
+		const data = req.body;
+		
 		// Validate required fields
-		if (!title || !price || !location || !bedrooms || !bathrooms || !area || !type) {
-			return res.status(400).json({ error: "Missing required fields" });
+		if (!data.title || !data.location || !data.description) {
+			return res.status(400).json({ 
+				error: "Missing required fields: title, location, or description" 
+			});
 		}
 
 		const property = await prisma.property.create({
 			data: {
-				title,
-				price: parseFloat(price),
-				location,
-				bedrooms: parseInt(bedrooms),
-				bathrooms: parseInt(bathrooms),
-				area: parseFloat(area),
-				type,
-				featured: featured || false,
-				description,
-				images: images || [],
-				videoUrl,
-				thumbnail,
-				unitTypes: unitTypes || [],
-				amenities: amenities || [],
-				residentialFeatures: residentialFeatures || [],
-				provisions: provisions || [],
-				buildingFeatures: buildingFeatures || []
+				title: data.title,
+				price: parseFloat(data.price?.toString() || '0'),
+				location: data.location,
+				bedrooms: parseInt(data.bedrooms?.toString() || '0'),
+				bathrooms: parseInt(data.bathrooms?.toString() || '0'),
+				area: parseFloat(data.area?.toString() || '0'),
+				type: data.type || 'Condo',
+				featured: data.featured || false,
+				description: data.description,
+				images: data.images || [],
+				videoUrl: data.videoUrl || '',
+				thumbnail: data.thumbnail || '',
+				unitTypes: data.unitTypes || [],
+				unitTypeDetails: data.unitTypeDetails || [],
+				amenities: data.amenities || [],
+				residentialFeatures: data.residentialFeatures || [],
+				provisions: data.provisions || [],
+				buildingFeatures: data.buildingFeatures || [],
+				createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+				updatedAt: new Date()
 			}
 		});
 
@@ -333,6 +320,7 @@ app.put("/api/properties/:id", async (req: Request, res: Response) => {
 			videoUrl,
 			thumbnail,
 			unitTypes,
+			unitTypeDetails,
 			amenities,
 			residentialFeatures,
 			provisions,
@@ -355,6 +343,7 @@ app.put("/api/properties/:id", async (req: Request, res: Response) => {
 				videoUrl,
 				thumbnail,
 				unitTypes: unitTypes || [],
+				unitTypeDetails: unitTypeDetails || [],
 				amenities: amenities || [],
 				residentialFeatures: residentialFeatures || [],
 				provisions: provisions || [],

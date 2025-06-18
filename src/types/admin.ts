@@ -1,3 +1,28 @@
+export interface UnitTypeDetail {
+  type: string;
+  floorArea: string;
+  priceRange: string;
+  layoutImage: string;
+  reservationFee: string;
+  monthlyPayment: {
+    percentage: number;
+    amount: string;
+    terms: string;
+  };
+  balancePayment: {
+    percentage: number;
+    amount: string;
+    terms: string;
+  };
+  description: string;
+}
+
+export type PaymentDetail = {
+  percentage: number;
+  amount: string;
+  terms: string;
+};
+
 export interface AdminProperty {
   id: string;
   name: string;
@@ -16,6 +41,7 @@ export interface AdminProperty {
   lastUpdated: string;
   createdAt: string;
   location: string;
+  unitTypeDetails?: UnitTypeDetail[];
   stats: {
     views: number;
     leads: number;

@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
-import { Label } from '../components/ui/label';
-import { Textarea } from '../components/ui/textarea';
-import { Checkbox } from '../components/ui/checkbox';
-import { Upload, Plus, Home, MessageSquare, Building, User, Eye, Users, FileText, Edit3, Trash2, LogOut, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin } from 'lucide-react';
-import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty } from '../data/properties';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Upload, Plus, MessageSquare, Eye, Users, FileText, Edit3, Trash2, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin, X, Key, Star } from 'lucide-react';
+import { Building, Home, LogOut, User } from 'lucide-react';
+import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty, BUILDING_AMENITIES, RESIDENTIAL_FEATURES, PROPERTY_PROVISIONS, BUILDING_FEATURES } from '@/data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
 import { showSuccessAlert, showErrorAlert, showConfirmationDialog, showLoadingAlert } from '@/utils/sweetAlert';
@@ -19,18 +20,13 @@ import ImageCropper from '../components/ImageCropper';
 import PropertyGallery from '@/components/ui/PropertyGallery';
 import { cn } from '../lib/utils';
 import SearchableMultiSelect from '../components/ui/SearchableMultiSelect';
-import { 
-  UnitType, 
-  BuildingAmenity, 
-  ResidentialFeature, 
-  PropertyProvision, 
-  BuildingFeature,
-  UNIT_TYPES,
-  BUILDING_AMENITIES,
-  RESIDENTIAL_FEATURES,
-  PROPERTY_PROVISIONS,
-  BUILDING_FEATURES
-} from '../data/properties';
+import { UnitTypeDetail } from '@/types/admin';
+import UnitTypeManager from '../components/UnitTypeManager';
+import ZoomableImage from '../components/ZoomableImage';
+import UnitTypeSection from '../components/UnitTypeSection';
+import ImageUploader from '@/components/ImageUploader';
+import TagInput from '@/components/TagInput';
+import TravelTimesInput from '@/components/TravelTimesInput';
 
 const SPECIALIZATIONS = [
   'Residential Sales',
@@ -56,51 +52,104 @@ const SPECIALIZATIONS = [
 ] as const;
 
 interface PropertyFormData {
-  name: string;
-  address: string;
+  title: string;
   location: string;
   description: string;
   image: string;
   images: string[];
   price: string;
-  units: string;
-  occupancyRate: string;
-  status: AdminProperty['status'];
-  propertyType: AdminProperty['propertyType'];
-  listingType: AdminProperty['listingType'];
+  bedrooms: string;
+  bathrooms: string;
+  area: string;
+  type: AdminProperty['type'];
   featured: boolean;
   videoUrl: string;
   thumbnail: string;
   unitTypes: string[];
+  unitTypeDetails: UnitTypeDetail[];
   amenities: string[];
   residentialFeatures: string[];
   provisions: string[];
   buildingFeatures: string[];
   createdAt: string;
+  listingType: AdminProperty['listingType'];
+  units: string;
+  occupancyRate: string;
+  locationAccessibility: {
+    nearbyLandmarks: string[];
+    publicTransport: string[];
+    mainRoads: string[];
+    travelTimes: Array<{ destination: string; duration: string }>;
+  };
+  featuresAmenities: {
+    propertyHighlights: string[];
+    smartHomeFeatures: string[];
+    securityFeatures: string[];
+    sustainabilityFeatures: string[];
+  };
+  lifestyleCommunity: {
+    neighborhoodType: string;
+    localAmenities: string[];
+    communityFeatures: string[];
+    nearbyEstablishments: string[];
+  };
+  additionalInformation: {
+    propertyHistory: string;
+    legalInformation: string;
+    developmentPlans: string;
+    specialNotes: string;
+  };
 }
 
+// Default form data
 const defaultFormData: PropertyFormData = {
-  name: '',
-  address: '',
+  title: '',
   location: '',
   description: '',
   image: '',
   images: [],
   price: '',
-  units: '',
-  occupancyRate: '',
-  status: 'Active',
-  propertyType: 'Condo',
-  listingType: 'For Sale',
+  bedrooms: '',
+  bathrooms: '',
+  area: '',
+  type: 'Condo',
   featured: false,
   videoUrl: '',
   thumbnail: '',
   unitTypes: [],
+  unitTypeDetails: [],
   amenities: [],
   residentialFeatures: [],
   provisions: [],
   buildingFeatures: [],
-  createdAt: new Date().toISOString()
+  createdAt: new Date().toISOString(),
+  listingType: 'For Sale',
+  units: '0',
+  occupancyRate: '0',
+  locationAccessibility: {
+    nearbyLandmarks: [],
+    publicTransport: [],
+    mainRoads: [],
+    travelTimes: [],
+  },
+  featuresAmenities: {
+    propertyHighlights: [],
+    smartHomeFeatures: [],
+    securityFeatures: [],
+    sustainabilityFeatures: [],
+  },
+  lifestyleCommunity: {
+    neighborhoodType: '',
+    localAmenities: [],
+    communityFeatures: [],
+    nearbyEstablishments: [],
+  },
+  additionalInformation: {
+    propertyHistory: '',
+    legalInformation: '',
+    developmentPlans: '',
+    specialNotes: '',
+  },
 };
 
 const AdminDashboard = () => {
@@ -183,8 +232,9 @@ const AdminDashboard = () => {
   }, [selectedMenu]);
 
   // Property filtering state
-  const [propertyTypeFilter, setPropertyTypeFilter] = useState<string>('all');
-  const [listingTypeFilter, setListingTypeFilter] = useState<string>('all');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState<string>('');
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Profile form data
   const [profileForm, setProfileForm] = useState({
@@ -267,7 +317,6 @@ const AdminDashboard = () => {
 
   const menuItems = [
     { id: 'Dashboard', icon: Home, label: 'Dashboard' },
-    { id: 'Message', icon: MessageSquare, label: 'Message' },
     { id: 'Properties', icon: Building, label: 'Properties' },
     { id: 'Agent', icon: User, label: 'Agent' },
     { id: 'Profile', icon: User, label: 'Profile' },
@@ -394,25 +443,19 @@ const AdminDashboard = () => {
 
   // Property filtering logic
   useEffect(() => {
-    let filtered = [...properties];
-    
-    if (propertyTypeFilter !== 'all') {
-      filtered = filtered.filter(property => property.propertyType === propertyTypeFilter);
+    if (properties) {
+      setFilteredProperties(
+        properties.filter(p =>
+          (!propertyTypeFilter || p.type === propertyTypeFilter) &&
+          (!searchQuery || p.title.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+      );
     }
-    
-    if (listingTypeFilter !== 'all') {
-      filtered = filtered.filter(property => property.listingType === listingTypeFilter);
-    }
-    
-    setFilteredProperties(filtered);
-  }, [properties, propertyTypeFilter, listingTypeFilter]);
+  }, [properties, propertyTypeFilter, searchQuery]);
 
-  const handlePropertyTypeFilter = (type: string) => {
+  // Update property type filter handler
+  const handlePropertyTypeFilter = (type: AdminProperty['type']) => {
     setPropertyTypeFilter(type);
-  };
-
-  const handleListingTypeFilter = (type: string) => {
-    setListingTypeFilter(type);
   };
 
   const toggleDescription = (propertyId: string) => {
@@ -432,76 +475,200 @@ const AdminDashboard = () => {
     return description.substring(0, maxLength) + '...';
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      Array.from(files).forEach(file => {
+  const handleImageUpload = (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, isEdit = false): Promise<string> => {
+    return new Promise((resolve) => {
+      const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
+      if (file) {
         const reader = new FileReader();
         reader.onload = (e) => {
+          const imageUrl = e.target?.result as string;
           if (isEdit) {
             setEditProperty(prev => ({
               ...prev,
-              image: e.target?.result as string, // Keep for backward compatibility
-              images: [...(prev.images || []), e.target?.result as string]
+              image: imageUrl,
+              images: [...(prev.images || []), imageUrl]
             }));
           } else {
             setNewProperty(prev => ({
               ...prev,
-              image: e.target?.result as string, // Keep for backward compatibility
-              images: [...(prev.images || []), e.target?.result as string]
+              image: imageUrl,
+              images: [...(prev.images || []), imageUrl]
             }));
           }
+          resolve(imageUrl);
         };
         reader.readAsDataURL(file);
-      });
-    }
+      } else {
+        resolve('');
+      }
+    });
   };
 
   const handleAddProperty = async () => {
-    if (newProperty.name && newProperty.address && newProperty.units && newProperty.description) {
+    if (newProperty.title && newProperty.location && newProperty.description) {
       try {
+        showLoadingAlert('Adding property...');
+        
+        // Format unit type details
+        const formattedUnitTypeDetails = newProperty.unitTypeDetails.map(detail => ({
+          type: detail.type,
+          floorArea: detail.floorArea,
+          priceRange: detail.priceRange,
+          layoutImage: detail.layoutImage,
+          reservationFee: detail.reservationFee,
+          monthlyPayment: {
+            percentage: parseInt(String(detail.monthlyPayment.percentage)) || 0,
+            amount: detail.monthlyPayment.amount,
+            terms: detail.monthlyPayment.terms
+          },
+          balancePayment: {
+            percentage: parseInt(String(detail.balancePayment.percentage)) || 0,
+            amount: detail.balancePayment.amount,
+            terms: detail.balancePayment.terms
+          },
+          description: detail.description
+        }));
+        
         const propertyData: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'> = {
-          ...newProperty,
+          title: newProperty.title.trim(),
+          location: newProperty.location.trim(),
+          description: newProperty.description.trim(),
+          image: newProperty.image || '',
+          images: newProperty.images || [],
           price: parseInt(newProperty.price) || 0,
+          bedrooms: parseInt(newProperty.bedrooms) || 0,
+          bathrooms: parseInt(newProperty.bathrooms) || 0,
+          area: parseInt(newProperty.area) || 0,
+          type: newProperty.type || 'Condo',
+          featured: newProperty.featured || false,
+          videoUrl: newProperty.videoUrl || '',
+          thumbnail: newProperty.thumbnail || '',
+          unitTypes: newProperty.unitTypes || [],
+          unitTypeDetails: formattedUnitTypeDetails,
+          amenities: newProperty.amenities || [],
+          residentialFeatures: newProperty.residentialFeatures || [],
+          provisions: newProperty.provisions || [],
+          buildingFeatures: newProperty.buildingFeatures || [],
+          createdAt: newProperty.createdAt || new Date().toISOString(),
+          listingType: newProperty.listingType || 'For Sale',
           units: parseInt(newProperty.units) || 0,
-          occupancyRate: parseInt(newProperty.occupancyRate) || 0
+          occupancyRate: parseInt(newProperty.occupancyRate) || 0,
+          locationAccessibility: newProperty.locationAccessibility || {
+            nearbyLandmarks: [],
+            publicTransport: [],
+            mainRoads: [],
+            travelTimes: []
+          },
+          featuresAmenities: newProperty.featuresAmenities || {
+            propertyHighlights: [],
+            smartHomeFeatures: [],
+            securityFeatures: [],
+            sustainabilityFeatures: []
+          },
+          lifestyleCommunity: newProperty.lifestyleCommunity || {
+            neighborhoodType: '',
+            localAmenities: [],
+            communityFeatures: [],
+            nearbyEstablishments: []
+          },
+          additionalInformation: newProperty.additionalInformation || {
+            propertyHistory: '',
+            legalInformation: '',
+            developmentPlans: '',
+            specialNotes: ''
+          }
         };
 
-        await addProperty(propertyData);
+        const addedProperty = await addProperty(propertyData);
         
-        // Update the properties state with the new data
-        const updatedProperties = await getAllProperties();
-        setProperties(updatedProperties);
-        setFilteredProperties(updatedProperties);
-        
-        // Reset the form
-        setNewProperty(defaultFormData);
-        
-        // Close the dialog and show success message
-        setIsAddPropertyOpen(false);
-        alert('Property added successfully!');
+        if (addedProperty) {
+          // Update the properties state with the new data
+          const updatedProperties = await getAllProperties();
+          setProperties(updatedProperties);
+          setFilteredProperties(updatedProperties);
+          
+          // Reset the form
+          setNewProperty(defaultFormData);
+          
+          // Close the dialog
+          setIsAddPropertyOpen(false);
+
+          // Show success message with property details
+          await Swal.fire({
+            title: 'Property Added Successfully!',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#22c55e'
+          });
+        } else {
+          throw new Error('Failed to add property');
+        }
       } catch (error) {
         console.error('Error adding property:', error);
-        alert('Failed to add property. Please try again.');
+        showErrorAlert('Failed to add property', 'Please try again.');
       }
     } else {
-      alert('Please fill in all required fields.');
+      showErrorAlert('Missing Information', 'Please fill in all required fields (Title, Location, and Description).');
     }
   };
 
   const handleEditProperty = async () => {
-    if (editProperty.name && editProperty.address && editProperty.units && editProperty.description && editingProperty) {
+    if (editProperty.title && editProperty.location && editProperty.description && editingProperty) {
       try {
+        console.log('Editing property data:', JSON.stringify(editProperty, null, 2));
         showLoadingAlert('Updating property...');
         
         const propertyData: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'> = {
-          ...editProperty,
+          title: editProperty.title,
+          location: editProperty.location,
+          description: editProperty.description,
+          image: editProperty.image,
+          images: editProperty.images,
           price: parseInt(editProperty.price) || 0,
+          bedrooms: parseInt(editProperty.bedrooms) || 0,
+          bathrooms: parseInt(editProperty.bathrooms) || 0,
+          area: parseInt(editProperty.area) || 0,
+          type: editProperty.type,
+          featured: editProperty.featured,
+          videoUrl: editProperty.videoUrl,
+          thumbnail: editProperty.thumbnail,
+          unitTypes: editProperty.unitTypes,
+          unitTypeDetails: editProperty.unitTypeDetails,
+          amenities: editProperty.amenities,
+          residentialFeatures: editProperty.residentialFeatures,
+          provisions: editProperty.provisions,
+          buildingFeatures: editProperty.buildingFeatures,
+          createdAt: editProperty.createdAt,
+          listingType: editProperty.listingType,
           units: parseInt(editProperty.units) || 0,
           occupancyRate: parseInt(editProperty.occupancyRate) || 0,
-          videoUrl: editProperty.videoUrl || '' // Ensure videoUrl is included
+          locationAccessibility: {
+            nearbyLandmarks: editProperty.locationAccessibility?.nearbyLandmarks || [],
+            publicTransport: editProperty.locationAccessibility?.publicTransport || [],
+            mainRoads: editProperty.locationAccessibility?.mainRoads || [],
+            travelTimes: editProperty.locationAccessibility?.travelTimes || []
+          },
+          featuresAmenities: {
+            propertyHighlights: editProperty.featuresAmenities?.propertyHighlights || [],
+            smartHomeFeatures: editProperty.featuresAmenities?.smartHomeFeatures || [],
+            securityFeatures: editProperty.featuresAmenities?.securityFeatures || [],
+            sustainabilityFeatures: editProperty.featuresAmenities?.sustainabilityFeatures || []
+          },
+          lifestyleCommunity: {
+            neighborhoodType: editProperty.lifestyleCommunity?.neighborhoodType || '',
+            localAmenities: editProperty.lifestyleCommunity?.localAmenities || [],
+            communityFeatures: editProperty.lifestyleCommunity?.communityFeatures || [],
+            nearbyEstablishments: editProperty.lifestyleCommunity?.nearbyEstablishments || []
+          },
+          additionalInformation: {
+            propertyHistory: editProperty.additionalInformation?.propertyHistory || '',
+            legalInformation: editProperty.additionalInformation?.legalInformation || '',
+            developmentPlans: editProperty.additionalInformation?.developmentPlans || '',
+            specialNotes: editProperty.additionalInformation?.specialNotes || ''
+          }
         };
 
+        console.log('Sending property data to API:', JSON.stringify(propertyData, null, 2));
         await updateProperty(editingProperty.id, propertyData);
         
         // Update the properties state with the new data
@@ -512,15 +679,15 @@ const AdminDashboard = () => {
         // Reset the form and close dialog
         setEditProperty(defaultFormData);
         setIsEditPropertyOpen(false);
-
-        // Show success message
-        showSuccessAlert('Success!', 'Property has been updated successfully');
+        
+        await Swal.close();
+        await showSuccessAlert('Success', 'Property updated successfully.');
       } catch (error) {
         console.error('Error updating property:', error);
-        showErrorAlert('Error!', 'Failed to update property. Please try again.');
+        showErrorAlert('Failed to update property', 'Please try again.');
       }
     } else {
-      showErrorAlert('Warning!', 'Please fill in all required fields.');
+      showErrorAlert('Missing Information', 'Please fill in all required fields (Title, Location, and Description).');
     }
   };
 
@@ -538,41 +705,63 @@ const AdminDashboard = () => {
   };
 
   const openEditDialog = (property: AdminProperty) => {
+    console.log('Opening edit dialog for property:', JSON.stringify(property, null, 2));
     setEditingProperty(property);
-    setEditProperty({
-      name: property.name,
-      address: property.address,
-      location: property.location,
-      description: property.description,
-      image: property.image,
+    const formData: PropertyFormData = {
+      title: property.title || '',
+      location: property.location || '',
+      description: property.description || '',
+      image: property.image || '',
       images: property.images || [],
-      price: property.price.toString(),
-      units: property.units.toString(),
-      occupancyRate: property.occupancyRate.toString(),
-      status: property.status,
-      propertyType: property.propertyType,
-      listingType: property.listingType,
+      price: property.price?.toString() || '0',
+      bedrooms: property.bedrooms?.toString() || '0',
+      bathrooms: property.bathrooms?.toString() || '0',
+      area: property.area?.toString() || '0',
+      type: property.type,
       featured: property.featured || false,
       videoUrl: property.videoUrl || '',
       thumbnail: property.thumbnail || '',
       unitTypes: property.unitTypes || [],
+      unitTypeDetails: property.unitTypeDetails || [],
       amenities: property.amenities || [],
       residentialFeatures: property.residentialFeatures || [],
       provisions: property.provisions || [],
       buildingFeatures: property.buildingFeatures || [],
-      createdAt: property.createdAt
-    });
+      createdAt: property.createdAt || new Date().toISOString(),
+      listingType: property.listingType || 'For Sale',
+      units: property.units?.toString() || '0',
+      occupancyRate: property.occupancyRate?.toString() || '0',
+      locationAccessibility: {
+        nearbyLandmarks: property.locationAccessibility?.nearbyLandmarks || [],
+        publicTransport: property.locationAccessibility?.publicTransport || [],
+        mainRoads: property.locationAccessibility?.mainRoads || [],
+        travelTimes: property.locationAccessibility?.travelTimes || []
+      },
+      featuresAmenities: {
+        propertyHighlights: property.featuresAmenities?.propertyHighlights || [],
+        smartHomeFeatures: property.featuresAmenities?.smartHomeFeatures || [],
+        securityFeatures: property.featuresAmenities?.securityFeatures || [],
+        sustainabilityFeatures: property.featuresAmenities?.sustainabilityFeatures || []
+      },
+      lifestyleCommunity: {
+        neighborhoodType: property.lifestyleCommunity?.neighborhoodType || '',
+        localAmenities: property.lifestyleCommunity?.localAmenities || [],
+        communityFeatures: property.lifestyleCommunity?.communityFeatures || [],
+        nearbyEstablishments: property.lifestyleCommunity?.nearbyEstablishments || []
+      },
+      additionalInformation: {
+        propertyHistory: property.additionalInformation?.propertyHistory || '',
+        legalInformation: property.additionalInformation?.legalInformation || '',
+        developmentPlans: property.additionalInformation?.developmentPlans || '',
+        specialNotes: property.additionalInformation?.specialNotes || ''
+      }
+    };
+    setEditProperty(formData);
     setIsEditPropertyOpen(true);
   };
 
-  const getStatusColor = (status: AdminProperty['status']) => {
-    switch (status) {
-      case 'Active': return 'bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20';
-      case 'Off Market': return 'bg-gray-100 text-gray-700 border-gray-200';
-      case 'Sold': return 'bg-bahayCebu-terracotta/10 text-bahayCebu-terracotta border-bahayCebu-terracotta/20';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
+  // Property type options
+  const propertyTypes: AdminProperty['type'][] = ['Condo', 'House and Lot', 'Land'];
 
   const handleAgentImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
@@ -881,7 +1070,6 @@ const AdminDashboard = () => {
               <p className="text-bahayCebu-darkGray/60 mt-1">
                 {selectedMenu === 'Properties' ? 'Manage your property listings' :
                  selectedMenu === 'Dashboard' ? 'Overview of your property portfolio' :
-                 selectedMenu === 'Message' ? 'Customer inquiries and communications' :
                  selectedMenu === 'Profile' ? 'Account settings and preferences' :
                  selectedMenu === 'Agent' ? 'Agent Management' : ''}
               </p>
@@ -939,348 +1127,1106 @@ const AdminDashboard = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
-                        <Plus className="w-5 h-5" />
-                        <span className="font-medium">Add Property</span>
+                                <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
+                      <Plus className="w-5 h-5" />
+                      <span className="font-medium">Add Property</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col">
+                    <DialogHeader className="pb-6 flex-shrink-0">
+                      <DialogTitle className="text-2xl font-medium">Add New Property</DialogTitle>
+                      <p className="text-gray-600 mt-2">Fill in the details to create a new property listing</p>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto px-6">
+                      <div className="space-y-8">
+                        {/* Basic Information */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Basic Information</h3>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="title">Property Name</Label>
+                              <Input
+                                id="title"
+                                value={newProperty.title}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Enter property name"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label>Status</Label>
+                              <Select value={newProperty.type} onValueChange={(value: AdminProperty['type']) => setNewProperty(prev => ({ ...prev, type: value }))}>
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Active" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Active">Active</SelectItem>
+                                  <SelectItem value="Inactive">Inactive</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Categories */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Categories</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label>Property Type</Label>
+                              <Select value={newProperty.type} onValueChange={(value: AdminProperty['type']) => setNewProperty(prev => ({ ...prev, type: value }))}>
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Select property type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Condo">Condo</SelectItem>
+                                  <SelectItem value="House and Lot">House and Lot</SelectItem>
+                                  <SelectItem value="Land">Land</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div>
+                              <Label>Listing Type</Label>
+                              <Select 
+                                value={newProperty.listingType} 
+                                onValueChange={(value: AdminProperty['listingType']) => {
+                                  const updatedProperty: PropertyFormData = {
+                                    ...newProperty,
+                                    listingType: value
+                                  };
+                                  setNewProperty(updatedProperty);
+                                }}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Select listing type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="For Sale">For Sale</SelectItem>
+                                  <SelectItem value="For Rent">For Rent</SelectItem>
+                                  <SelectItem value="Resale">Resale</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Location & Description */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Location & Description</h3>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="address">Address</Label>
+                              <Textarea
+                                id="address"
+                                value={newProperty.location}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, location: e.target.value }))}
+                                placeholder="Enter full address"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="description">Description</Label>
+                              <Textarea
+                                id="description"
+                                value={newProperty.description}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Enter property description"
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Pricing & Details */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Pricing & Details</h3>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                              <Label htmlFor="price">Price (₱)</Label>
+                              <Input
+                                id="price"
+                                type="number"
+                                value={newProperty.price}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, price: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="bedrooms">Bedrooms</Label>
+                              <Input
+                                id="bedrooms"
+                                type="number"
+                                value={newProperty.bedrooms}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, bedrooms: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="bathrooms">Bathrooms</Label>
+                              <Input
+                                id="bathrooms"
+                                type="number"
+                                value={newProperty.bathrooms}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, bathrooms: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="area">Floor Area (sqm)</Label>
+                              <Input
+                                id="area"
+                                type="number"
+                                value={newProperty.area}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, area: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="units">Number of Units</Label>
+                              <Input
+                                id="units"
+                                type="number"
+                                value={newProperty.units}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, units: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="occupancy">Occupancy Rate (%)</Label>
+                              <Input
+                                id="occupancy"
+                                type="number"
+                                value={newProperty.occupancyRate}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, occupancyRate: e.target.value }))}
+                                placeholder="0"
+                                className="mt-1"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Feature on Homepage */}
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="featured"
+                              checked={newProperty.featured}
+                              onCheckedChange={(checked) => setNewProperty(prev => ({ ...prev, featured: checked as boolean }))}
+                            />
+                            <Label htmlFor="featured">Feature this property on homepage</Label>
+                          </div>
+                        </div>
+
+                        {/* Property Images */}
+                        <div className="space-y-6">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-orange-500 pl-4">Property Images</h3>
+                          <ImageUploader
+                            images={newProperty.images}
+                            onImagesChange={(newImages) => {
+                              setNewProperty(prev => ({
+                                ...prev,
+                                images: newImages
+                              }));
+                            }}
+                            onImageUpload={(file) => handleImageUpload(file, false)}
+                          />
+                        </div>
+
+                        {/* Video Information */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium">Video Information</h3>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="videoUrl">Video URL</Label>
+                              <Input
+                                id="videoUrl"
+                                value={newProperty.videoUrl}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
+                                placeholder="Enter YouTube or Vimeo video URL"
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Add a video URL from YouTube or Vimeo</p>
+                            </div>
+                            <div>
+                              <Label htmlFor="thumbnailUrl">Video Thumbnail URL</Label>
+                              <Input
+                                id="thumbnailUrl"
+                                value={newProperty.thumbnail}
+                                onChange={(e) => setNewProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
+                                placeholder="Enter thumbnail URL"
+                                className="mt-1"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">URL for video thumbnail image</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Unit Types */}
+                        <UnitTypeSection
+                          unitTypes={newProperty.unitTypeDetails}
+                          onUnitTypesChange={(newUnitTypes) => {
+                            setNewProperty(prev => ({ ...prev, unitTypeDetails: newUnitTypes }));
+                          }}
+                          onImageUpload={(file) => handleImageUpload(file, false)}
+                        />
+
+                        {/* Building Amenities */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
+                          <SearchableMultiSelect
+                            options={BUILDING_AMENITIES}
+                            selectedValues={newProperty.amenities}
+                            onChange={(values) => {
+                              setNewProperty(prev => ({ ...prev, amenities: values }));
+                            }}
+                            placeholder="Select amenities..."
+                          />
+                        </div>
+
+                        {/* Residential Features */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
+                          <SearchableMultiSelect
+                            options={RESIDENTIAL_FEATURES}
+                            selectedValues={newProperty.residentialFeatures}
+                            onChange={(values) => {
+                              setNewProperty(prev => ({ ...prev, residentialFeatures: values }));
+                            }}
+                            placeholder="Select residential features..."
+                          />
+                        </div>
+
+                        {/* Provisions */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
+                          <SearchableMultiSelect
+                            options={PROPERTY_PROVISIONS}
+                            selectedValues={newProperty.provisions}
+                            onChange={(values) => {
+                              setNewProperty(prev => ({ ...prev, provisions: values }));
+                            }}
+                            placeholder="Select provisions..."
+                          />
+                        </div>
+
+                        {/* Building Features */}
+                        <div className="space-y-4">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
+                          <SearchableMultiSelect
+                            options={BUILDING_FEATURES}
+                            selectedValues={newProperty.buildingFeatures}
+                            onChange={(values) => {
+                              setNewProperty(prev => ({ ...prev, buildingFeatures: values }));
+                            }}
+                            placeholder="Select building features..."
+                          />
+                        </div>
+
+                        {/* Property Overview Sections */}
+                        <div className="space-y-6">
+                          <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-orange-500 pl-4">Property Overview</h3>
+                          
+                          {/* Location & Accessibility */}
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Location & Accessibility</h4>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <Label>Nearby Landmarks</Label>
+                                <TagInput
+                                  tags={newProperty.locationAccessibility?.nearbyLandmarks || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    locationAccessibility: {
+                                      ...prev.locationAccessibility,
+                                      nearbyLandmarks: tags
+                                    }
+                                  }))}
+                                  placeholder="Add landmark and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Public Transport</Label>
+                                <TagInput
+                                  tags={newProperty.locationAccessibility?.publicTransport || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    locationAccessibility: {
+                                      ...prev.locationAccessibility,
+                                      publicTransport: tags
+                                    }
+                                  }))}
+                                  placeholder="Add transport option and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Main Roads</Label>
+                                <TagInput
+                                  tags={newProperty.locationAccessibility.mainRoads}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    locationAccessibility: {
+                                      ...prev.locationAccessibility,
+                                      mainRoads: tags
+                                    }
+                                  }))}
+                                  placeholder="Add main road and press Enter"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Features & Amenities */}
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Features & Amenities</h4>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <Label>Property Highlights</Label>
+                                <TagInput
+                                  tags={newProperty.featuresAmenities?.propertyHighlights || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    featuresAmenities: {
+                                      ...prev.featuresAmenities,
+                                      propertyHighlights: tags
+                                    }
+                                  }))}
+                                  placeholder="Add highlight and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Smart Home Features</Label>
+                                <TagInput
+                                  tags={newProperty.featuresAmenities?.smartHomeFeatures || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    featuresAmenities: {
+                                      ...prev.featuresAmenities,
+                                      smartHomeFeatures: tags
+                                    }
+                                  }))}
+                                  placeholder="Add smart feature and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Security Features</Label>
+                                <TagInput
+                                  tags={newProperty.featuresAmenities?.securityFeatures || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    featuresAmenities: {
+                                      ...prev.featuresAmenities,
+                                      securityFeatures: tags
+                                    }
+                                  }))}
+                                  placeholder="Add security feature and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Sustainability Features</Label>
+                                <TagInput
+                                  tags={newProperty.featuresAmenities?.sustainabilityFeatures || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    featuresAmenities: {
+                                      ...prev.featuresAmenities,
+                                      sustainabilityFeatures: tags
+                                    }
+                                  }))}
+                                  placeholder="Add sustainability feature and press Enter"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Lifestyle & Community */}
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Lifestyle & Community</h4>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <Label>Neighborhood Type</Label>
+                                <Input
+                                  value={newProperty.lifestyleCommunity?.neighborhoodType || ''}
+                                  onChange={(e) => setNewProperty(prev => ({
+                                    ...prev,
+                                    lifestyleCommunity: {
+                                      ...prev.lifestyleCommunity,
+                                      neighborhoodType: e.target.value
+                                    }
+                                  }))}
+                                  placeholder="e.g., Residential, Mixed-use, etc."
+                                />
+                              </div>
+                              <div>
+                                <Label>Local Amenities</Label>
+                                <TagInput
+                                  tags={newProperty.lifestyleCommunity?.localAmenities || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    lifestyleCommunity: {
+                                      ...prev.lifestyleCommunity,
+                                      localAmenities: tags
+                                    }
+                                  }))}
+                                  placeholder="Add local amenity and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Community Features</Label>
+                                <TagInput
+                                  tags={newProperty.lifestyleCommunity?.communityFeatures || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    lifestyleCommunity: {
+                                      ...prev.lifestyleCommunity,
+                                      communityFeatures: tags
+                                    }
+                                  }))}
+                                  placeholder="Add community feature and press Enter"
+                                />
+                              </div>
+                              <div>
+                                <Label>Nearby Establishments</Label>
+                                <TagInput
+                                  tags={newProperty.lifestyleCommunity?.nearbyEstablishments || []}
+                                  onTagsChange={(tags) => setNewProperty(prev => ({
+                                    ...prev,
+                                    lifestyleCommunity: {
+                                      ...prev.lifestyleCommunity,
+                                      nearbyEstablishments: tags
+                                    }
+                                  }))}
+                                  placeholder="Add nearby establishment and press Enter"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Additional Information */}
+                          <div className="space-y-4">
+                            <h4 className="font-medium">Additional Information</h4>
+                            <div className="grid grid-cols-1 gap-4">
+                              <div>
+                                <Label>Property History</Label>
+                                <Textarea
+                                  value={newProperty.additionalInformation?.propertyHistory || ''}
+                                  onChange={(e) => setNewProperty(prev => ({
+                                    ...prev,
+                                    additionalInformation: {
+                                      ...prev.additionalInformation,
+                                      propertyHistory: e.target.value
+                                    }
+                                  }))}
+                                  placeholder="Enter property history"
+                                />
+                              </div>
+                              <div>
+                                <Label>Legal Information</Label>
+                                <Textarea
+                                  value={newProperty.additionalInformation?.legalInformation || ''}
+                                  onChange={(e) => setNewProperty(prev => ({
+                                    ...prev,
+                                    additionalInformation: {
+                                      ...prev.additionalInformation,
+                                      legalInformation: e.target.value
+                                    }
+                                  }))}
+                                  placeholder="Enter legal information"
+                                />
+                              </div>
+                              <div>
+                                <Label>Development Plans</Label>
+                                <Textarea
+                                  value={newProperty.additionalInformation?.developmentPlans || ''}
+                                  onChange={(e) => setNewProperty(prev => ({
+                                    ...prev,
+                                    additionalInformation: {
+                                      ...prev.additionalInformation,
+                                      developmentPlans: e.target.value
+                                    }
+                                  }))}
+                                  placeholder="Enter development plans"
+                                />
+                              </div>
+                              <div>
+                                <Label>Special Notes</Label>
+                                <Textarea
+                                  value={newProperty.additionalInformation?.specialNotes || ''}
+                                  onChange={(e) => setNewProperty(prev => ({
+                                    ...prev,
+                                    additionalInformation: {
+                                      ...prev.additionalInformation,
+                                      specialNotes: e.target.value
+                                    }
+                                  }))}
+                                  placeholder="Enter special notes"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Action Buttons */}
+                    <div className="flex justify-end space-x-4 pt-6 pb-2 px-6 border-t border-gray-100 mt-8 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAddPropertyOpen(false)}
+                        className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      >
+                        Cancel
                       </Button>
-                    </DialogTrigger>
-                  </Dialog>
+                      <Button
+                        onClick={handleAddProperty}
+                        className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
+                      >
+                        Add Property
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 </div>
               </div>
 
               {/* Edit Property Dialog */}
               <Dialog open={isEditPropertyOpen} onOpenChange={setIsEditPropertyOpen}>
-                <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-                  <DialogHeader className="pb-6 border-b border-gray-100">
-                    <DialogTitle className="text-3xl font-serif font-light text-bahayCebu-darkGray">Edit Property</DialogTitle>
-                    <p className="text-bahayCebu-darkGray/60 mt-2">Update the property details</p>
+                <DialogContent className="max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col">
+                  <DialogHeader className="pb-6 flex-shrink-0">
+                    <DialogTitle className="text-2xl font-medium">Edit Property</DialogTitle>
+                    <p className="text-gray-600 mt-2">Update the property details</p>
                   </DialogHeader>
-                  <div className="space-y-8 pt-6">
-                    {/* Basic Information */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-bahayCebu-green pl-4">Basic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-name" className="text-bahayCebu-darkGray font-medium text-sm">Property Name</Label>
+                  <div className="flex-1 overflow-y-auto px-6">
+                    <div className="space-y-8">
+                      {/* Basic Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Basic Information</h3>
+                        <div>
+                          <Label htmlFor="edit-title">Property Name</Label>
                           <Input
-                            id="edit-name"
-                            value={editProperty.name}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, name: e.target.value }))}
+                            id="edit-title"
+                            value={editProperty.title}
+                            onChange={(e) => setEditProperty(prev => ({ ...prev, title: e.target.value }))}
                             placeholder="Enter property name"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
+                            className="mt-1"
                           />
                         </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-status" className="text-bahayCebu-darkGray font-medium text-sm">Status</Label>
-                          <Select value={editProperty.status} onValueChange={(value: AdminProperty['status']) => setEditProperty(prev => ({ ...prev, status: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Active">Active</SelectItem>
-                              <SelectItem value="Off Market">Off Market</SelectItem>
-                              <SelectItem value="Sold">Sold</SelectItem>
-                            </SelectContent>
-                          </Select>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                            <Label>Property Type</Label>
+                            <Select value={editProperty.type} onValueChange={(value: AdminProperty['type']) => setEditProperty(prev => ({ ...prev, type: value }))}>
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select property type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {propertyTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label>Listing Type</Label>
+                            <Select value={editProperty.listingType} onValueChange={(value: AdminProperty['listingType']) => setEditProperty(prev => ({ ...prev, listingType: value }))}>
+                              <SelectTrigger className="mt-1">
+                                <SelectValue placeholder="Select listing type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="For Sale">For Sale</SelectItem>
+                                <SelectItem value="For Rent">For Rent</SelectItem>
+                                <SelectItem value="For Lease">For Lease</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Categories */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-bahayCebu-terracotta pl-4">Categories</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-propertyType" className="text-bahayCebu-darkGray font-medium text-sm">Property Type</Label>
-                          <Select value={editProperty.propertyType} onValueChange={(value: AdminProperty['propertyType']) => setEditProperty(prev => ({ ...prev, propertyType: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Condo">Condo</SelectItem>
-                              <SelectItem value="House and Lot">House and Lot</SelectItem>
-                              <SelectItem value="Land">Land</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-listingType" className="text-bahayCebu-darkGray font-medium text-sm">Listing Type</Label>
-                          <Select value={editProperty.listingType} onValueChange={(value: AdminProperty['listingType']) => setEditProperty(prev => ({ ...prev, listingType: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="For Sale">For Sale</SelectItem>
-                              <SelectItem value="For Rent">For Rent</SelectItem>
-                              <SelectItem value="Resale">Resale</SelectItem>
-                            </SelectContent>
-                          </Select>
+                      {/* Location & Description */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Location & Description</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <Label htmlFor="edit-location">Address</Label>
+                            <Textarea
+                              id="edit-location"
+                              value={editProperty.location}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, location: e.target.value }))}
+                              placeholder="Enter full address"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-description">Description</Label>
+                            <Textarea
+                              id="edit-description"
+                              value={editProperty.description}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, description: e.target.value }))}
+                              placeholder="Enter property description"
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Location & Description */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-blue-500 pl-4">Location & Description</h3>
-                      <div className="space-y-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-address" className="text-bahayCebu-darkGray font-medium text-sm">Address</Label>
-                          <Textarea
-                            id="edit-address"
-                            value={editProperty.address}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, address: e.target.value }))}
-                            placeholder="Enter full address"
-                            rows={2}
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl resize-none"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-description" className="text-bahayCebu-darkGray font-medium text-sm">Description</Label>
-                          <Textarea
-                            id="edit-description"
-                            value={editProperty.description}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="Enter property description"
-                            rows={4}
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl resize-none"
-                          />
+                      {/* Pricing & Details */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium">Pricing & Details</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div>
+                            <Label htmlFor="edit-price">Price (₱)</Label>
+                            <Input
+                              id="edit-price"
+                              type="number"
+                              value={editProperty.price}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, price: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-bedrooms">Bedrooms</Label>
+                            <Input
+                              id="edit-bedrooms"
+                              type="number"
+                              value={editProperty.bedrooms}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, bedrooms: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-bathrooms">Bathrooms</Label>
+                            <Input
+                              id="edit-bathrooms"
+                              type="number"
+                              value={editProperty.bathrooms}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, bathrooms: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-area">Floor Area (sqm)</Label>
+                            <Input
+                              id="edit-area"
+                              type="number"
+                              value={editProperty.area}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, area: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-units">Number of Units</Label>
+                            <Input
+                              id="edit-units"
+                              type="number"
+                              value={editProperty.units}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, units: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="edit-occupancy">Occupancy Rate (%)</Label>
+                            <Input
+                              id="edit-occupancy"
+                              type="number"
+                              value={editProperty.occupancyRate}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, occupancyRate: e.target.value }))}
+                              placeholder="0"
+                              className="mt-1"
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Pricing & Details */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-yellow-500 pl-4">Pricing & Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-price" className="text-bahayCebu-darkGray font-medium text-sm">Price (₱)</Label>
-                          <Input
-                            id="edit-price"
-                            type="number"
-                            value={editProperty.price}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, price: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
+
+                      {/* Unit Types */}
+                      <UnitTypeSection
+                        unitTypes={editProperty.unitTypeDetails}
+                        onUnitTypesChange={(newUnitTypes) => {
+                          console.log('New unit types:', newUnitTypes);
+                          setEditProperty(prev => {
+                            const updated = { ...prev, unitTypeDetails: newUnitTypes };
+                            console.log('Updated edit property:', updated);
+                            return updated;
+                          });
+                        }}
+                        onImageUpload={(file) => handleImageUpload(file, true)}
+                      />
+
+                      {/* Building Amenities */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
+                        <SearchableMultiSelect
+                          options={BUILDING_AMENITIES}
+                          selectedValues={editProperty.amenities}
+                          onChange={(values) => {
+                            setEditProperty(prev => ({ ...prev, amenities: values }));
+                          }}
+                          placeholder="Select amenities..."
+                        />
+                      </div>
+
+                      {/* Residential Features */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
+                        <SearchableMultiSelect
+                          options={RESIDENTIAL_FEATURES}
+                          selectedValues={editProperty.residentialFeatures}
+                          onChange={(values) => {
+                            setEditProperty(prev => ({ ...prev, residentialFeatures: values }));
+                          }}
+                          placeholder="Select residential features..."
+                        />
+                      </div>
+
+                      {/* Provisions */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
+                        <SearchableMultiSelect
+                          options={PROPERTY_PROVISIONS}
+                          selectedValues={editProperty.provisions}
+                          onChange={(values) => {
+                            setEditProperty(prev => ({ ...prev, provisions: values }));
+                          }}
+                          placeholder="Select provisions..."
+                        />
+                      </div>
+
+                      {/* Building Features */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
+                        <SearchableMultiSelect
+                          options={BUILDING_FEATURES}
+                          selectedValues={editProperty.buildingFeatures}
+                          onChange={(values) => {
+                            setEditProperty(prev => ({ ...prev, buildingFeatures: values }));
+                          }}
+                          placeholder="Select building features..."
+                        />
+                      </div>
+
+                      {/* Property Overview Sections */}
+                      <div className="space-y-8">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-blue-500 pl-4">Property Overview</h3>
+                        
+                        {/* Location & Accessibility */}
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Location & Accessibility</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <Label>Nearby Landmarks</Label>
+                              <TagInput
+                                tags={editProperty.locationAccessibility.nearbyLandmarks}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  locationAccessibility: {
+                                    ...prev.locationAccessibility,
+                                    nearbyLandmarks: tags
+                                  }
+                                }))}
+                                placeholder="Add landmark and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Public Transport</Label>
+                              <TagInput
+                                tags={editProperty.locationAccessibility.publicTransport}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  locationAccessibility: {
+                                    ...prev.locationAccessibility,
+                                    publicTransport: tags
+                                  }
+                                }))}
+                                placeholder="Add transport option and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Main Roads</Label>
+                              <TagInput
+                                tags={editProperty.locationAccessibility.mainRoads}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  locationAccessibility: {
+                                    ...prev.locationAccessibility,
+                                    mainRoads: tags
+                                  }
+                                }))}
+                                placeholder="Add main road and press Enter"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-units" className="text-bahayCebu-darkGray font-medium text-sm">Number of Units</Label>
-                          <Input
-                            id="edit-units"
-                            type="number"
-                            value={editProperty.units}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, units: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
+
+                        {/* Features & Amenities */}
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Features & Amenities</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <Label>Property Highlights</Label>
+                              <TagInput
+                                tags={editProperty.featuresAmenities.propertyHighlights}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  featuresAmenities: {
+                                    ...prev.featuresAmenities,
+                                    propertyHighlights: tags
+                                  }
+                                }))}
+                                placeholder="Add property highlight and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Smart Home Features</Label>
+                              <TagInput
+                                tags={editProperty.featuresAmenities.smartHomeFeatures}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  featuresAmenities: {
+                                    ...prev.featuresAmenities,
+                                    smartHomeFeatures: tags
+                                  }
+                                }))}
+                                placeholder="Add smart home feature and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Security Features</Label>
+                              <TagInput
+                                tags={editProperty.featuresAmenities.securityFeatures}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  featuresAmenities: {
+                                    ...prev.featuresAmenities,
+                                    securityFeatures: tags
+                                  }
+                                }))}
+                                placeholder="Add security feature and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Sustainability Features</Label>
+                              <TagInput
+                                tags={editProperty.featuresAmenities.sustainabilityFeatures}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  featuresAmenities: {
+                                    ...prev.featuresAmenities,
+                                    sustainabilityFeatures: tags
+                                  }
+                                }))}
+                                placeholder="Add sustainability feature and press Enter"
+                              />
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-occupancy" className="text-bahayCebu-darkGray font-medium text-sm">Occupancy Rate (%)</Label>
-                          <Input
-                            id="edit-occupancy"
-                            type="number"
-                            max="100"
-                            value={editProperty.occupancyRate}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, occupancyRate: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
+
+                        {/* Lifestyle & Community */}
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Lifestyle & Community</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <Label>Neighborhood Type</Label>
+                              <Input
+                                value={editProperty.lifestyleCommunity.neighborhoodType}
+                                onChange={(e) => setEditProperty(prev => ({
+                                  ...prev,
+                                  lifestyleCommunity: {
+                                    ...prev.lifestyleCommunity,
+                                    neighborhoodType: e.target.value
+                                  }
+                                }))}
+                                placeholder="e.g., Residential, Mixed-use, etc."
+                              />
+                            </div>
+                            <div>
+                              <Label>Local Amenities</Label>
+                              <TagInput
+                                tags={editProperty.lifestyleCommunity.localAmenities}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  lifestyleCommunity: {
+                                    ...prev.lifestyleCommunity,
+                                    localAmenities: tags
+                                  }
+                                }))}
+                                placeholder="Add local amenity and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Community Features</Label>
+                              <TagInput
+                                tags={editProperty.lifestyleCommunity.communityFeatures}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  lifestyleCommunity: {
+                                    ...prev.lifestyleCommunity,
+                                    communityFeatures: tags
+                                  }
+                                }))}
+                                placeholder="Add community feature and press Enter"
+                              />
+                            </div>
+                            <div>
+                              <Label>Nearby Establishments</Label>
+                              <TagInput
+                                tags={editProperty.lifestyleCommunity.nearbyEstablishments}
+                                onTagsChange={(tags) => setEditProperty(prev => ({
+                                  ...prev,
+                                  lifestyleCommunity: {
+                                    ...prev.lifestyleCommunity,
+                                    nearbyEstablishments: tags
+                                  }
+                                }))}
+                                placeholder="Add nearby establishment and press Enter"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Additional Information */}
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Additional Information</h4>
+                          <div className="grid grid-cols-1 gap-4">
+                            <div>
+                              <Label>Property History</Label>
+                              <Textarea
+                                value={editProperty.additionalInformation.propertyHistory}
+                                onChange={(e) => setEditProperty(prev => ({
+                                  ...prev,
+                                  additionalInformation: {
+                                    ...prev.additionalInformation,
+                                    propertyHistory: e.target.value
+                                  }
+                                }))}
+                                placeholder="Enter property history"
+                              />
+                            </div>
+                            <div>
+                              <Label>Legal Information</Label>
+                              <Textarea
+                                value={editProperty.additionalInformation.legalInformation}
+                                onChange={(e) => setEditProperty(prev => ({
+                                  ...prev,
+                                  additionalInformation: {
+                                    ...prev.additionalInformation,
+                                    legalInformation: e.target.value
+                                  }
+                                }))}
+                                placeholder="Enter legal information"
+                              />
+                            </div>
+                            <div>
+                              <Label>Development Plans</Label>
+                              <Textarea
+                                value={editProperty.additionalInformation.developmentPlans}
+                                onChange={(e) => setEditProperty(prev => ({
+                                  ...prev,
+                                  additionalInformation: {
+                                    ...prev.additionalInformation,
+                                    developmentPlans: e.target.value
+                                  }
+                                }))}
+                                placeholder="Enter development plans"
+                              />
+                            </div>
+                            <div>
+                              <Label>Special Notes</Label>
+                              <Textarea
+                                value={editProperty.additionalInformation.specialNotes}
+                                onChange={(e) => setEditProperty(prev => ({
+                                  ...prev,
+                                  additionalInformation: {
+                                    ...prev.additionalInformation,
+                                    specialNotes: e.target.value
+                                  }
+                                }))}
+                                placeholder="Enter special notes"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Featured Property */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-4 p-6 bg-gradient-to-r from-bahayCebu-beige/30 to-bahayCebu-green/5 rounded-2xl border border-bahayCebu-green/10">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
+
+                      {/* Feature on Homepage */}
+                      <div className="space-y-4">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox
                             id="edit-featured"
                             checked={editProperty.featured}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, featured: e.target.checked }))}
-                            className="w-5 h-5 text-bahayCebu-green bg-white border-gray-300 rounded focus:ring-bahayCebu-green focus:ring-2"
+                            onCheckedChange={(checked) => setEditProperty(prev => ({ ...prev, featured: checked as boolean }))}
                           />
-                          <Label htmlFor="edit-featured" className="text-bahayCebu-darkGray font-medium cursor-pointer">
-                            Feature this property on homepage
-                          </Label>
+                          <Label htmlFor="edit-featured">Feature this property on homepage</Label>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Property Image */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Images</h3>
-                      <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                        {(editProperty.images?.length ?? 0) > 0 ? (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                              {editProperty.images?.map((img, index) => (
-                                <div key={index} className="relative group">
-                                  <img src={img} alt={`Preview ${index + 1}`} className="h-40 w-full object-cover rounded-lg shadow-md" />
-                                  <button 
-                                    onClick={() => setEditProperty(prev => ({
-                                      ...prev,
-                                      images: prev.images?.filter((_, i) => i !== index) || [],
-                                      image: index === 0 ? prev.images?.[1] || '' : prev.image
-                                    }))}
-                                    className="absolute top-2 right-2 bg-white/90 text-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                            <div>
-                              <Label htmlFor="edit-image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Add More Images</span>
-                                <Input
-                                  id="edit-image-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  onChange={(e) => handleImageUpload(e, true)}
-                                  className="hidden"
-                                />
-                              </Label>
-                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
-                            </div>
+
+                      {/* Property Images */}
+                      <div className="space-y-6">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-orange-500 pl-4">Property Images</h3>
+                        <ImageUploader
+                          images={editProperty.images}
+                          onImagesChange={(newImages) => {
+                            setEditProperty(prev => ({
+                              ...prev,
+                              images: newImages
+                            }));
+                          }}
+                          onImageUpload={(file) => handleImageUpload(file, true)}
+                        />
+                      </div>
+
+                      {/* Video Information */}
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-red-500 pl-4">Video Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="edit-videoUrl">Video URL</Label>
+                            <Input
+                              id="edit-videoUrl"
+                              type="text"
+                              value={editProperty.videoUrl}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
+                              placeholder="Enter video URL (e.g., YouTube link)"
+                              className="mt-1"
+                            />
                           </div>
-                        ) : (
-                          <div className="space-y-6">
-                            <Upload className="mx-auto h-16 w-16 text-gray-400" />
-                            <div>
-                              <Label htmlFor="edit-image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Images</span>
-                                <Input
-                                  id="edit-image-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  onChange={(e) => handleImageUpload(e, true)}
-                                  className="hidden"
-                                />
-                              </Label>
-                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
-                            </div>
+                          <div>
+                            <Label htmlFor="edit-thumbnail">Thumbnail URL</Label>
+                            <Input
+                              id="edit-thumbnail"
+                              type="text"
+                              value={editProperty.thumbnail}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
+                              placeholder="Enter thumbnail URL"
+                              className="mt-1"
+                            />
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Video Information */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-indigo-500 pl-4">Video Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
-                          <Input
-                            id="edit-video-url"
-                            type="url"
-                            value={editProperty.videoUrl || ''}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
-                            placeholder="Enter YouTube or Vimeo video URL"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                          <p className="text-sm text-gray-500">Add a video URL from YouTube or Vimeo</p>
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="edit-thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
-                          <Input
-                            id="edit-thumbnail"
-                            type="url"
-                            value={editProperty.thumbnail || ''}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
-                            placeholder="Enter thumbnail URL"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                          <p className="text-sm text-gray-500">URL for video thumbnail image</p>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Unit Types */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Unit Types</h3>
-                      <SearchableMultiSelect
-                        options={UNIT_TYPES}
-                        selectedValues={editProperty.unitTypes}
-                        onChange={(values) => {
-                          setEditProperty(prev => ({ ...prev, unitTypes: values as UnitType[] }));
-                        }}
-                        placeholder="Select unit types..."
-                      />
-                    </div>
+                  </div>
 
-                    {/* Building Amenities */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
-                      <SearchableMultiSelect
-                        options={BUILDING_AMENITIES}
-                        selectedValues={editProperty.amenities}
-                        onChange={(values) => {
-                          setEditProperty(prev => ({ ...prev, amenities: values as BuildingAmenity[] }));
-                        }}
-                        placeholder="Select amenities..."
-                      />
-                    </div>
-
-                    {/* Residential Features */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
-                      <SearchableMultiSelect
-                        options={RESIDENTIAL_FEATURES}
-                        selectedValues={editProperty.residentialFeatures}
-                        onChange={(values) => {
-                          setEditProperty(prev => ({ ...prev, residentialFeatures: values as ResidentialFeature[] }));
-                        }}
-                        placeholder="Select residential features..."
-                      />
-                    </div>
-
-                    {/* Provisions */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
-                      <SearchableMultiSelect
-                        options={PROPERTY_PROVISIONS}
-                        selectedValues={editProperty.provisions}
-                        onChange={(values) => {
-                          setEditProperty(prev => ({ ...prev, provisions: values as PropertyProvision[] }));
-                        }}
-                        placeholder="Select provisions..."
-                      />
-                    </div>
-
-                    {/* Building Features */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
-                      <SearchableMultiSelect
-                        options={BUILDING_FEATURES}
-                        selectedValues={editProperty.buildingFeatures}
-                        onChange={(values) => {
-                          setEditProperty(prev => ({ ...prev, buildingFeatures: values as BuildingFeature[] }));
-                        }}
-                        placeholder="Select building features..."
-                      />
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex justify-end space-x-4 pt-8 border-t border-gray-100">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsEditPropertyOpen(false)}
-                        className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={handleEditProperty}
-                        className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
-                      >
-                        Update Property
-                      </Button>
-                    </div>
+                  <div className="flex justify-end space-x-4 pt-6 pb-2 px-6 border-t border-gray-100 mt-8 flex-shrink-0">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsEditPropertyOpen(false)}
+                      className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleEditProperty}
+                      className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
+                    >
+                      Update Property
+                    </Button>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -1335,20 +2281,7 @@ const AdminDashboard = () => {
                         </Select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label className="text-sm text-bahayCebu-darkGray/70">Listing Type</Label>
-                        <Select value={listingTypeFilter} onValueChange={handleListingTypeFilter}>
-                          <SelectTrigger className="w-full border-gray-200 focus:border-bahayCebu-terracotta rounded-xl h-12 bg-white">
-                            <SelectValue placeholder="Select listing type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Listings</SelectItem>
-                            <SelectItem value="For Sale">For Sale</SelectItem>
-                            <SelectItem value="For Rent">For Rent</SelectItem>
-                            <SelectItem value="Resale">Resale</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      
                     </div>
                   </div>
 
@@ -1357,12 +2290,9 @@ const AdminDashboard = () => {
                     <div className="text-sm text-gray-500">
                       Showing {filteredProperties.length} of {properties.length} properties
                     </div>
-                    {(propertyTypeFilter !== 'all' || listingTypeFilter !== 'all') && (
+                                         {propertyTypeFilter && (
                       <button
-                        onClick={() => {
-                          setPropertyTypeFilter('all');
-                          setListingTypeFilter('all');
-                        }}
+                                                    onClick={() => setPropertyTypeFilter('')}
                         className="text-sm text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium"
                       >
                         Clear all filters
@@ -1389,198 +2319,111 @@ const AdminDashboard = () => {
                 <>
                   <div className="grid grid-cols-1 gap-6">
                     {currentProperties.map((property) => (
-                      <Card key={property.id} className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-                        <div className="flex flex-col md:flex-row">
-                          {/* Property Image - Left Side */}
-                          <div className="relative w-full md:w-1/3">
-                            <PropertyGallery 
-                              images={property.images?.length ? property.images : [property.image]} 
-                              className="h-full object-cover"
+                      <Card key={property.id} className="group overflow-hidden bg-white/95 backdrop-blur-xl border-0 shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                          {/* Property Image Section */}
+                          <div className="md:col-span-4 relative aspect-[4/3] overflow-hidden rounded-tl-2xl">
+                            <img
+                              src={property.image || '/placeholder-property.jpg'}
+                              alt={property.title}
+                              className="absolute inset-0 w-full h-full object-cover"
                             />
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                "absolute top-4 right-4 px-3 py-1 rounded-full text-xs font-medium",
-                                getStatusColor(property.status)
-                              )}
-                            >
-                              {property.status}
-                            </Badge>
-                            {property.featured && (
-                              <Badge 
-                                variant="outline" 
-                                className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-medium bg-bahayCebu-terracotta/10 text-bahayCebu-terracotta border-bahayCebu-terracotta/20"
-                              >
-                                Featured
+                            <div className="absolute top-4 left-4 flex gap-2">
+                              <Badge variant="secondary" className="bg-white/90 backdrop-blur-sm text-bahayCebu-darkGray">
+                                {property.type}
                               </Badge>
-                            )}
+                              {property.featured && (
+                                <Badge className="bg-bahayCebu-green/90 backdrop-blur-sm text-white">
+                                  Featured
+                                </Badge>
+                              )}
+                            </div>
                           </div>
 
-                          {/* Property Content - Right Side */}
-                          <div className="flex-1 md:max-h-[600px] md:overflow-y-auto">
-                            <CardContent className="p-6 space-y-6">
-                              <div className="space-y-4">
-                                {/* Property Name and Status */}
-                                <div>
-                                  <h3 className="font-serif font-bold text-xl text-bahayCebu-darkGray mb-2">{property.name}</h3>
+                          {/* Property Details Section */}
+                          <div className="md:col-span-8 p-6">
+                            <CardContent className="p-0 space-y-6">
+                              {/* Header Section */}
+                              <div>
+                                <div className="flex items-start justify-between gap-4">
+                                  <h3 className="text-2xl font-serif text-bahayCebu-darkGray">
+                                    {property.title}
+                                  </h3>
                                   <div className="flex items-center gap-2">
-                                    <Badge className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20 font-medium px-3 py-1 text-xs rounded-full">
-                                      {property.propertyType}
-                                    </Badge>
-                                    <Badge className="bg-blue-50 text-blue-600 border-blue-200 font-medium px-3 py-1 text-xs rounded-full">
+                                    <Badge variant="outline" className="border-bahayCebu-green text-bahayCebu-green">
                                       {property.listingType}
                                     </Badge>
                                   </div>
                                 </div>
-
-                                {/* Location and Address */}
-                                <div className="space-y-2">
-                                  <div className="flex items-start gap-2">
-                                    <MapPin className="h-4 w-4 text-bahayCebu-green mt-1" />
-                                    <div>
-                                      <p className="text-bahayCebu-darkGray font-medium">{property.location}</p>
-                                      <p className="text-bahayCebu-darkGray/70 text-sm">{property.address}</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Description */}
-                                <div className="text-bahayCebu-darkGray/60 text-sm leading-relaxed">
-                                  <p>
-                                    {expandedDescriptions.has(property.id) 
-                                      ? property.description 
-                                      : truncateDescription(property.description, 100)}
-                                  </p>
-                                  {property.description.length > 100 && (
-                                    <button
-                                      onClick={() => toggleDescription(property.id)}
-                                      className="text-bahayCebu-green hover:text-bahayCebu-green/80 font-medium mt-1 transition-colors"
-                                    >
-                                      {expandedDescriptions.has(property.id) ? 'Show less' : 'Read more'}
-                                    </button>
-                                  )}
-                                </div>
-
-                                {/* Property Details */}
-                                <div className="grid grid-cols-2 gap-4 bg-gray-50 rounded-xl p-4">
-                                  <div className="space-y-3">
-                                    <div>
-                                      <p className="text-xs text-gray-500">Price</p>
-                                      <p className="font-bold text-bahayCebu-green">₱{parseInt(property.price.toString()).toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-500">Total Units</p>
-                                      <p className="font-bold text-bahayCebu-darkGray">{property.units}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-500">Occupancy Rate</p>
-                                      <p className="font-bold text-bahayCebu-darkGray">{property.occupancyRate}%</p>
-                                    </div>
-                                  </div>
-                                  <div className="space-y-3">
-                                    <div>
-                                      <p className="text-xs text-gray-500">Created</p>
-                                      <p className="font-medium text-bahayCebu-darkGray">{new Date(property.createdAt).toLocaleDateString()}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-500">Last Updated</p>
-                                      <p className="font-medium text-bahayCebu-darkGray">{property.lastUpdated}</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Features and Amenities */}
-                                <div className="space-y-3">
-                                  {property.unitTypes && property.unitTypes.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-2">Unit Types</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {property.unitTypes.map((type, index) => (
-                                          <Badge key={index} variant="outline" className="bg-gray-50">
-                                            {type}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {property.amenities && property.amenities.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-2">Amenities</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {property.amenities.map((amenity, index) => (
-                                          <Badge key={index} variant="outline" className="bg-gray-50">
-                                            {amenity}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {property.residentialFeatures && property.residentialFeatures.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-2">Residential Features</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {property.residentialFeatures.map((feature, index) => (
-                                          <Badge key={index} variant="outline" className="bg-gray-50">
-                                            {feature}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {property.buildingFeatures && property.buildingFeatures.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-2">Building Features</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {property.buildingFeatures.map((feature, index) => (
-                                          <Badge key={index} variant="outline" className="bg-gray-50">
-                                            {feature}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {property.provisions && property.provisions.length > 0 && (
-                                    <div>
-                                      <p className="text-xs text-gray-500 mb-2">Provisions</p>
-                                      <div className="flex flex-wrap gap-2">
-                                        {property.provisions.map((provision, index) => (
-                                          <Badge key={index} variant="outline" className="bg-gray-50">
-                                            {provision}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Performance Stats */}
-                                <div>
-                                  <div className="text-center mb-3">
-                                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">30-Day Performance</span>
-                                  </div>
-                                  <div className="grid grid-cols-3 gap-3 text-center">
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-gray-500">Views</div>
-                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.views.toLocaleString()}</div>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-gray-500">Leads</div>
-                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.leads}</div>
-                                    </div>
-                                    <div className="space-y-1">
-                                      <div className="text-xs text-gray-500">Applications</div>
-                                      <div className="font-bold text-bahayCebu-darkGray text-sm">{property.stats.applications}</div>
-                                    </div>
-                                  </div>
+                                <div className="flex items-center gap-2 mt-2 text-gray-600">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{property.location}</span>
                                 </div>
                               </div>
 
-                              {/* Card Actions */}
+                              {/* Property Stats */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-y border-gray-100">
+                                <div>
+                                  <p className="text-gray-500 text-sm">Price</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">₱{property.price.toLocaleString()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-sm">Bedrooms</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.bedrooms}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-sm">Bathrooms</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.bathrooms}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-sm">Floor Area</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.area} sqm</p>
+                                </div>
+                              </div>
+
+                              {/* Description */}
+                              <div>
+                                <p className="text-gray-600 line-clamp-2">
+                                  {property.description}
+                                </p>
+                                {property.description.length > 150 && (
+                                  <button
+                                    onClick={() => toggleDescription(property.id)}
+                                    className="text-bahayCebu-green hover:text-bahayCebu-green/80 text-sm font-medium mt-2"
+                                  >
+                                    {expandedDescriptions.has(property.id) ? 'Show Less' : 'Read More'}
+                                  </button>
+                                )}
+                              </div>
+
+                              {/* Performance Stats */}
+                              <div className="grid grid-cols-3 gap-4 py-4 border-t border-gray-100">
+                                <div className="text-center">
+                                  <p className="text-gray-500 text-sm">Views</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.stats?.views || 0}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-gray-500 text-sm">Leads</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.stats?.leads || 0}</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-gray-500 text-sm">Applications</p>
+                                  <p className="text-lg font-medium text-bahayCebu-darkGray">{property.stats?.applications || 0}</p>
+                                </div>
+                              </div>
+
+                              {/* Action Buttons */}
                               <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                                <Button
+                                  variant="outline"
+                                  className="flex-1 flex items-center justify-center gap-2 border-bahayCebu-blue text-bahayCebu-blue hover:bg-bahayCebu-blue/10"
+                                  onClick={() => {
+                                    navigate(`/admin/properties/${property.id}/preview`);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                  <span>Preview</span>
+                                </Button>
                                 <Button
                                   variant="outline"
                                   className="flex-1 flex items-center justify-center gap-2 border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green/10"
@@ -1600,6 +2443,14 @@ const AdminDashboard = () => {
                                   <Trash2 className="h-4 w-4" />
                                   <span>Delete</span>
                                 </Button>
+                              </div>
+
+                              {/* Timestamps */}
+                              <div className="flex items-center justify-between text-sm text-gray-500 pt-4 border-t border-gray-100">
+                                <div>Created: {new Date(property.createdAt).toLocaleDateString()}</div>
+                                {property.lastUpdated && (
+                                  <div>Last Updated: {new Date(property.lastUpdated).toLocaleDateString()}</div>
+                                )}
                               </div>
                             </CardContent>
                           </div>
@@ -1645,343 +2496,6 @@ const AdminDashboard = () => {
                   )}
                 </>
               )}
-
-              {/* Add Property Dialog */}
-              <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
-                <DialogTrigger asChild>
-                </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-                  <DialogHeader className="pb-6 border-b border-gray-100">
-                    <DialogTitle className="text-3xl font-serif font-light text-bahayCebu-darkGray">Add New Property</DialogTitle>
-                    <p className="text-bahayCebu-darkGray/60 mt-2">Fill in the details to create a new property listing</p>
-                  </DialogHeader>
-                  <div className="space-y-8 pt-6">
-                    {/* Basic Information */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-bahayCebu-green pl-4">Basic Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="name" className="text-bahayCebu-darkGray font-medium text-sm">Property Name</Label>
-                          <Input
-                            id="name"
-                            value={newProperty.name}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, name: e.target.value }))}
-                            placeholder="Enter property name"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="status" className="text-bahayCebu-darkGray font-medium text-sm">Status</Label>
-                          <Select value={newProperty.status} onValueChange={(value: AdminProperty['status']) => setNewProperty(prev => ({ ...prev, status: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Active">Active</SelectItem>
-                              <SelectItem value="Off Market">Off Market</SelectItem>
-                              <SelectItem value="Sold">Sold</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Categories */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-bahayCebu-terracotta pl-4">Categories</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="propertyType" className="text-bahayCebu-darkGray font-medium text-sm">Property Type</Label>
-                          <Select value={newProperty.propertyType} onValueChange={(value: AdminProperty['propertyType']) => setNewProperty(prev => ({ ...prev, propertyType: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Condo">Condo</SelectItem>
-                              <SelectItem value="House and Lot">House and Lot</SelectItem>
-                              <SelectItem value="Land">Land</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="listingType" className="text-bahayCebu-darkGray font-medium text-sm">Listing Type</Label>
-                          <Select value={newProperty.listingType} onValueChange={(value: AdminProperty['listingType']) => setNewProperty(prev => ({ ...prev, listingType: value }))}>
-                            <SelectTrigger className="border-gray-200 focus:border-bahayCebu-green rounded-xl h-12">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="For Sale">For Sale</SelectItem>
-                              <SelectItem value="For Rent">For Rent</SelectItem>
-                              <SelectItem value="Resale">Resale</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Location & Description */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-blue-500 pl-4">Location & Description</h3>
-                      <div className="space-y-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="address" className="text-bahayCebu-darkGray font-medium text-sm">Address</Label>
-                          <Textarea
-                            id="address"
-                            value={newProperty.address}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, address: e.target.value }))}
-                            placeholder="Enter full address"
-                            rows={2}
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl resize-none"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="description" className="text-bahayCebu-darkGray font-medium text-sm">Description</Label>
-                          <Textarea
-                            id="description"
-                            value={newProperty.description}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, description: e.target.value }))}
-                            placeholder="Enter property description"
-                            rows={4}
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl resize-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Pricing & Details */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-yellow-500 pl-4">Pricing & Details</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="price" className="text-bahayCebu-darkGray font-medium text-sm">Price (₱)</Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            value={newProperty.price}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, price: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="units" className="text-bahayCebu-darkGray font-medium text-sm">Number of Units</Label>
-                          <Input
-                            id="units"
-                            type="number"
-                            value={newProperty.units}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, units: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="occupancy" className="text-bahayCebu-darkGray font-medium text-sm">Occupancy Rate (%)</Label>
-                          <Input
-                            id="occupancy"
-                            type="number"
-                            max="100"
-                            value={newProperty.occupancyRate}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, occupancyRate: e.target.value }))}
-                            placeholder="0"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Featured Property */}
-                    <div className="space-y-6">
-                      <div className="flex items-center space-x-4 p-6 bg-gradient-to-r from-bahayCebu-beige/30 to-bahayCebu-green/5 rounded-2xl border border-bahayCebu-green/10">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="checkbox"
-                            id="featured"
-                            checked={newProperty.featured}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, featured: e.target.checked }))}
-                            className="w-5 h-5 text-bahayCebu-green bg-white border-gray-300 rounded focus:ring-bahayCebu-green focus:ring-2"
-                          />
-                          <Label htmlFor="featured" className="text-bahayCebu-darkGray font-medium cursor-pointer">
-                            Feature this property on homepage
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Property Image */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Property Images</h3>
-                      <div className="border-2 border-dashed border-gray-200 rounded-2xl p-8 text-center bg-gray-50/50 hover:bg-gray-100/50 transition-colors">
-                        {(newProperty.images?.length ?? 0) > 0 ? (
-                          <div className="space-y-6">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                              {newProperty.images?.map((img, index) => (
-                                <div key={index} className="relative group">
-                                  <img src={img} alt={`Preview ${index + 1}`} className="h-40 w-full object-cover rounded-lg shadow-md" />
-                                  <button 
-                                    onClick={() => setNewProperty(prev => ({
-                                      ...prev,
-                                      images: prev.images?.filter((_, i) => i !== index) || [],
-                                      image: index === 0 ? prev.images?.[1] || '' : prev.image
-                                    }))}
-                                    className="absolute top-2 right-2 bg-white/90 text-red-500 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                            <div>
-                              <Label htmlFor="image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Add More Images</span>
-                                <Input
-                                  id="image-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  onChange={(e) => handleImageUpload(e, false)}
-                                  className="hidden"
-                                />
-                              </Label>
-                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-6">
-                            <Upload className="mx-auto h-16 w-16 text-gray-400" />
-                            <div>
-                              <Label htmlFor="image-upload" className="cursor-pointer">
-                                <span className="text-lg font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Property Images</span>
-                                <Input
-                                  id="image-upload"
-                                  type="file"
-                                  accept="image/*"
-                                  multiple
-                                  onChange={(e) => handleImageUpload(e, false)}
-                                  className="hidden"
-                                />
-                              </Label>
-                              <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Video Information */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-indigo-500 pl-4">Video Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                          <Label htmlFor="add-video-url" className="text-bahayCebu-darkGray font-medium text-sm">Video URL</Label>
-                          <Input
-                            id="add-video-url"
-                            type="url"
-                            value={newProperty.videoUrl || ''}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, videoUrl: e.target.value }))}
-                            placeholder="Enter YouTube or Vimeo video URL"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                          <p className="text-sm text-gray-500">Add a video URL from YouTube or Vimeo</p>
-                        </div>
-                        <div className="space-y-3">
-                          <Label htmlFor="thumbnail" className="text-bahayCebu-darkGray font-medium text-sm">Video Thumbnail URL</Label>
-                          <Input
-                            id="thumbnail"
-                            type="url"
-                            value={newProperty.thumbnail || ''}
-                            onChange={(e) => setNewProperty(prev => ({ ...prev, thumbnail: e.target.value }))}
-                            placeholder="Enter thumbnail URL"
-                            className="border-gray-200 focus:border-bahayCebu-green focus:ring-bahayCebu-green/20 rounded-xl h-12"
-                          />
-                          <p className="text-sm text-gray-500">URL for video thumbnail image</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Unit Types */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Unit Types</h3>
-                      <SearchableMultiSelect
-                        options={UNIT_TYPES}
-                        selectedValues={newProperty.unitTypes}
-                        onChange={(values) => {
-                          setNewProperty(prev => ({ ...prev, unitTypes: values as UnitType[] }));
-                        }}
-                        placeholder="Select unit types..."
-                      />
-                    </div>
-
-                    {/* Building Amenities */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Amenities</h3>
-                      <SearchableMultiSelect
-                        options={BUILDING_AMENITIES}
-                        selectedValues={newProperty.amenities}
-                        onChange={(values) => {
-                          setNewProperty(prev => ({ ...prev, amenities: values as BuildingAmenity[] }));
-                        }}
-                        placeholder="Select amenities..."
-                      />
-                    </div>
-
-                    {/* Residential Features */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Residential Features</h3>
-                      <SearchableMultiSelect
-                        options={RESIDENTIAL_FEATURES}
-                        selectedValues={newProperty.residentialFeatures}
-                        onChange={(values) => {
-                          setNewProperty(prev => ({ ...prev, residentialFeatures: values as ResidentialFeature[] }));
-                        }}
-                        placeholder="Select residential features..."
-                      />
-                    </div>
-
-                    {/* Provisions */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Provisions</h3>
-                      <SearchableMultiSelect
-                        options={PROPERTY_PROVISIONS}
-                        selectedValues={newProperty.provisions}
-                        onChange={(values) => {
-                          setNewProperty(prev => ({ ...prev, provisions: values as PropertyProvision[] }));
-                        }}
-                        placeholder="Select provisions..."
-                      />
-                    </div>
-
-                    {/* Building Features */}
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-medium text-bahayCebu-darkGray border-l-4 border-purple-500 pl-4">Building Features</h3>
-                      <SearchableMultiSelect
-                        options={BUILDING_FEATURES}
-                        selectedValues={newProperty.buildingFeatures}
-                        onChange={(values) => {
-                          setNewProperty(prev => ({ ...prev, buildingFeatures: values as BuildingFeature[] }));
-                        }}
-                        placeholder="Select building features..."
-                      />
-                    </div>
-                    
-                    {/* Action Buttons */}
-                    <div className="flex justify-end space-x-4 pt-8 border-t border-gray-100">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setIsAddPropertyOpen(false)}
-                        className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={handleAddProperty}
-                        className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
-                      >
-                        Add Property
-                      </Button>
-                    </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           )}
 
@@ -2004,38 +2518,38 @@ const AdminDashboard = () => {
                 </Card>
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-terracotta/80 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium opacity-90">Total Views</div>
-                    <Eye className="h-6 w-6 opacity-80" />
+                    <div className="text-sm font-medium opacity-90">For Sale</div>
+                    <FileText className="h-6 w-6 opacity-80" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold">
-                      {properties.reduce((sum, p) => sum + p.stats.views, 0).toLocaleString()}
+                      {properties.filter(p => p.listingType === 'For Sale').length}
                     </div>
-                    <p className="text-xs opacity-80 mt-1">Past 30 days</p>
+                    <p className="text-xs opacity-80 mt-1">Properties listed for sale</p>
                   </CardContent>
                 </Card>
                 <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium text-bahayCebu-darkGray">Total Leads</div>
-                    <Users className="h-6 w-6 text-bahayCebu-green" />
+                    <div className="text-sm font-medium text-bahayCebu-darkGray">For Rent</div>
+                    <Key className="h-6 w-6 text-bahayCebu-green" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-bahayCebu-darkGray">
-                      {properties.reduce((sum, p) => sum + p.stats.leads, 0)}
+                      {properties.filter(p => p.listingType === 'For Rent').length}
                     </div>
-                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Past 30 days</p>
+                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Properties for rent</p>
                   </CardContent>
                 </Card>
                 <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium text-bahayCebu-darkGray">Applications</div>
-                    <FileText className="h-6 w-6 text-bahayCebu-terracotta" />
+                    <div className="text-sm font-medium text-bahayCebu-darkGray">Featured</div>
+                    <Star className="h-6 w-6 text-bahayCebu-terracotta" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-bahayCebu-darkGray">
-                      {properties.reduce((sum, p) => sum + p.stats.applications, 0)}
+                      {properties.filter(p => p.featured).length}
                     </div>
-                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Past 30 days</p>
+                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Featured properties</p>
                   </CardContent>
                 </Card>
               </div>
@@ -2048,22 +2562,29 @@ const AdminDashboard = () => {
                     <p className="text-bahayCebu-darkGray/60">Latest additions to your portfolio</p>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {properties.slice(0, 3).map((property) => (
-                      <div key={property.id} className="flex items-center space-x-4 p-3 rounded-lg bg-bahayCebu-beige/50">
-                        <img 
-                          src={property.image} 
-                          alt={property.name}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-bahayCebu-darkGray">{property.name}</h4>
-                          <p className="text-sm text-bahayCebu-darkGray/60">{property.units} units</p>
-                        </div>
-                        <Badge className={getStatusColor(property.status)}>
-                          {property.status}
-                        </Badge>
+                    {properties.length === 0 ? (
+                      <div className="text-center py-6">
+                        <Building className="h-12 w-12 text-bahayCebu-darkGray/20 mx-auto mb-3" />
+                        <p className="text-bahayCebu-darkGray/60">No properties added yet</p>
                       </div>
-                    ))}
+                    ) : (
+                      properties.slice(0, 3).map((property) => (
+                        <div key={property.id} className="flex items-center space-x-4 p-3 rounded-lg bg-bahayCebu-beige/50">
+                          <img 
+                            src={property.image || '/placeholder-property.jpg'} 
+                            alt={property.title}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                          <div className="flex-1">
+                            <h4 className="font-medium text-bahayCebu-darkGray">{property.title}</h4>
+                            <p className="text-sm text-bahayCebu-darkGray/60">{property.bedrooms} bedrooms, {property.bathrooms} bathrooms</p>
+                          </div>
+                          <Badge variant="outline" className="bg-bahayCebu-green/10 text-bahayCebu-green">
+                            {property.area} sqm
+                          </Badge>
+                        </div>
+                      ))
+                    )}
                   </CardContent>
                 </Card>
 
@@ -2075,21 +2596,23 @@ const AdminDashboard = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Average Occupancy</span>
+                        <span className="text-bahayCebu-darkGray/70">Total Properties</span>
                         <span className="font-medium text-bahayCebu-green">
-                          {Math.round(properties.reduce((sum, p) => sum + p.occupancyRate, 0) / properties.length)}%
+                          {properties.length}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Active Properties</span>
+                        <span className="text-bahayCebu-darkGray/70">Featured Properties</span>
                         <span className="font-medium text-bahayCebu-darkGray">
-                          {properties.filter(p => p.status === 'Active').length}
+                          {properties.filter(p => p.featured).length}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Total Units</span>
+                        <span className="text-bahayCebu-darkGray/70">Average Price</span>
                         <span className="font-medium text-bahayCebu-darkGray">
-                          {properties.reduce((sum, p) => sum + p.units, 0)}
+                          {properties.length > 0 
+                            ? `₱${Math.round(properties.reduce((sum, p) => sum + p.price, 0) / properties.length).toLocaleString()}`
+                            : '₱0'}
                         </span>
                       </div>
                     </div>
@@ -2099,28 +2622,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {selectedMenu === 'Message' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-serif font-bold text-bahayCebu-darkGray">Messages</h1>
-                <p className="text-bahayCebu-darkGray/60 mt-2">Customer inquiries and communications</p>
-              </div>
-              <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                <CardContent className="p-12 text-center">
-                  <div className="w-20 h-20 bg-bahayCebu-green/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <MessageSquare className="h-10 w-10 text-bahayCebu-green" />
-                  </div>
-                  <h3 className="text-2xl font-serif font-bold text-bahayCebu-darkGray mb-4">No messages yet</h3>
-                  <p className="text-bahayCebu-darkGray/60 max-w-md mx-auto leading-relaxed">
-                    Messages from potential buyers and tenants will appear here. Stay connected with your prospects and customers.
-                  </p>
-                  <Button className="mt-6 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-6 py-2">
-                    Set Up Notifications
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
 
           {selectedMenu === 'Profile' && (
             <div className="space-y-8">

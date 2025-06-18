@@ -1,3 +1,5 @@
+import { UnitTypeDetail } from '@/types/admin';
+
 // Unit type enum
 export type UnitType = 
   | 'Studio'
@@ -205,24 +207,26 @@ export type BuildingFeature =
 
 export interface AdminProperty {
   id: string;
-  name: string;
-  address: string;
+  title: string;
   location: string;
   description: string;
   image: string;
   images?: string[];
   price: number;
-  units: number;
-  occupancyRate: number;
-  status: 'Active' | 'Off Market' | 'Sold';
-  propertyType: 'Condo' | 'House and Lot' | 'Land';
-  listingType: 'For Sale' | 'For Rent' | 'Resale';
-  lastUpdated: string;
-  createdAt: string;
-  featured?: boolean;
+  pricePerSqm?: number;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
+  floorArea?: number;
+  propertyType?: string;
+  type: 'Condo' | 'House and Lot' | 'Land';
+  featured: boolean;
   videoUrl?: string;
   thumbnail?: string;
+  lastUpdated: string;
+  createdAt: string;
   unitTypes: string[];
+  unitTypeDetails?: UnitTypeDetail[];
   amenities: string[];
   residentialFeatures: string[];
   provisions: string[];
@@ -232,13 +236,41 @@ export interface AdminProperty {
     leads: number;
     applications: number;
   };
+  listingType: 'For Sale' | 'For Rent' | 'Resale';
+  units: number;
+  occupancyRate: number;
+  tags?: string[];
+  features?: string[];
+  // New Property Overview fields
+  locationAccessibility?: {
+    nearbyLandmarks: string[];
+    publicTransport: string[];
+    mainRoads: string[];
+    travelTimes: { destination: string; duration: string }[];
+  };
+  featuresAmenities?: {
+    propertyHighlights: string[];
+    smartHomeFeatures: string[];
+    securityFeatures: string[];
+    sustainabilityFeatures: string[];
+  };
+  lifestyleCommunity?: {
+    neighborhoodType: string;
+    localAmenities: string[];
+    communityFeatures: string[];
+    nearbyEstablishments: string[];
+  };
+  additionalInformation?: {
+    propertyHistory: string;
+    legalInformation: string;
+    developmentPlans: string;
+    specialNotes: string;
+  };
 }
 
 export interface PropertyType {
   id: string;
   title: string;
-  description?: string;
-  type: 'Condo' | 'Land' | 'House' | 'Villa';
   price: number;
   location: string;
   bedrooms: number;
@@ -246,16 +278,41 @@ export interface PropertyType {
   area: number;
   image: string;
   images?: string[];
+  featured?: boolean;
+  type: 'House' | 'Condo' | 'Villa' | 'Land';
+  description?: string;
   videoUrl?: string;
   thumbnail?: string;
   unitTypes?: string[];
-  amenities?: string[];
+  unitTypeDetails?: UnitTypeDetail[];
   residentialFeatures?: string[];
-  provisions?: string[];
   buildingFeatures?: string[];
-  featured?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  amenities?: string[];
+  provisions?: string[];
+  locationAccessibility?: {
+    nearbyLandmarks: string[];
+    publicTransport: string[];
+    mainRoads: string[];
+    travelTimes: Array<{ destination: string; duration: string }>;
+  };
+  featuresAmenities?: {
+    propertyHighlights: string[];
+    smartHomeFeatures: string[];
+    securityFeatures: string[];
+    sustainabilityFeatures: string[];
+  };
+  lifestyleCommunity?: {
+    neighborhoodType: string;
+    localAmenities: string[];
+    communityFeatures: string[];
+    nearbyEstablishments: string[];
+  };
+  additionalInformation?: {
+    propertyHistory: string;
+    legalInformation: string;
+    developmentPlans: string;
+    specialNotes: string;
+  };
 }
 
 // Add type definition for API response
@@ -274,167 +331,57 @@ interface PropertyApiResponse {
   videoUrl?: string;
   thumbnail?: string;
   updatedAt: string;
+  unitTypes?: string[];
+  unitTypeDetails?: Array<{
+    type?: string;
+    floorArea?: string;
+    priceRange?: string;
+    layoutImage?: string;
+    reservationFee?: string;
+    monthlyPayment?: {
+      percentage?: number;
+      amount?: string;
+      terms?: string;
+    };
+    balancePayment?: {
+      percentage?: number;
+      amount?: string;
+      terms?: string;
+    };
+    description?: string;
+  }>;
+  amenities?: string[];
+  residentialFeatures?: string[];
+  provisions?: string[];
+  buildingFeatures?: string[];
+  listingType?: string;
+  units?: number;
+  occupancyRate?: number;
+  locationAccessibility?: {
+    nearbyLandmarks: string[];
+    publicTransport: string[];
+    mainRoads: string[];
+    travelTimes: Array<{ destination: string; duration: string }>;
+  };
+  featuresAmenities?: {
+    propertyHighlights: string[];
+    smartHomeFeatures: string[];
+    securityFeatures: string[];
+    sustainabilityFeatures: string[];
+  };
+  lifestyleCommunity?: {
+    neighborhoodType: string;
+    localAmenities: string[];
+    communityFeatures: string[];
+    nearbyEstablishments: string[];
+  };
+  additionalInformation?: {
+    propertyHistory: string;
+    legalInformation: string;
+    developmentPlans: string;
+    specialNotes: string;
+  };
 }
-
-// Global property store (simulating database)
-const globalProperties: AdminProperty[] = [
-  {
-    id: '1',
-    name: 'Prawira Valley',
-    address: '3825 E Prawirotaman Ave, Jogja 85018',
-    location: 'Jogja, Indonesia',
-    description: 'Luxurious residential complex featuring modern amenities and stunning views of the surrounding landscape. Perfect for families seeking comfort and convenience.',
-    image: '',
-    images: [],
-    price: 500000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Active',
-    propertyType: 'House and Lot',
-    listingType: 'For Sale',
-    lastUpdated: 'Oct. 12',
-    createdAt: '2024-01-12T10:00:00Z',
-    featured: true,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 3233, leads: 67, applications: 8 }
-  },
-  {
-    id: '2',
-    name: 'Skyline Retreat',
-    address: '3825 E Prawirotaman Ave, Jogja 85018',
-    location: 'Jogja, Indonesia',
-    description: 'Contemporary high-rise living with panoramic city views and premium facilities. Experience urban lifestyle at its finest.',
-    image: '',
-    images: [],
-    price: 450000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Active',
-    propertyType: 'Condo',
-    listingType: 'For Sale',
-    lastUpdated: 'Nov. 22',
-    createdAt: '2024-02-15T14:30:00Z',
-    featured: true,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 7239, leads: 38, applications: 5 }
-  },
-  {
-    id: '3',
-    name: 'Harmony Haven',
-    address: '3825 E Prawirotaman Ave, Jogja',
-    location: 'Jogja, Indonesia',
-    description: 'Serene residential community designed for peaceful living with lush gardens and family-friendly amenities.',
-    image: '',
-    images: [],
-    price: 350000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Off Market',
-    propertyType: 'House and Lot',
-    listingType: 'For Rent',
-    lastUpdated: 'Dec. 16',
-    createdAt: '2024-03-01T09:15:00Z',
-    featured: false,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 7899, leads: 318, applications: 0 }
-  },
-  {
-    id: '4',
-    name: 'Greenview Estates',
-    address: '3825 E Prawirotaman Ave, Jogja 85018',
-    location: 'Jogja, Indonesia',
-    description: 'Eco-friendly development surrounded by nature, offering sustainable living without compromising on modern comforts.',
-    image: '',
-    images: [],
-    price: 400000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Active',
-    propertyType: 'House and Lot',
-    listingType: 'Resale',
-    lastUpdated: 'Oct. 12',
-    createdAt: '2024-01-20T16:45:00Z',
-    featured: true,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 3233, leads: 67, applications: 8 }
-  },
-  {
-    id: '5',
-    name: 'Sapphire Suites',
-    address: '3825 E Prawirotaman Ave, Jogja 85018',
-    location: 'Jogja, Indonesia',
-    description: 'Premium apartment complex with world-class facilities and sophisticated design for discerning residents.',
-    image: '',
-    images: [],
-    price: 600000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Active',
-    propertyType: 'Condo',
-    listingType: 'For Sale',
-    lastUpdated: 'Nov. 22',
-    createdAt: '2024-02-28T11:20:00Z',
-    featured: true,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 7239, leads: 38, applications: 5 }
-  },
-  {
-    id: '6',
-    name: 'Urban Nest',
-    address: '3825 E Prawirotaman Ave, Jogja',
-    location: 'Jogja, Indonesia',
-    description: 'Compact yet comfortable living spaces perfect for young professionals and small families in the heart of the city.',
-    image: '',
-    images: [],
-    price: 300000,
-    units: 86,
-    occupancyRate: 78,
-    status: 'Active',
-    propertyType: 'Land',
-    listingType: 'For Sale',
-    lastUpdated: 'Dec. 16',
-    createdAt: '2024-03-10T13:50:00Z',
-    featured: false,
-    videoUrl: '',
-    thumbnail: '',
-    unitTypes: [],
-    amenities: [],
-    residentialFeatures: [],
-    provisions: [],
-    buildingFeatures: [],
-    stats: { views: 7899, leads: 318, applications: 0 }
-  }
-];
 
 // Property management functions
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
@@ -445,44 +392,102 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     
     return data.map((property: PropertyApiResponse) => ({
       id: property.id,
-      name: property.title,
-      address: property.location,
-      location: property.location.split(',')[0].trim(),
+      title: property.title,
+      location: property.location,
       description: property.description || '',
       image: property.images?.[0] || '',
       images: property.images || [],
       price: property.price,
-      units: property.bedrooms,
-      occupancyRate: 0,
-      status: 'Active',
-      propertyType: property.type as AdminProperty['propertyType'],
-      listingType: 'For Sale',
-      lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: property.updatedAt,
-      featured: property.featured,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      area: property.area,
+      type: property.type as AdminProperty['type'],
+      featured: property.featured || false,
       videoUrl: property.videoUrl || '',
       thumbnail: property.thumbnail || '',
-      unitTypes: [],
-      amenities: [],
-      residentialFeatures: [],
-      provisions: [],
-      buildingFeatures: [],
-      stats: { views: 0, leads: 0, applications: 0 }
+      lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      createdAt: property.updatedAt,
+      unitTypes: property.unitTypes || [],
+      unitTypeDetails: Array.isArray(property.unitTypeDetails) ? property.unitTypeDetails.map(detail => ({
+        type: detail?.type || '',
+        floorArea: detail?.floorArea || '',
+        priceRange: detail?.priceRange || '',
+        layoutImage: detail?.layoutImage || '',
+        reservationFee: detail?.reservationFee || '',
+        monthlyPayment: {
+          percentage: detail?.monthlyPayment?.percentage || 15,
+          amount: detail?.monthlyPayment?.amount || '',
+          terms: detail?.monthlyPayment?.terms || '6 months'
+        },
+        balancePayment: {
+          percentage: detail?.balancePayment?.percentage || 85,
+          amount: detail?.balancePayment?.amount || '',
+          terms: detail?.balancePayment?.terms || 'bank/cash'
+        },
+        description: detail?.description || ''
+      })) : [],
+      amenities: property.amenities || [],
+      residentialFeatures: property.residentialFeatures || [],
+      provisions: property.provisions || [],
+      buildingFeatures: property.buildingFeatures || [],
+      stats: {
+        views: Math.floor(Math.random() * 1000),
+        leads: Math.floor(Math.random() * 50),
+        applications: Math.floor(Math.random() * 20)
+      },
+      listingType: property.listingType || 'For Sale',
+      units: property.units || 0,
+      occupancyRate: property.occupancyRate || 0,
+      locationAccessibility: property.locationAccessibility || {
+        nearbyLandmarks: [],
+        publicTransport: [],
+        mainRoads: [],
+        travelTimes: []
+      },
+      featuresAmenities: property.featuresAmenities || {
+        propertyHighlights: [],
+        smartHomeFeatures: [],
+        securityFeatures: [],
+        sustainabilityFeatures: []
+      },
+      lifestyleCommunity: property.lifestyleCommunity || {
+        neighborhoodType: '',
+        localAmenities: [],
+        communityFeatures: [],
+        nearbyEstablishments: []
+      },
+      additionalInformation: property.additionalInformation || {
+        propertyHistory: '',
+        legalInformation: '',
+        developmentPlans: '',
+        specialNotes: ''
+      }
     }));
   } catch (error) {
     console.error('Error fetching properties:', error);
-    return globalProperties;
+    return [];
+  }
+};
+
+export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
+  try {
+    const response = await fetch(`/api/properties/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch property');
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching property:', error);
+    return null;
   }
 };
 
 export const getActiveProperties = async (): Promise<AdminProperty[]> => {
   const properties = await getAllProperties();
-  return properties.filter(p => p.status === 'Active');
+  return properties;
 };
 
 export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
   const properties = await getAllProperties();
-  return properties.filter(p => p.featured && p.status === 'Active');
+  return properties.filter(p => p.featured);
 };
 
 export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
@@ -491,56 +496,42 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: property.name,
-        price: property.price,
-        location: property.address,
-        bedrooms: property.units,
-        bathrooms: Math.ceil(property.units / 2), // Estimate bathrooms based on units
-        area: property.units * 50, // Estimate area based on units
-        type: property.propertyType,
+        title: property.title,
+        price: parseFloat(property.price.toString()),
+        location: property.location,
+        bedrooms: parseInt(property.bedrooms.toString()),
+        bathrooms: parseInt(property.bathrooms.toString()),
+        area: parseFloat(property.area.toString()),
+        type: property.type,
         featured: property.featured,
         description: property.description,
         images: property.images,
         videoUrl: property.videoUrl,
         thumbnail: property.thumbnail,
         unitTypes: property.unitTypes,
+        unitTypeDetails: property.unitTypeDetails,
         amenities: property.amenities,
         residentialFeatures: property.residentialFeatures,
         provisions: property.provisions,
-        buildingFeatures: property.buildingFeatures
+        buildingFeatures: property.buildingFeatures,
+        listingType: property.listingType,
+        units: property.units,
+        occupancyRate: property.occupancyRate,
+        // New Property Overview fields
+        locationAccessibility: property.locationAccessibility,
+        featuresAmenities: property.featuresAmenities,
+        lifestyleCommunity: property.lifestyleCommunity,
+        additionalInformation: property.additionalInformation,
       })
     });
 
-    if (!response.ok) throw new Error('Failed to add property');
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData?.error || 'Failed to add property');
+    }
+    
     const data = await response.json();
-
-    // Convert API response to AdminProperty format
-    return {
-      id: data.id,
-      name: data.title,
-      address: data.location,
-      location: data.location.split(',')[0].trim(),
-      description: data.description || '',
-      image: data.images?.[0] || '',
-      images: data.images,
-      price: data.price,
-      units: data.bedrooms,
-      occupancyRate: 0,
-      status: 'Active',
-      propertyType: data.type as AdminProperty['propertyType'],
-      listingType: 'For Sale',
-      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: data.updatedAt,
-      featured: data.featured,
-      videoUrl: data.videoUrl || '',
-      thumbnail: data.thumbnail || '',
-      unitTypes: data.unitTypes || [],
-      amenities: data.amenities || [],
-      residentialFeatures: data.residentialFeatures || [],
-      provisions: data.provisions || [],
-      buildingFeatures: data.buildingFeatures || [],
-      stats: { views: 0, leads: 0, applications: 0 }
-    };
+    return data;
   } catch (error) {
     console.error('Error adding property:', error);
     return null;
@@ -553,55 +544,38 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: updates.name,
+        title: updates.title,
         price: updates.price,
-        location: updates.address,
-        bedrooms: updates.units,
-        bathrooms: Math.ceil(updates.units ? updates.units / 2 : 0),
-        area: updates.units ? updates.units * 50 : 0,
-        type: updates.propertyType,
+        location: updates.location,
+        bedrooms: updates.bedrooms,
+        bathrooms: updates.bathrooms,
+        area: updates.area,
+        type: updates.type,
         featured: updates.featured,
         description: updates.description,
         images: updates.images,
         videoUrl: updates.videoUrl,
         thumbnail: updates.thumbnail,
         unitTypes: updates.unitTypes,
+        unitTypeDetails: updates.unitTypeDetails,
         amenities: updates.amenities,
         residentialFeatures: updates.residentialFeatures,
         provisions: updates.provisions,
-        buildingFeatures: updates.buildingFeatures
+        buildingFeatures: updates.buildingFeatures,
+        listingType: updates.listingType,
+        units: updates.units,
+        occupancyRate: updates.occupancyRate,
+        // New Property Overview fields
+        locationAccessibility: updates.locationAccessibility,
+        featuresAmenities: updates.featuresAmenities,
+        lifestyleCommunity: updates.lifestyleCommunity,
+        additionalInformation: updates.additionalInformation,
       })
     });
     
     if (!response.ok) throw new Error('Failed to update property');
     const data = await response.json();
-    
-    return {
-      id: data.id,
-      name: data.title,
-      address: data.location,
-      location: data.location.split(',')[0].trim(),
-      description: data.description || '',
-      image: data.images?.[0] || '',
-      images: data.images,
-      price: data.price,
-      units: data.bedrooms,
-      occupancyRate: updates.occupancyRate || 0,
-      status: updates.status || 'Active',
-      propertyType: data.type as AdminProperty['propertyType'],
-      listingType: updates.listingType || 'For Sale',
-      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: data.updatedAt,
-      featured: data.featured,
-      videoUrl: data.videoUrl || '',
-      thumbnail: data.thumbnail || '',
-      unitTypes: data.unitTypes || [],
-      amenities: data.amenities || [],
-      residentialFeatures: data.residentialFeatures || [],
-      provisions: data.provisions || [],
-      buildingFeatures: data.buildingFeatures || [],
-      stats: { views: 0, leads: 0, applications: 0 }
-    };
+    return data;
   } catch (error) {
     console.error('Error updating property:', error);
     return null;
@@ -620,79 +594,114 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
   }
 };
 
-export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
-  try {
-    const response = await fetch(`/api/properties/${id}`);
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.log('Property not found:', id);
-        return null;
-      }
-      throw new Error('Failed to fetch property');
-    }
-    
-    const data = await response.json();
-    
-    return {
-      id: data.id,
-      name: data.title,
-      address: data.location,
-      location: data.location.split(',')[0].trim(),
-      description: data.description || '',
-      image: data.images?.[0] || '',
-      images: data.images || [],
-      price: data.price,
-      units: data.bedrooms,
-      occupancyRate: 0,
-      status: 'Active',
-      propertyType: data.type as AdminProperty['propertyType'],
-      listingType: 'For Sale',
-      lastUpdated: new Date(data.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: data.updatedAt,
-      featured: data.featured,
-      videoUrl: data.videoUrl || '',
-      thumbnail: data.thumbnail || '',
-      unitTypes: data.unitTypes || [],
-      amenities: data.amenities || [],
-      residentialFeatures: data.residentialFeatures || [],
-      provisions: data.provisions || [],
-      buildingFeatures: data.buildingFeatures || [],
-      stats: { views: 0, leads: 0, applications: 0 }
-    };
-  } catch (error) {
-    console.error('Error fetching property:', error);
+// Helper function to convert AdminProperty to PropertyType
+export const convertAdminPropertyToPropertyType = (adminProperty: AdminProperty | null): PropertyType | null => {
+  if (!adminProperty) {
     return null;
   }
-};
 
-// Convert admin property to PropertyType for detail view
-export const convertAdminPropertyToPropertyType = (adminProperty: AdminProperty): PropertyType => {
-  // Determine property type based on units or name
-  let propertyType: 'House' | 'Condo' | 'Villa' | 'Land' = 'House';
-  const name = adminProperty.name.toLowerCase();
-  if (name.includes('suite') || name.includes('condo') || name.includes('apartment')) {
+  let propertyType: PropertyType['type'] = 'House';
+  const title = adminProperty.title?.toLowerCase() || '';
+  if (title.includes('suite') || title.includes('condo') || title.includes('apartment')) {
     propertyType = 'Condo';
-  } else if (name.includes('villa') || name.includes('estate')) {
+  } else if (title.includes('villa') || title.includes('estate')) {
     propertyType = 'Villa';
-  } else if (name.includes('lot') || name.includes('land')) {
+  } else if (title.includes('lot') || title.includes('land')) {
     propertyType = 'Land';
   }
 
+  // Default values for arrays
+  const defaultAmenities = ['24/7 Security', 'CCTV Surveillance', 'Parking'];
+  const defaultResidentialFeatures = ['Modern Kitchen', 'Quality Fixtures', 'Good Ventilation'];
+  const defaultBuildingFeatures = ['Well-maintained', 'Professional Management', 'Clean Environment'];
+  const defaultProvisions = ['Individual Electric Meter', 'Water Connection', 'Internet Ready'];
+
+  // Ensure unitTypeDetails is properly initialized and validated
+  const unitTypeDetails = Array.isArray(adminProperty.unitTypeDetails) 
+    ? adminProperty.unitTypeDetails
+        .filter(detail => detail && typeof detail === 'object')
+        .map(detail => ({
+          type: detail.type || '',
+          floorArea: detail.floorArea || '',
+          priceRange: detail.priceRange || '',
+          layoutImage: detail.layoutImage || '',
+          reservationFee: detail.reservationFee || '',
+          monthlyPayment: {
+            percentage: detail.monthlyPayment?.percentage || 0,
+            amount: detail.monthlyPayment?.amount || '',
+            terms: detail.monthlyPayment?.terms || ''
+          },
+          balancePayment: {
+            percentage: detail.balancePayment?.percentage || 0,
+            amount: detail.balancePayment?.amount || '',
+            terms: detail.balancePayment?.terms || ''
+          },
+          description: detail.description || ''
+        }))
+    : [];
+
+  // Parse JSON fields
+  const locationAccessibility = typeof adminProperty.locationAccessibility === 'string'
+    ? JSON.parse(adminProperty.locationAccessibility)
+    : adminProperty.locationAccessibility || {
+        nearbyLandmarks: [],
+        publicTransport: [],
+        mainRoads: [],
+        travelTimes: []
+      };
+
+  const featuresAmenities = typeof adminProperty.featuresAmenities === 'string'
+    ? JSON.parse(adminProperty.featuresAmenities)
+    : adminProperty.featuresAmenities || {
+        propertyHighlights: [],
+        smartHomeFeatures: [],
+        securityFeatures: [],
+        sustainabilityFeatures: []
+      };
+
+  const lifestyleCommunity = typeof adminProperty.lifestyleCommunity === 'string'
+    ? JSON.parse(adminProperty.lifestyleCommunity)
+    : adminProperty.lifestyleCommunity || {
+        neighborhoodType: '',
+        localAmenities: [],
+        communityFeatures: [],
+        nearbyEstablishments: []
+      };
+
+  const additionalInformation = typeof adminProperty.additionalInformation === 'string'
+    ? JSON.parse(adminProperty.additionalInformation)
+    : adminProperty.additionalInformation || {
+        propertyHistory: '',
+        legalInformation: '',
+        developmentPlans: '',
+        specialNotes: ''
+      };
+
   return {
     id: adminProperty.id,
-    title: adminProperty.name,
+    title: adminProperty.title,
     price: adminProperty.price,
-    location: adminProperty.address,
-    bedrooms: Math.floor(adminProperty.units / 10) || 2,
-    bathrooms: Math.floor(adminProperty.units / 15) || 1,
-    area: adminProperty.units * 50,
-    image: adminProperty.image,
+    location: adminProperty.location,
+    bedrooms: adminProperty.bedrooms || 0,
+    bathrooms: adminProperty.bathrooms || 0,
+    area: adminProperty.area,
+    image: adminProperty.image || '',
     type: propertyType,
-    description: adminProperty.description,
-    images: adminProperty.images,
+    description: adminProperty.description || '',
+    images: adminProperty.images?.length ? adminProperty.images : [adminProperty.image],
     featured: adminProperty.featured,
     videoUrl: adminProperty.videoUrl,
-    thumbnail: adminProperty.thumbnail
+    thumbnail: adminProperty.thumbnail,
+    unitTypes: adminProperty.unitTypes?.length ? adminProperty.unitTypes : ['Standard Unit'],
+    unitTypeDetails: unitTypeDetails,
+    amenities: adminProperty.amenities?.length ? adminProperty.amenities : defaultAmenities,
+    residentialFeatures: adminProperty.residentialFeatures?.length ? adminProperty.residentialFeatures : defaultResidentialFeatures,
+    provisions: adminProperty.provisions?.length ? adminProperty.provisions : defaultProvisions,
+    buildingFeatures: adminProperty.buildingFeatures?.length ? adminProperty.buildingFeatures : defaultBuildingFeatures,
+    locationAccessibility,
+    featuresAmenities,
+    lifestyleCommunity,
+    additionalInformation
   };
 };
 
@@ -700,95 +709,17 @@ export const convertAdminPropertyToPropertyType = (adminProperty: AdminProperty)
 export const getAllPropertiesAsPropertyType = async (): Promise<PropertyType[]> => {
   const properties = await getAllProperties();
   return properties
-    .filter(p => p.status === 'Active')
-    .map(convertAdminPropertyToPropertyType);
+    .map(convertAdminPropertyToPropertyType)
+    .filter((p): p is PropertyType => p !== null);
 };
 
 // Get featured properties as PropertyType for homepage
 export const getFeaturedPropertiesAsPropertyType = async (): Promise<PropertyType[]> => {
   const properties = await getAllProperties();
   return properties
-    .filter(p => p.featured && p.status === 'Active')
-    .map(convertAdminPropertyToPropertyType);
-};
-
-// Initial admin properties data (for backward compatibility)
-export const initialAdminProperties = globalProperties;
-
-// Static properties for the main website (keeping existing ones for fallback)
-export const staticProperties: Record<string, PropertyType & { description?: string, images?: string[] }> = {
-  '1': {
-    id: '1',
-    title: 'Modern Beachfront Villa',
-    price: 15000000,
-    location: 'Mactan, Cebu',
-    bedrooms: 4,
-    bathrooms: 3,
-    area: 250,
-    image: '',
-    type: 'Villa',
-    images: []
-  },
-  '2': {
-    id: '2',
-    title: 'Luxury Downtown Condo',
-    price: 8500000,
-    location: 'Cebu Business Park',
-    bedrooms: 2,
-    bathrooms: 2,
-    area: 120,
-    image: '',
-    type: 'Condo',
-    images: []
-  },
-  '3': {
-    id: '3',
-    title: 'Mountain View Estate',
-    price: 12000000,
-    location: 'Busay, Cebu',
-    bedrooms: 5,
-    bathrooms: 4,
-    area: 350,
-    image: '',
-    type: 'House',
-    images: []
-  },
-  '4': {
-    id: '4',
-    title: 'Waterfront Property with Private Dock',
-    price: 18000000,
-    location: 'Liloan, Cebu',
-    bedrooms: 4,
-    bathrooms: 4,
-    area: 280,
-    image: '',
-    type: 'House',
-    images: []
-  },
-  '5': {
-    id: '5',
-    title: 'Modern Studio Apartment',
-    price: 3500000,
-    location: 'IT Park, Cebu',
-    bedrooms: 1,
-    bathrooms: 1,
-    area: 45,
-    image: '',
-    type: 'Condo',
-    images: []
-  },
-  '6': {
-    id: '6',
-    title: 'Commercial Lot in Prime Location',
-    price: 25000000,
-    location: 'Mandaue City, Cebu',
-    bedrooms: 0,
-    bathrooms: 0,
-    area: 1000,
-    image: '',
-    type: 'Land',
-    images: []
-  }
+    .filter(p => p.featured)
+    .map(convertAdminPropertyToPropertyType)
+    .filter((p): p is PropertyType => p !== null);
 };
 
 // Available options arrays
@@ -839,78 +770,7 @@ export const BUILDING_AMENITIES: BuildingAmenity[] = [
   'Electric Vehicle Charging Stations',
   'Car Wash Bay',
   'Resident Mobile App for Building Services',
-  'Package Delivery Lockers',
-  'Landscaped Courtyard with Seating Areas',
-  'Outdoor Fitness Stations',
-  'Community Kitchen for Events',
-  'Library or Reading Nook',
-  'Rooftop Cinema or Outdoor Movie Area',
-  'Guest Suites for Visitors',
-  'Smart Home Integration in Common Areas',
-  'Motion-Activated Lighting in Hallways',
-  'Rainwater Harvesting System',
-  'Solar Panels for Energy Efficiency',
-  'On-Site Recycling and Composting Stations',
-  'Indoor Climbing Wall',
-  'Virtual Reality Gaming Room',
-  'Co-Working Business Lounge with Private Booths',
-  'Rooftop Jogging Track',
-  'Hydrotherapy Pool or Hot Tub',
-  'Art Studio or Creative Workshop Space',
-  'Music Practice Rooms with Soundproofing',
-  'On-Site Daycare or Childcare Center',
-  'Community Garden with Raised Planting Beds',
-  'Outdoor Amphitheater for Events',
-  'Shuttle Service to Nearby Transit Hubs',
-  'On-Site Café or Juice Bar',
-  'Dog Washing and Grooming Station',
-  'Multi-Sport Court',
-  'Resident Event Space with Stage',
-  'Smart Lockers for Dry Cleaning or Laundry Services',
-  'On-Site Bike-Sharing Program',
-  'Zen Water Feature or Reflection Pond',
-  'Outdoor Chess or Board Game Area',
-  'High-Tech Fitness Studio with Virtual Classes',
-  'Rooftop Fire Pits with Seating',
-  'Sensory Room for Relaxation',
-  'Dedicated Delivery Drop-Off Zone',
-  'Smart Thermostats in Common Areas',
-  'Green Wall or Vertical Garden',
-  'Indoor Aquaponics or Herb Garden',
-  'Private Dining Rooms for Resident Events',
-  'On-Site Fitness Trainers or Classes',
-  'Rooftop Stargazing Area with Telescopes',
-  'Automated Parking System for Efficiency',
-  'Indoor Golf Simulator',
-  'Karaoke Lounge',
-  'Craft Beer or Wine Tasting Room',
-  'Rooftop Herb and Vegetable Garden',
-  'Outdoor Yoga Lawn',
-  'Interactive Digital Art Installation',
-  'Skateboard or Rollerblade Mini-Park',
-  'On-Site Car Rental Service',
-  'Smart Mirrors in Fitness Areas',
-  'Resident Art Gallery or Exhibition Space',
-  'Soundproof Podcast Recording Studio',
-  'Outdoor Putting Green',
-  'Rooftop Infinity Pool',
-  'Community Book Exchange Station',
-  'Meditation Garden with Waterfall',
-  'On-Site Tailoring or Alteration Service',
-  'Virtual Concierge for 24/7 Assistance',
-  'Outdoor Sculpture Garden',
-  'High-Tech Laundry Rooms with App Notifications',
-  'Resident Carpool or Ride-Sharing Program',
-  'Indoor Zen Rock Garden',
-  'Outdoor Pet Agility Course',
-  'Smart Vending Machines for Snacks and Essentials',
-  'Rooftop Beehives for Local Honey Production',
-  'Interactive Kids\' Science Lab',
-  'On-Site Farmers\' Market Space',
-  'Rooftop Observatory with Astronomy Classes',
-  'Smart Irrigation System for Gardens',
-  'Resident Volunteer Program Hub',
-  'Multi-Faith Prayer or Meditation Room'
+  'Package Delivery Lockers'
 ];
 
 export const RESIDENTIAL_FEATURES: ResidentialFeature[] = [

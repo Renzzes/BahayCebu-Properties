@@ -8,26 +8,33 @@ datasource db {
 }
 
 model Property {
-  id          String   @id @default(uuid())
-  title       String
-  price       Float
-  location    String
-  bedrooms    Int
-  bathrooms   Int
-  area        Float
-  type        String
-  featured    Boolean  @default(false)
-  description String?
-  images      String[] // Array of image URLs
-  videoUrl    String?  // Optional video URL
-  thumbnail   String?  // Optional thumbnail URL
-  unitTypes   String[] @default([])
-  amenities   String[] @default([])
-  residentialFeatures String[] @default([])
-  provisions  String[] @default([])
-  buildingFeatures String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  title                 String
+  price                 Float
+  location              String
+  bedrooms              Int
+  bathrooms             Int
+  area                  Float
+  type                  String
+  featured              Boolean  @default(false)
+  description           String?
+  images                String[]
+  videoUrl             String?
+  thumbnail            String?
+  unitTypes            String[]
+  unitTypeDetails      Json[]
+  amenities            String[]
+  residentialFeatures  String[]
+  provisions           String[]
+  buildingFeatures     String[]
+  units                Int?
+  occupancyRate        Float?
+  locationAccessibility Json? @default("{ \"nearbyLandmarks\": [], \"publicTransport\": [], \"mainRoads\": [], \"travelTimes\": [] }")
+  featuresAmenities    Json? @default("{ \"propertyHighlights\": [], \"smartHomeFeatures\": [], \"securityFeatures\": [], \"sustainabilityFeatures\": [] }")
+  lifestyleCommunity   Json? @default("{ \"neighborhoodType\": \"\", \"localAmenities\": [], \"communityFeatures\": [], \"nearbyEstablishments\": [] }")
+  additionalInformation Json? @default("{ \"propertyHistory\": \"\", \"legalInformation\": \"\", \"developmentPlans\": \"\", \"specialNotes\": \"\" }")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model User {
@@ -51,7 +58,7 @@ model Agent {
   listings        Int      @default(0)
   deals           Int      @default(0)
   rating          Float    @default(0)
-  socialMedia     Json     @default("{\"facebook\":\"\",\"instagram\":\"\",\"linkedin\":\"\"}")
+  socialMedia     Json     @default("{ \"facebook\": \"\", \"instagram\": \"\", \"linkedin\": \"\" }")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }

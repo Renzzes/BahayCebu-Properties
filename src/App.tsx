@@ -9,6 +9,7 @@ import ChatwayWidget from "@/components/ChatwayWidget";
 import Index from "./pages/Index";
 import Properties from "./pages/Properties";
 import PropertyDetail from "./pages/PropertyDetail";
+import PropertyPreview from "./pages/PropertyPreview";
 import About from "./pages/About";
 import Agent from "./pages/Agent";
 import NotFound from "./pages/NotFound";
@@ -36,10 +37,23 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => (
 // Component to handle conditional rendering of ChatwayWidget
 const ChatwayWidgetWrapper = () => {
   const location = useLocation();
-  if (location.pathname.startsWith('/admin')) {
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isPreviewRoute = location.pathname.includes('/preview');
+  const isAllowedRoute = ['/', '/properties', '/property'].some(path => 
+    location.pathname.startsWith(path)
+  );
+  
+  const shouldShowWidget = !isAdminRoute && !isPreviewRoute && isAllowedRoute;
+  
+  if (!shouldShowWidget) {
     return null;
   }
-  return <ChatwayWidget />;
+  
+  return (
+    <div className="fixed bottom-0 right-0 z-50">
+      <ChatwayWidget />
+    </div>
+  );
 };
 
 const App = () => {
@@ -48,18 +62,21 @@ const App = () => {
       <TooltipProvider>
         <AgentProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<MainLayout><Index /></MainLayout>} />
-              <Route path="/properties" element={<MainLayout><Properties /></MainLayout>} />
-              <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
-              <Route path="/about" element={<MainLayout><About /></MainLayout>} />
-              <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
-              <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-              <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
-            </Routes>
-            <ChatwayWidgetWrapper />
-            <Toaster />
-            <Sonner />
+            <div className="relative">
+              <Routes>
+                <Route path="/" element={<MainLayout><Index /></MainLayout>} />
+                <Route path="/properties" element={<MainLayout><Properties /></MainLayout>} />
+                <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
+                <Route path="/about" element={<MainLayout><About /></MainLayout>} />
+                <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
+                <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
+                <Route path="/admin/properties/:id/preview" element={<AdminLayout><PropertyPreview /></AdminLayout>} />
+                <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
+              </Routes>
+              <ChatwayWidgetWrapper />
+              <Toaster />
+              <Sonner />
+            </div>
           </BrowserRouter>
         </AgentProvider>
       </TooltipProvider>

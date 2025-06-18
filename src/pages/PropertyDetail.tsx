@@ -30,8 +30,17 @@ const PropertyDetail: React.FC = () => {
       
       try {
         const adminProperty = await getPropertyById(id);
+        console.log('Admin property from API:', adminProperty);
+        
         if (adminProperty) {
-          setProperty(convertAdminPropertyToPropertyType(adminProperty));
+          const convertedProperty = convertAdminPropertyToPropertyType(adminProperty);
+          console.log('Converted property:', convertedProperty);
+          
+          if (convertedProperty) {
+            setProperty(convertedProperty);
+          } else {
+            setError('Failed to convert property data');
+          }
         } else {
           setError('Property not found');
         }
