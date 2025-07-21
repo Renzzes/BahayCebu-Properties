@@ -12,7 +12,13 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 });
 
 const corsOptions = {
-	origin: ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"], // Allow Vite's default port
+	origin: [
+		"http://localhost:8080", 
+		"http://localhost:3000", 
+		"http://localhost:5173",
+		process.env.PRODUCTION_URL || "", 
+		"https://bahaycebu-properties.vercel.app"
+	].filter((url): url is string => !!url), // Type guard to ensure string[]
 	credentials: true,
 	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],

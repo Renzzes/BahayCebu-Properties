@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, Plus, MessageSquare, Eye, Users, FileText, Edit3, Trash2, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin, X, Key, Star } from 'lucide-react';
-import { Building, Home, LogOut, User } from 'lucide-react';
+import { Building, Home, LogOut, User, Plus, MessageSquare, Eye, Users, FileText, Edit3, Trash2, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin, X, Key, Star, Search, BarChart2, Settings, Bell } from 'lucide-react';
 import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty, BUILDING_AMENITIES, RESIDENTIAL_FEATURES, PROPERTY_PROVISIONS, BUILDING_FEATURES } from '@/data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
@@ -27,6 +26,8 @@ import UnitTypeSection from '../components/UnitTypeSection';
 import ImageUploader from '@/components/ImageUploader';
 import TagInput from '@/components/TagInput';
 import TravelTimesInput from '@/components/TravelTimesInput';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 const SPECIALIZATIONS = [
   'Residential Sales',
@@ -154,9 +155,10 @@ const defaultFormData: PropertyFormData = {
 
 const AdminDashboard = () => {
   const [selectedMenu, setSelectedMenu] = useState(() => {
-    // Get the saved menu from localStorage or default to 'Properties'
     return localStorage.getItem('selectedMenu') || 'Properties';
   });
+  
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   // Save selectedMenu to localStorage whenever it changes
   useEffect(() => {
@@ -316,11 +318,10 @@ const AdminDashboard = () => {
   }, []);
 
   const menuItems = [
-    { id: 'Dashboard', icon: Home, label: 'Dashboard' },
+    { id: 'Dashboard', icon: BarChart2, label: 'Overview' },
     { id: 'Properties', icon: Building, label: 'Properties' },
-    { id: 'Agent', icon: User, label: 'Agent' },
-    { id: 'Profile', icon: User, label: 'Profile' },
-    { id: 'SignOut', icon: LogOut, label: 'Sign Out' }
+    { id: 'Agent', icon: Users, label: 'Agents' },
+    { id: 'Profile', icon: User, label: 'Settings' }
   ];
 
   const navigate = useNavigate();
@@ -360,16 +361,23 @@ const AdminDashboard = () => {
     }
 
     try {
+      // Update user profile
       const updatedUser = updateUserProfile({
         name: profileForm.name,
         email: profileForm.email,
         profilePicture: profileForm.profilePicture
       });
+
+      // Update current user state
       setCurrentUser(updatedUser);
+      
+      // Close dialog
       setIsEditProfileOpen(false);
-      showSuccessAlert('Profile Updated', 'Your profile has been updated successfully.');
+      
+      await showSuccessAlert('Profile Updated', 'Your profile has been updated successfully.');
     } catch (error) {
-      showErrorAlert('Update Failed', 'Failed to update profile. Please try again.');
+      console.error('Error updating profile:', error);
+      await showErrorAlert('Update Failed', 'Failed to update profile. Please try again.');
     }
   };
 
@@ -763,19 +771,30 @@ const AdminDashboard = () => {
   // Property type options
   const propertyTypes: AdminProperty['type'][] = ['Condo', 'House and Lot', 'Land'];
 
+  const [isAgentCropperOpen, setIsAgentCropperOpen] = useState(false);
+  const [tempAgentImageSrc, setTempAgentImageSrc] = useState<string>('');
+  const [isEditingAgentImage, setIsEditingAgentImage] = useState(false);
+
   const handleAgentImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        if (isEdit && editingAgent) {
-          setEditingAgent(prev => ({ ...prev!, image: e.target?.result as string }));
-        } else {
-          setNewAgent(prev => ({ ...prev, image: e.target?.result as string }));
-        }
+        setTempAgentImageSrc(e.target?.result as string);
+        setIsAgentCropperOpen(true);
+        setIsEditingAgentImage(isEdit);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleAgentCropComplete = (croppedImageUrl: string) => {
+    if (isEditingAgentImage && editingAgent) {
+      setEditingAgent(prev => ({ ...prev!, image: croppedImageUrl }));
+    } else {
+      setNewAgent(prev => ({ ...prev, image: croppedImageUrl }));
+    }
+    setIsAgentCropperOpen(false);
   };
 
   const handleAddAgent = async () => {
@@ -919,8 +938,8 @@ const AdminDashboard = () => {
   }, [selectedMenu]);
 
   const handleMenuClick = (menuId: string) => {
-    if (menuId === 'SignOut') {
-      handleSignOut();
+    if (menuId === 'Profile') {
+      setIsProfileOpen(true);
       return;
     }
     
@@ -1013,78 +1032,318 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-bahayCebu-beige flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
       {/* Sidebar */}
-      <div className="w-72 bg-white shadow-lg border-r border-bahayCebu-green/10">
-        <div className="p-6 border-b border-bahayCebu-green/10">
+      <div className="w-72 bg-white shadow-xl border-r border-gray-200">
+        <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-xl flex items-center justify-center shadow-md">
-                <span className="text-white font-bold text-lg font-serif">BC</span>
-              </div>
+              <img 
+                src="/LOGO/1.png" 
+                alt="BahayCebu Properties Logo" 
+                className="h-12 w-auto"
+              />
               <div>
-                <h1 className="font-serif font-bold text-bahayCebu-darkGray text-lg">
-                  <span className="text-orange-800">Bahay</span><span className="text-bahayCebu-green">Cebu</span>
-                </h1>
-                <p className="text-sm text-bahayCebu-darkGray/70 font-medium">Properties</p>
+                <p className="text-sm text-gray-500 font-medium">Admin Dashboard</p>
               </div>
             </div>
           </div>
         </div>
         
-        <nav className="px-4 py-6 space-y-2">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = selectedMenu === item.id;
-            const isSignOut = item.id === 'SignOut';
-            
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleMenuClick(item.id)}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isSignOut
-                    ? 'text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/10'
-                    : isActive 
-                    ? 'bg-bahayCebu-green text-white'
-                      : 'text-bahayCebu-darkGray hover:bg-bahayCebu-green/5 hover:text-bahayCebu-green'
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
+        <nav className="p-4 space-y-1">
+          {[
+            { id: 'Dashboard', icon: BarChart2, label: 'Overview' },
+            { id: 'Properties', icon: Building, label: 'Properties' },
+            { id: 'Agent', icon: Users, label: 'Agents' },
+            { id: 'Profile', icon: User, label: 'Settings' }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleMenuClick(item.id)}
+              className={cn(
+                "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-200",
+                selectedMenu === item.id && "bg-bahayCebu-green/10 text-bahayCebu-green font-medium"
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              <span>{item.label}</span>
+            </button>
+          ))}
         </nav>
+
+        <div className="absolute bottom-0 w-72 p-4 border-t border-gray-200">
+          <Button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center space-x-2 bg-gray-50 hover:bg-gray-100 text-gray-700"
+          >
+            <LogOut className="h-4 w-4" />
+            <span>Sign Out</span>
+          </Button>
+        </div>
       </div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white border-b border-bahayCebu-green/10 px-8 py-6 shadow-sm">
+        <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-serif font-bold text-bahayCebu-darkGray">
-                {selectedMenu}
-              </h2>
-              <p className="text-bahayCebu-darkGray/60 mt-1">
-                {selectedMenu === 'Properties' ? 'Manage your property listings' :
-                 selectedMenu === 'Dashboard' ? 'Overview of your property portfolio' :
-                 selectedMenu === 'Profile' ? 'Account settings and preferences' :
-                 selectedMenu === 'Agent' ? 'Agent Management' : ''}
-              </p>
+            <div className="flex items-center space-x-4">
+              <div>
+                <h2 className="text-2xl font-serif font-bold text-gray-800">
+                  {selectedMenu === 'Dashboard' ? 'Overview' :
+                   selectedMenu === 'Properties' ? 'Property Management' :
+                   selectedMenu === 'Agent' ? 'Agent Management' :
+                   'Settings'}
+                </h2>
+                <p className="text-gray-500 mt-1">
+                  {selectedMenu === 'Properties' ? 'Manage and monitor your property listings' :
+                   selectedMenu === 'Dashboard' ? 'Key metrics and insights' :
+                   selectedMenu === 'Agent' ? 'Manage your real estate agents' : 
+                   'Manage your account settings'}
+                </p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="px-4 py-2 bg-bahayCebu-beige rounded-lg">
-                <span className="text-sm font-medium text-bahayCebu-darkGray">📍 Cebu, Philippines</span>
+            <div className="flex items-center space-x-6">
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="search"
+                  placeholder="Search..."
+                  className="pl-10 w-64 bg-gray-50 border-0"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
+
+              {/* Notifications */}
+              <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <Bell className="h-5 w-5 text-gray-600" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+
+              {/* Profile Menu */}
+              <button 
+                onClick={() => setIsProfileOpen(true)}
+                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[1px]">
+                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                    {currentUser.profilePicture ? (
+                      <img 
+                        src={currentUser.profilePicture} 
+                        alt={currentUser.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-bahayCebu-green font-medium">
+                        {currentUser.name.charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-medium text-gray-700">{currentUser.name}</p>
+                  <p className="text-xs text-gray-500">Administrator</p>
+                </div>
+              </button>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 overflow-y-auto">
+          {selectedMenu === 'Dashboard' && (
+            <div className="space-y-8">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-green to-bahayCebu-green/80 text-white">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="text-sm font-medium opacity-90">Total Properties</div>
+                    <Building className="h-6 w-6 opacity-80" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">{properties.length}</div>
+                    <p className="text-xs opacity-80 mt-1">Active listings</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-terracotta/80 text-white">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="text-sm font-medium opacity-90">For Sale</div>
+                    <FileText className="h-6 w-6 opacity-80" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold">
+                      {properties.filter(p => p.listingType === 'For Sale').length}
+                    </div>
+                    <p className="text-xs opacity-80 mt-1">Properties listed for sale</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="text-sm font-medium text-gray-600">For Rent</div>
+                    <Key className="h-6 w-6 text-bahayCebu-green" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-gray-800">
+                      {properties.filter(p => p.listingType === 'For Rent').length}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Properties for rent</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg bg-white">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <div className="text-sm font-medium text-gray-600">Featured</div>
+                    <Star className="h-6 w-6 text-bahayCebu-terracotta" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-gray-800">
+                      {properties.filter(p => p.featured).length}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Featured properties</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Recent Activity & Performance */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-800">Recent Properties</h3>
+                      <Button variant="ghost" className="text-gray-500 hover:text-gray-700">
+                        View All
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {properties.length === 0 ? (
+                      <div className="text-center py-6">
+                        <Building className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500">No properties added yet</p>
+                      </div>
+                    ) : (
+                      properties.slice(0, 3).map((property) => (
+                        <div key={property.id} className="flex items-center space-x-4 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                          <img 
+                            src={property.image || '/placeholder.svg'} 
+                            alt={property.title}
+                            className="w-16 h-16 rounded-lg object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-800 truncate">{property.title}</h4>
+                            <p className="text-sm text-gray-500">{property.location}</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <Badge variant="secondary" className="bg-gray-100">
+                                {property.type}
+                              </Badge>
+                              <Badge variant="secondary" className="bg-gray-100">
+                                ₱{property.price.toLocaleString()}
+                              </Badge>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-600">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-medium text-gray-800">Performance Summary</h3>
+                      <Select defaultValue="7days">
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Select period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="7days">Last 7 days</SelectItem>
+                          <SelectItem value="30days">Last 30 days</SelectItem>
+                          <SelectItem value="3months">Last 3 months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Total Properties</span>
+                          <span className="font-medium text-gray-900">{properties.length}</span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div 
+                            className="bg-bahayCebu-green h-2 rounded-full" 
+                            style={{ width: `${(properties.length / 100) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Featured Properties</span>
+                          <span className="font-medium text-gray-900">
+                            {properties.filter(p => p.featured).length}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div 
+                            className="bg-bahayCebu-terracotta h-2 rounded-full" 
+                            style={{ width: `${(properties.filter(p => p.featured).length / properties.length) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Average Price</span>
+                          <span className="font-medium text-gray-900">
+                            {properties.length > 0 
+                              ? `₱${Math.round(properties.reduce((sum, p) => sum + p.price, 0) / properties.length).toLocaleString()}`
+                              : '₱0'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      <div className="pt-4">
+                        <h4 className="text-sm font-medium text-gray-800 mb-3">Property Types Distribution</h4>
+                        <div className="space-y-2">
+                          {['Condo', 'House and Lot', 'Land'].map(type => {
+                            const count = properties.filter(p => p.type === type).length;
+                            const percentage = properties.length > 0 ? (count / properties.length) * 100 : 0;
+                            return (
+                              <div key={type} className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">{type}</span>
+                                  <span className="text-gray-900">{count}</span>
+                                </div>
+                                <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                  <div 
+                                    className="bg-bahayCebu-green h-1.5 rounded-full" 
+                                    style={{ width: `${percentage}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
           {selectedMenu === 'Properties' && (
             <div className="space-y-8">
               {/* Header Section */}
@@ -2499,221 +2758,6 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {selectedMenu === 'Dashboard' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-serif font-bold text-bahayCebu-darkGray">Portfolio Overview</h1>
-                <p className="text-bahayCebu-darkGray/60 mt-2">Key metrics and insights for your property portfolio</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-green to-bahayCebu-green/80 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium opacity-90">Total Properties</div>
-                    <Building className="h-6 w-6 opacity-80" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">{properties.length}</div>
-                    <p className="text-xs opacity-80 mt-1">Active listings</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-terracotta/80 text-white">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium opacity-90">For Sale</div>
-                    <FileText className="h-6 w-6 opacity-80" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold">
-                      {properties.filter(p => p.listingType === 'For Sale').length}
-                    </div>
-                    <p className="text-xs opacity-80 mt-1">Properties listed for sale</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium text-bahayCebu-darkGray">For Rent</div>
-                    <Key className="h-6 w-6 text-bahayCebu-green" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-bahayCebu-darkGray">
-                      {properties.filter(p => p.listingType === 'For Rent').length}
-                    </div>
-                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Properties for rent</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <div className="text-sm font-medium text-bahayCebu-darkGray">Featured</div>
-                    <Star className="h-6 w-6 text-bahayCebu-terracotta" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-3xl font-bold text-bahayCebu-darkGray">
-                      {properties.filter(p => p.featured).length}
-                    </div>
-                    <p className="text-xs text-bahayCebu-darkGray/60 mt-1">Featured properties</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Recent Activity */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader>
-                    <h3 className="text-xl font-serif font-bold text-bahayCebu-darkGray">Recent Properties</h3>
-                    <p className="text-bahayCebu-darkGray/60">Latest additions to your portfolio</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {properties.length === 0 ? (
-                      <div className="text-center py-6">
-                        <Building className="h-12 w-12 text-bahayCebu-darkGray/20 mx-auto mb-3" />
-                        <p className="text-bahayCebu-darkGray/60">No properties added yet</p>
-                      </div>
-                    ) : (
-                      properties.slice(0, 3).map((property) => (
-                        <div key={property.id} className="flex items-center space-x-4 p-3 rounded-lg bg-bahayCebu-beige/50">
-                          <img 
-                            src={property.image || '/placeholder-property.jpg'} 
-                            alt={property.title}
-                            className="w-12 h-12 rounded-lg object-cover"
-                          />
-                          <div className="flex-1">
-                            <h4 className="font-medium text-bahayCebu-darkGray">{property.title}</h4>
-                            <p className="text-sm text-bahayCebu-darkGray/60">{property.bedrooms} bedrooms, {property.bathrooms} bathrooms</p>
-                          </div>
-                          <Badge variant="outline" className="bg-bahayCebu-green/10 text-bahayCebu-green">
-                            {property.area} sqm
-                          </Badge>
-                        </div>
-                      ))
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader>
-                    <h3 className="text-xl font-serif font-bold text-bahayCebu-darkGray">Performance Summary</h3>
-                    <p className="text-bahayCebu-darkGray/60">Your portfolio insights</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Total Properties</span>
-                        <span className="font-medium text-bahayCebu-green">
-                          {properties.length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Featured Properties</span>
-                        <span className="font-medium text-bahayCebu-darkGray">
-                          {properties.filter(p => p.featured).length}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-bahayCebu-darkGray/70">Average Price</span>
-                        <span className="font-medium text-bahayCebu-darkGray">
-                          {properties.length > 0 
-                            ? `₱${Math.round(properties.reduce((sum, p) => sum + p.price, 0) / properties.length).toLocaleString()}`
-                            : '₱0'}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
-
-          {selectedMenu === 'Profile' && (
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-3xl font-serif font-bold text-bahayCebu-darkGray">Profile Settings</h1>
-                <p className="text-bahayCebu-darkGray/60 mt-2">Manage your account settings and preferences</p>
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader>
-                    <h3 className="text-xl font-serif font-bold text-bahayCebu-darkGray">Account Information</h3>
-                    <p className="text-bahayCebu-darkGray/60">Update your personal details</p>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {currentUser.profilePicture ? (
-                          <img 
-                            src={currentUser.profilePicture} 
-                            alt="Profile" 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <User className="h-8 w-8 text-gray-400" />
-                        )}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-bahayCebu-darkGray">{currentUser.name}</h4>
-                        <p className="text-sm text-bahayCebu-darkGray/60">{currentUser.email}</p>
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <Button 
-                        variant="outline" 
-                        className="w-full border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white"
-                        onClick={openEditProfileDialog}
-                      >
-                        Edit Profile
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full border-bahayCebu-terracotta text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta hover:text-white"
-                        onClick={openChangePasswordDialog}
-                      >
-                        Change Password
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-0 shadow-lg bg-white/90 backdrop-blur-sm">
-                  <CardHeader>
-                    <h3 className="text-xl font-serif font-bold text-bahayCebu-darkGray">Preferences</h3>
-                    <p className="text-bahayCebu-darkGray/60">Customize your dashboard experience</p>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center p-3 bg-bahayCebu-beige/50 rounded-lg">
-                        <span className="text-bahayCebu-darkGray">Email Notifications</span>
-                        <input 
-                          type="checkbox" 
-                          className="accent-bahayCebu-green" 
-                          checked={currentUser.preferences.emailNotifications}
-                          onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-bahayCebu-beige/50 rounded-lg">
-                        <span className="text-bahayCebu-darkGray">SMS Alerts</span>
-                        <input 
-                          type="checkbox" 
-                          className="accent-bahayCebu-green" 
-                          checked={currentUser.preferences.smsAlerts}
-                          onChange={(e) => handlePreferenceChange('smsAlerts', e.target.checked)}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center p-3 bg-bahayCebu-beige/50 rounded-lg">
-                        <span className="text-bahayCebu-darkGray">Weekly Reports</span>
-                        <input 
-                          type="checkbox" 
-                          className="accent-bahayCebu-green" 
-                          checked={currentUser.preferences.weeklyReports}
-                          onChange={(e) => handlePreferenceChange('weeklyReports', e.target.checked)}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          )}
-
           {selectedMenu === 'Agent' && (
             <div className="space-y-8">
               {/* Header Section */}
@@ -2771,18 +2815,19 @@ const AdminDashboard = () => {
                         {/* Header - Image and Basic Info */}
                         <div className="flex items-start space-x-4">
                           <div className="relative w-32 h-32 flex-shrink-0">
-                            {agent?.image ? (
-                              <img
-                                src={agent.image}
-                                alt={agent?.name || 'Agent'}
-                                className="w-32 h-32 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
-                                style={{ objectPosition: '50% 25%' }}
-                              />
-                            ) : (
-                              <div className="w-32 h-32 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
-                                <User className="h-12 w-12 text-white" />
+                            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[2px]">
+                              <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                                {agent?.image ? (
+                                  <img
+                                    src={agent.image}
+                                    alt={agent?.name || 'Agent'}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <User className="h-12 w-12 text-gray-400" />
+                                )}
                               </div>
-                            )}
+                            </div>
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="text-xl font-semibold text-bahayCebu-darkGray truncate">{agent?.name || 'Unnamed Agent'}</h3>
@@ -2950,66 +2995,53 @@ const AdminDashboard = () => {
           </DialogHeader>
           <div className="space-y-6">
             {/* Profile Picture Upload */}
-            <div className="space-y-2">
-              <Label className="text-bahayCebu-darkGray font-medium">Profile Picture</Label>
-              <div className="flex items-center space-x-6">
-                <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                  {profileForm.profilePicture ? (
-                    <img 
-                      src={profileForm.profilePicture} 
-                      alt="Profile Preview" 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-12 w-12 text-gray-400" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="border-2 border-dashed border-bahayCebu-green/30 rounded-xl p-6 text-center bg-bahayCebu-green/5 hover:bg-bahayCebu-green/10 transition-colors">
-                    {profileForm.profilePicture ? (
-                      <div className="space-y-3">
-                        <Camera className="mx-auto h-8 w-8 text-bahayCebu-green/60" />
-                        <div>
-                          <Label htmlFor="profile-picture-upload" className="cursor-pointer">
-                            <span className="text-sm font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Change Picture</span>
-                            <Input
-                              id="profile-picture-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleProfilePictureUpload}
-                              className="hidden"
-                            />
-                          </Label>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setProfileForm(prev => ({ ...prev, profilePicture: '' }))}
-                          className="border-bahayCebu-terracotta text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta hover:text-white"
-                        >
-                          Remove
-                        </Button>
+            <div className="space-y-4">
+              <Label className="text-gray-700 font-medium">Profile Picture</Label>
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <div className="relative group">
+                  <div className="relative">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-bahayCebu-green/10 to-bahayCebu-terracotta/10 p-1">
+                      <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                        {profileForm.profilePicture ? (
+                          <img 
+                            src={profileForm.profilePicture} 
+                            alt="Profile Preview" 
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                        ) : (
+                          <User className="h-16 w-16 text-gray-400" />
+                        )}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <Camera className="mx-auto h-8 w-8 text-bahayCebu-green/60" />
-                        <div>
-                          <Label htmlFor="profile-picture-upload" className="cursor-pointer">
-                            <span className="text-sm font-medium text-bahayCebu-green hover:text-bahayCebu-green/80 transition-colors">Upload Picture</span>
-                            <Input
-                              id="profile-picture-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleProfilePictureUpload}
-                              className="hidden"
-                            />
-                          </Label>
-                          <p className="text-xs text-bahayCebu-darkGray/60 mt-1">PNG, JPG, GIF up to 10MB</p>
-                        </div>
-                      </div>
-                    )}
+                    </div>
+                    <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <Camera className="h-8 w-8 text-white" />
+                    </div>
                   </div>
+                  <Label
+                    htmlFor="profile-picture-upload"
+                    className="absolute bottom-0 right-0 cursor-pointer bg-bahayCebu-green text-white p-2 rounded-full shadow-lg hover:bg-bahayCebu-green/90 transition-colors duration-200"
+                  >
+                    <Plus className="h-5 w-5" />
+                    <Input
+                      id="profile-picture-upload"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfilePictureUpload}
+                      className="hidden"
+                    />
+                  </Label>
                 </div>
+                {profileForm.profilePicture && (
+                  <button
+                    type="button"
+                    onClick={() => setProfileForm(prev => ({ ...prev, profilePicture: '' }))}
+                    className="text-sm text-bahayCebu-terracotta hover:text-bahayCebu-terracotta/90 transition-colors duration-200"
+                  >
+                    Remove photo
+                  </button>
+                )}
+                <p className="text-sm text-gray-500">Click to upload a new profile picture</p>
+                <p className="text-xs text-gray-400">PNG, JPG, GIF up to 10MB</p>
               </div>
             </div>
 
@@ -3053,6 +3085,23 @@ const AdminDashboard = () => {
                 Save Changes
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Agent Image Cropper Dialog */}
+      <Dialog open={isAgentCropperOpen} onOpenChange={setIsAgentCropperOpen}>
+        <DialogContent className="max-w-[800px] p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Crop Agent Profile Picture</DialogTitle>
+          </DialogHeader>
+          <div className="p-6">
+            <ImageCropper
+              isOpen={isAgentCropperOpen}
+              onClose={() => setIsAgentCropperOpen(false)}
+              imageSrc={tempAgentImageSrc}
+              onCropComplete={handleAgentCropComplete}
+            />
           </div>
         </DialogContent>
       </Dialog>
@@ -3695,8 +3744,77 @@ const AdminDashboard = () => {
         imageSrc={tempImageSrc}
         onCropComplete={handleCropComplete}
       />
+      {/* Profile Dialog */}
+      <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Profile</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                {currentUser.profilePicture ? (
+                  <img 
+                    src={currentUser.profilePicture} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="h-8 w-8 text-gray-400" />
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium text-bahayCebu-darkGray">{currentUser.name}</h4>
+                <p className="text-sm text-bahayCebu-darkGray/60">{currentUser.email}</p>
+                <div className="mt-1">
+                  <Badge variant="outline" className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20">
+                    {currentUser.role}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <Button 
+                variant="outline" 
+                className="w-full border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  openEditProfileDialog();
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full border-bahayCebu-terracotta text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta hover:text-white"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  openChangePasswordDialog();
+                }}
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Change Password
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                onClick={() => {
+                  setIsProfileOpen(false);
+                  handleSignOut();
+                }}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default AdminDashboard;
+

@@ -29,7 +29,8 @@ import {
   History,
   FileText,
   AlertCircle,
-  ZoomIn
+  ZoomIn,
+  DollarSign
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -467,69 +468,92 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property }) => {
               title="Available Unit Types"
               icon={<Building className="h-5 w-5 text-bahayCebu-green" />}
             >
-              <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {property.unitTypeDetails.map((unitType, index) => (
-                  <div key={`${unitType.type}-${index}`} className="bg-gray-50 p-6 rounded-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <Home className="h-5 w-5 text-bahayCebu-green" />
-                        <h4 className="font-medium text-bahayCebu-darkGray">{unitType.type || 'Unit Type'}</h4>
+                  <div 
+                    key={`${unitType.type}-${index}`} 
+                    className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200"
+                  >
+                    {/* Unit Type Header */}
+                    <div className="bg-gray-50 p-4 border-b border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Home className="h-5 w-5 text-bahayCebu-green" />
+                          <h4 className="font-medium text-bahayCebu-darkGray">{unitType.type || 'Unit Type'}</h4>
+                        </div>
+                        {unitType.floorArea && (
+                          <Badge variant="outline" className="text-bahayCebu-darkGray">
+                            {unitType.floorArea} SQM
+                          </Badge>
+                        )}
                       </div>
-                      {unitType.floorArea && (
-                        <Badge variant="outline" className="text-bahayCebu-darkGray">
-                          {unitType.floorArea} SQM
-                        </Badge>
-                      )}
                     </div>
 
-                    {/* Price and Payment Details */}
-                    <div className="space-y-2 mt-4">
-                      {unitType.priceRange && (
-                        <p className="text-bahayCebu-blue font-medium">Price Range: {unitType.priceRange}</p>
-                      )}
-                      {unitType.reservationFee && (
-                        <p className="text-gray-600">Reservation Fee: {unitType.reservationFee}</p>
-                      )}
-                      {unitType.monthlyPayment && unitType.monthlyPayment.amount && (
-                        <p className="text-gray-600">
-                          {unitType.monthlyPayment.percentage}% Monthly: {unitType.monthlyPayment.amount} ({unitType.monthlyPayment.terms})
-                        </p>
-                      )}
-                      {unitType.balancePayment && unitType.balancePayment.amount && (
-                        <p className="text-gray-600">
-                          {unitType.balancePayment.percentage}% Balance: {unitType.balancePayment.amount} ({unitType.balancePayment.terms})
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Floor Plan */}
+                    {/* Floor Plan Image */}
                     {unitType.layoutImage && (
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-600 mb-2">Floor Plan</p>
-                        <div className="flex justify-center bg-gray-200 rounded-lg p-4">
-                          <div 
-                            className="relative group cursor-pointer rounded-lg overflow-hidden inline-block"
-                            onClick={() => handleZoomImage(unitType.layoutImage)}
-                          >
-                            <img
-                              src={unitType.layoutImage}
-                              alt={`Floor plan for ${unitType.type || 'Unit'}`}
-                              className="max-h-[300px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
-                            />
-                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                              <ZoomIn className="h-8 w-8 text-white" />
-                            </div>
-                          </div>
+                      <div className="relative aspect-video cursor-pointer group" onClick={() => handleZoomImage(unitType.layoutImage)}>
+                        <img
+                          src={unitType.layoutImage}
+                          alt={`Floor plan for ${unitType.type || 'Unit'}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <ZoomIn className="h-8 w-8 text-white" />
                         </div>
                       </div>
                     )}
 
-                    {/* Description */}
-                    {unitType.description && (
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-600">{unitType.description}</p>
+                    {/* Unit Details */}
+                    <div className="p-4 space-y-4">
+                      {/* Price and Description */}
+                      <div className="space-y-2">
+                        {unitType.priceRange && (
+                          <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-bahayCebu-green" />
+                            <p className="text-bahayCebu-blue font-medium">
+                              Price Range: {unitType.priceRange}
+                            </p>
+                          </div>
+                        )}
+                        {unitType.description && (
+                          <p className="text-sm text-gray-600">{unitType.description}</p>
+                        )}
                       </div>
-                    )}
+
+                      {/* Payment Details */}
+                      <div className="space-y-3 pt-3 border-t border-gray-100">
+                        {unitType.reservationFee && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Reservation Fee:</span>
+                            <span className="font-medium text-bahayCebu-darkGray">{unitType.reservationFee}</span>
+                          </div>
+                        )}
+                        
+                        {unitType.monthlyPayment && unitType.monthlyPayment.amount && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Monthly Payment:</span>
+                            <div className="text-right">
+                              <p className="font-medium text-bahayCebu-darkGray">{unitType.monthlyPayment.amount}</p>
+                              <p className="text-xs text-gray-500">
+                                {unitType.monthlyPayment.percentage}% over {unitType.monthlyPayment.terms}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {unitType.balancePayment && unitType.balancePayment.amount && (
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600">Balance Payment:</span>
+                            <div className="text-right">
+                              <p className="font-medium text-bahayCebu-darkGray">{unitType.balancePayment.amount}</p>
+                              <p className="text-xs text-gray-500">
+                                {unitType.balancePayment.percentage}% ({unitType.balancePayment.terms})
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
