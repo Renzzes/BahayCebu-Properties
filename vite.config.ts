@@ -6,9 +6,10 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   base: '/',
+  publicDir: 'public', // Explicitly set public directory
   server: {
     host: "::",
-    port: 8081, // Changed from 8080 to 8081
+    port: 8081,
     proxy: {
       '/api': {
         target: 'http://localhost:4000',
@@ -21,10 +22,21 @@ export default defineConfig(({ mode }) => ({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: true,
+    copyPublicDir: true, // Ensure public directory is copied
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
+        },
+        assetFileNames: (assetInfo) => {
+          // Preserve original directory structure for assets
+          if (assetInfo.name) {
+            const info = path.parse(assetInfo.name);
+            let dir = path.dirname(assetInfo.name);
+            if (dir === '.') dir = '';
+            return `${dir}/[name].[hash][extname]`;
+          }
+          return '[name].[hash][extname]';
         },
       },
     },

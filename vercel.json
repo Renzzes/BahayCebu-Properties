@@ -17,6 +17,14 @@
       "dest": "/api/$1.ts"
     },
     {
+      "src": "^/carousel/(.*)",
+      "dest": "/carousel/$1"
+    },
+    {
+      "src": "^/LOGO/(.*)",
+      "dest": "/LOGO/$1"
+    },
+    {
       "src": "^/assets/(.*)",
       "dest": "/assets/$1"
     },
