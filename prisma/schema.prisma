@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -18,21 +18,21 @@ model Property {
   type                  String
   featured              Boolean  @default(false)
   description           String?
-  images                String[]
+  images                Json     @default("[]") // Changed from String[] to Json
   videoUrl             String?
   thumbnail            String?
-  unitTypes            String[]
-  unitTypeDetails      Json[]
-  amenities            String[]
-  residentialFeatures  String[]
-  provisions           String[]
-  buildingFeatures     String[]
+  unitTypes            Json     @default("[]") // Changed from String[] to Json
+  unitTypeDetails      Json     @default("[]") // Changed from Json[] to Json
+  amenities            Json     @default("[]") // Changed from String[] to Json
+  residentialFeatures  Json     @default("[]") // Changed from String[] to Json
+  provisions           Json     @default("[]") // Changed from String[] to Json
+  buildingFeatures     Json     @default("[]") // Changed from String[] to Json
   units                Int?
   occupancyRate        Float?
-  locationAccessibility Json? @default("{ \"nearbyLandmarks\": [], \"publicTransport\": [], \"mainRoads\": [], \"travelTimes\": [] }")
-  featuresAmenities    Json? @default("{ \"propertyHighlights\": [], \"smartHomeFeatures\": [], \"securityFeatures\": [], \"sustainabilityFeatures\": [] }")
-  lifestyleCommunity   Json? @default("{ \"neighborhoodType\": \"\", \"localAmenities\": [], \"communityFeatures\": [], \"nearbyEstablishments\": [] }")
-  additionalInformation Json? @default("{ \"propertyHistory\": \"\", \"legalInformation\": \"\", \"developmentPlans\": \"\", \"specialNotes\": \"\" }")
+  locationAccessibility Json    @default("{ \"nearbyLandmarks\": [], \"publicTransport\": [], \"mainRoads\": [], \"travelTimes\": [] }")
+  featuresAmenities    Json    @default("{ \"propertyHighlights\": [], \"smartHomeFeatures\": [], \"securityFeatures\": [], \"sustainabilityFeatures\": [] }")
+  lifestyleCommunity   Json    @default("{ \"neighborhoodType\": \"\", \"localAmenities\": [], \"communityFeatures\": [], \"nearbyEstablishments\": [] }")
+  additionalInformation Json    @default("{ \"propertyHistory\": \"\", \"legalInformation\": \"\", \"developmentPlans\": \"\", \"specialNotes\": \"\" }")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
@@ -54,7 +54,7 @@ model Agent {
   location        String
   description     String
   image           String?
-  specializations String[]
+  specializations Json     @default("[]") // Changed from String[] to Json
   listings        Int      @default(0)
   deals           Int      @default(0)
   rating          Float    @default(0)

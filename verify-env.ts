@@ -1,35 +1,52 @@
-import { createClient } from '@supabase/supabase-js';
-import * as dotenv from 'dotenv';
+import { config } from 'dotenv';
 
 // Load environment variables
-dotenv.config();
+config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+declare const process: {
+  env: {
+    DATABASE_URL?: string;
+    NODE_ENV?: string;
+    PRODUCTION_URL?: string;
+  }
+};
+
 const databaseUrl = process.env.DATABASE_URL;
 const nodeEnv = process.env.NODE_ENV;
 const productionUrl = process.env.PRODUCTION_URL;
 
 console.log('\n🔍 Checking Environment Variables:\n');
 
-// Check each variable
-console.log('1. Database URL:', databaseUrl ? '✅ Found' : '❌ Missing');
-console.log('2. Supabase URL:', supabaseUrl ? '✅ Found' : '❌ Missing');
-console.log('3. Supabase Anon Key:', supabaseAnonKey ? '✅ Found' : '❌ Missing');
-console.log('4. Node Environment:', nodeEnv ? '✅ Found' : '❌ Missing');
-console.log('5. Production URL:', productionUrl ? '✅ Found' : '❌ Missing');
+// Check required environment variables
+console.log('DATABASE_URL:', databaseUrl ? '✅ Present' : '❌ Missing');
+console.log('NODE_ENV:', nodeEnv ? '✅ Present' : '❌ Missing');
+console.log('PRODUCTION_URL:', productionUrl ? '✅ Present' : '❌ Missing');
 
-// Test Supabase connection if credentials are present
-if (supabaseUrl && supabaseAnonKey) {
-  console.log('\n🔌 Testing Supabase Connection...');
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-  
-  // Try to get session to test connection
-  supabase.auth.getSession().then(({ error }) => {
-    if (error) {
-      console.log('❌ Connection failed:', error.message);
+// Validate DATABASE_URL format
+if (databaseUrl) {
+  try {
+    const url = new URL(databaseUrl);
+    if (url.protocol !== 'postgresql:') {
+      console.log('❌ DATABASE_URL must use postgresql protocol');
     } else {
-      console.log('✅ Supabase connection successful!');
+      console.log('✅ DATABASE_URL format is valid');
     }
-  });
+  } catch (e) {
+    console.log('❌ DATABASE_URL is not a valid URL');
+  }
+}
+
+// Validate NODE_ENV values
+if (nodeEnv && !['development', 'production', 'test'].includes(nodeEnv)) {
+  console.log('❌ NODE_ENV must be one of: development, production, test');
+}
+
+// Validate PRODUCTION_URL format
+if (productionUrl) {
+  try {
+    new URL(productionUrl);
+    console.log('✅ PRODUCTION_URL format is valid');
+  } catch (e) {
+    console.log('❌ PRODUCTION_URL is not a valid URL');
+  }
 } 
