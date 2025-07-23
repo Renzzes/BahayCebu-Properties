@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => ({
               return 'assets/[name]-[hash][extname]';
             }
             // Remove leading slash and replace backslashes with forward slashes
-            dir = dir.replace(/^[\/\\]/, '').replace(/\\/g, '/');
+            dir = dir.replace(/^[/\\]/, '').replace(/\\/g, '/');
             return `${dir}/[name]-[hash][extname]`;
           }
           return 'assets/[name]-[hash][extname]';
