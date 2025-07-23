@@ -29,14 +29,17 @@ export default defineConfig(({ mode }) => ({
           vendor: ['react', 'react-dom', 'react-router-dom'],
         },
         assetFileNames: (assetInfo) => {
-          // Preserve original directory structure for assets
           if (assetInfo.name) {
             const info = path.parse(assetInfo.name);
             let dir = path.dirname(assetInfo.name);
-            if (dir === '.') dir = '';
-            return `${dir}/[name].[hash][extname]`;
+            if (dir === '.') {
+              return 'assets/[name]-[hash][extname]';
+            }
+            // Remove leading slash and replace backslashes with forward slashes
+            dir = dir.replace(/^[\/\\]/, '').replace(/\\/g, '/');
+            return `${dir}/[name]-[hash][extname]`;
           }
-          return '[name].[hash][extname]';
+          return 'assets/[name]-[hash][extname]';
         },
       },
     },
