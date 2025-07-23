@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Building, Home, LogOut, User, Plus, MessageSquare, Eye, Users, FileText, Edit3, Trash2, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin, X, Key, Star, Search, BarChart2, Settings, Bell } from 'lucide-react';
+import { Building, Home, LogOut, User, Plus, MessageSquare, Eye, Users, FileText, Edit3, Trash2, Camera, EyeOff, Mail, Phone, Facebook, Instagram, Linkedin, Pencil, AlertCircle, MapPin, X, Key, Star, Search, BarChart2, Settings, Bell, Menu } from 'lucide-react';
 import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty, BUILDING_AMENITIES, RESIDENTIAL_FEATURES, PROPERTY_PROVISIONS, BUILDING_FEATURES } from '@/data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
@@ -154,10 +154,28 @@ const defaultFormData: PropertyFormData = {
 };
 
 const AdminDashboard = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedMenu, setSelectedMenu] = useState(() => {
     return localStorage.getItem('selectedMenu') || 'Properties';
   });
   
+  // Add hook for tracking screen size
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   // Save selectedMenu to localStorage whenever it changes
@@ -1032,70 +1050,90 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex relative">
+      {/* Mobile Menu Button */}
+      <button
+        className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-lg"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+      >
+        <Menu className="h-6 w-6 text-gray-600" />
+      </button>
+
       {/* Sidebar */}
-      <div className="w-72 bg-white shadow-xl border-r border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
+      <div className={cn(
+        "fixed md:static inset-y-0 left-0 z-40 w-72 bg-white shadow-xl border-r border-gray-200 transform transition-transform duration-200 ease-in-out flex flex-col",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        "md:translate-x-0" // Always show on desktop
+      )}>
+        {/* Mobile Close Button */}
+        <button
+          className="md:hidden absolute top-4 right-4 p-2 text-gray-500 hover:text-gray-700"
+          onClick={() => setIsSidebarOpen(false)}
+        >
+          <X className="h-6 w-6" />
+        </button>
+
+        <div className="p-4 border-b border-gray-200 bg-white sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0">
               <img 
                 src="/LOGO/1.png" 
                 alt="BahayCebu Properties Logo" 
-                className="h-12 w-auto"
+                className="h-14 w-auto object-contain"
               />
-              <div>
-                <p className="text-sm text-gray-500 font-medium">Admin Dashboard</p>
-              </div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">Admin Dashboard</p>
+              <p className="text-xs text-gray-500 mt-0.5">Management Portal</p>
             </div>
           </div>
         </div>
         
-        <nav className="p-4 space-y-1">
-          {[
-            { id: 'Dashboard', icon: BarChart2, label: 'Overview' },
-            { id: 'Properties', icon: Building, label: 'Properties' },
-            { id: 'Agent', icon: Users, label: 'Agents' },
-            { id: 'Profile', icon: User, label: 'Settings' }
-          ].map((item) => (
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {menuItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => handleMenuClick(item.id)}
+              onClick={() => {
+                handleMenuClick(item.id);
+                if (isMobile) setIsSidebarOpen(false);
+              }}
               className={cn(
-                "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-200",
-                selectedMenu === item.id && "bg-bahayCebu-green/10 text-bahayCebu-green font-medium"
+                "w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 transition-all duration-200",
+                selectedMenu === item.id && "bg-[#E8F5E9] text-[#2E7D32] font-medium"
               )}
             >
               <item.icon className="h-5 w-5" />
-              <span>{item.label}</span>
+              <span className="text-sm">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 w-72 p-4 border-t border-gray-200">
+        <div className="sticky bottom-0 w-full p-4 border-t border-gray-200 bg-white mt-auto">
           <Button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center space-x-2 bg-gray-50 hover:bg-gray-100 text-gray-700"
+            variant="destructive"
+            className="w-full flex items-center justify-center sm:justify-start gap-3 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg"
           >
-            <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
+            <LogOut className="h-5 w-5" />
+            <span className="text-sm font-medium">Sign Out</span>
           </Button>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-4">
-          <div className="flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 px-4 md:px-8 py-4 mt-16 md:mt-0">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <div>
-                <h2 className="text-2xl font-serif font-bold text-gray-800">
+                <h2 className="text-xl md:text-2xl font-serif font-bold text-gray-800">
                   {selectedMenu === 'Dashboard' ? 'Overview' :
                    selectedMenu === 'Properties' ? 'Property Management' :
                    selectedMenu === 'Agent' ? 'Agent Management' :
                    'Settings'}
                 </h2>
-                <p className="text-gray-500 mt-1">
+                <p className="text-sm md:text-base text-gray-500 mt-1">
                   {selectedMenu === 'Properties' ? 'Manage and monitor your property listings' :
                    selectedMenu === 'Dashboard' ? 'Key metrics and insights' :
                    selectedMenu === 'Agent' ? 'Manage your real estate agents' : 
@@ -1104,60 +1142,56 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
               {/* Search Bar */}
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   type="search"
                   placeholder="Search..."
-                  className="pl-10 w-64 bg-gray-50 border-0"
+                  className="pl-10 w-full md:w-64 bg-gray-50 border-0"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
 
-              {/* Notifications */}
-              <button className="relative p-2 rounded-full hover:bg-gray-100 transition-colors">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* Profile Menu */}
-              <button 
-                onClick={() => setIsProfileOpen(true)}
-                className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[1px]">
-                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                    {currentUser.profilePicture ? (
-                      <img 
-                        src={currentUser.profilePicture} 
-                        alt={currentUser.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-bahayCebu-green font-medium">
-                        {currentUser.name.charAt(0)}
-                      </span>
-                    )}
+              <div className="flex items-center gap-4">
+                {/* Profile Menu */}
+                <button 
+                  onClick={() => setIsProfileOpen(true)}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[1px]">
+                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                      {currentUser.profilePicture ? (
+                        <img 
+                          src={currentUser.profilePicture} 
+                          alt={currentUser.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-bahayCebu-green font-medium">
+                          {currentUser.name.charAt(0)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-700">{currentUser.name}</p>
-                  <p className="text-xs text-gray-500">Administrator</p>
-                </div>
-              </button>
+                  <div className="hidden md:block text-left">
+                    <p className="text-sm font-medium text-gray-700">{currentUser.name}</p>
+                    <p className="text-xs text-gray-500">Administrator</p>
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
           {selectedMenu === 'Dashboard' && (
             <div className="space-y-8">
               {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <Card className="border-0 shadow-lg bg-gradient-to-br from-bahayCebu-green to-bahayCebu-green/80 text-white">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <div className="text-sm font-medium opacity-90">Total Properties</div>
@@ -1210,7 +1244,7 @@ const AdminDashboard = () => {
               </div>
 
               {/* Recent Activity & Performance */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
                 <Card className="border-0 shadow-lg">
                   <CardHeader>
                     <div className="flex items-center justify-between">
@@ -1345,23 +1379,27 @@ const AdminDashboard = () => {
           )}
 
           {selectedMenu === 'Properties' && (
-            <div className="space-y-8">
+            <div className="space-y-6 md:space-y-8">
               {/* Header Section */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-4xl font-serif font-light text-bahayCebu-darkGray mb-2">Property Portfolio</h1>
-                  <p className="text-bahayCebu-darkGray/60 text-lg">Manage and monitor your property listings</p>
+                  <h1 className="text-2xl md:text-4xl font-serif font-light text-bahayCebu-darkGray mb-2">
+                    Property Portfolio
+                  </h1>
+                  <p className="text-base md:text-lg text-bahayCebu-darkGray/60">
+                    Manage and monitor your property listings
+                  </p>
                 </div>
-                <div className="flex items-center space-x-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
                   <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
                     <DialogTrigger asChild>
                       <Button 
                         variant="destructive" 
-                        className="flex items-center space-x-3 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0"
+                        className="flex items-center justify-center space-x-3 bg-bahayCebu-terracotta hover:bg-bahayCebu-terracotta/90 text-white px-4 md:px-8 py-3 md:py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0 w-full sm:w-auto"
                         disabled={properties.length === 0}
                       >
                         <Trash2 className="w-5 h-5" />
-                        <span className="font-medium">Delete All Properties</span>
+                        <span className="font-medium">Delete All</span>
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
@@ -1388,22 +1426,22 @@ const AdminDashboard = () => {
                   </Dialog>
                                 <Dialog open={isAddPropertyOpen} onOpenChange={setIsAddPropertyOpen}>
                   <DialogTrigger asChild>
-                    <Button className="flex items-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0">
+                    <Button className="flex items-center justify-center space-x-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white px-4 md:px-8 py-3 md:py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border-0 w-full sm:w-auto">
                       <Plus className="w-5 h-5" />
                       <span className="font-medium">Add Property</span>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col">
+                  <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col overflow-hidden">
                     <DialogHeader className="pb-6 flex-shrink-0">
-                      <DialogTitle className="text-2xl font-medium">Add New Property</DialogTitle>
-                      <p className="text-gray-600 mt-2">Fill in the details to create a new property listing</p>
+                      <DialogTitle className="text-xl md:text-2xl font-medium">Add New Property</DialogTitle>
+                      <p className="text-sm md:text-base text-gray-600 mt-2">Fill in the details to create a new property listing</p>
                     </DialogHeader>
-                    <div className="flex-1 overflow-y-auto px-6">
-                      <div className="space-y-8">
+                    <div className="flex-1 overflow-y-auto px-4 md:px-6">
+                      <div className="space-y-6 md:space-y-8">
                         {/* Basic Information */}
                         <div className="space-y-4">
-                          <h3 className="text-lg font-medium">Basic Information</h3>
-                          <div className="space-y-4">
+                          <h3 className="text-base md:text-lg font-medium">Basic Information</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             <div>
                               <Label htmlFor="title">Property Name</Label>
                               <Input
@@ -1415,14 +1453,15 @@ const AdminDashboard = () => {
                               />
                             </div>
                             <div>
-                              <Label>Status</Label>
+                              <Label>Property Type</Label>
                               <Select value={newProperty.type} onValueChange={(value: AdminProperty['type']) => setNewProperty(prev => ({ ...prev, type: value }))}>
                                 <SelectTrigger className="mt-1">
-                                  <SelectValue placeholder="Active" />
+                                  <SelectValue placeholder="Select property type" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Active">Active</SelectItem>
-                                  <SelectItem value="Inactive">Inactive</SelectItem>
+                                  <SelectItem value="Condo">Condo</SelectItem>
+                                  <SelectItem value="House and Lot">House and Lot</SelectItem>
+                                  <SelectItem value="Land">Land</SelectItem>
                                 </SelectContent>
                               </Select>
                             </div>
@@ -1932,18 +1971,17 @@ const AdminDashboard = () => {
                         </div>
                       </div>
                     </div>
-                    {/* Action Buttons */}
-                    <div className="flex justify-end space-x-4 pt-6 pb-2 px-6 border-t border-gray-100 mt-8 flex-shrink-0">
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 pb-2 px-4 md:px-6 border-t border-gray-100 mt-8 flex-shrink-0">
                       <Button
                         variant="outline"
                         onClick={() => setIsAddPropertyOpen(false)}
-                        className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                        className="w-full sm:w-auto px-4 md:px-8 py-2 md:py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
                       >
                         Cancel
                       </Button>
                       <Button
                         onClick={handleAddProperty}
-                        className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
+                        className="w-full sm:w-auto px-4 md:px-8 py-2 md:py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
                       >
                         Add Property
                       </Button>
@@ -1955,50 +1993,36 @@ const AdminDashboard = () => {
 
               {/* Edit Property Dialog */}
               <Dialog open={isEditPropertyOpen} onOpenChange={setIsEditPropertyOpen}>
-                <DialogContent className="max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col">
+                <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[95vh] bg-white/95 backdrop-blur-xl border-0 shadow-2xl flex flex-col overflow-hidden">
                   <DialogHeader className="pb-6 flex-shrink-0">
-                    <DialogTitle className="text-2xl font-medium">Edit Property</DialogTitle>
-                    <p className="text-gray-600 mt-2">Update the property details</p>
+                    <DialogTitle className="text-xl md:text-2xl font-medium">Edit Property</DialogTitle>
+                    <p className="text-sm md:text-base text-gray-600 mt-2">Update the property details</p>
                   </DialogHeader>
-                  <div className="flex-1 overflow-y-auto px-6">
-                    <div className="space-y-8">
+                  <div className="flex-1 overflow-y-auto px-4 md:px-6">
+                    <div className="space-y-6 md:space-y-8">
                       {/* Basic Information */}
                       <div className="space-y-4">
-                        <h3 className="text-lg font-medium">Basic Information</h3>
-                        <div>
-                          <Label htmlFor="edit-title">Property Name</Label>
-                          <Input
-                            id="edit-title"
-                            value={editProperty.title}
-                            onChange={(e) => setEditProperty(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="Enter property name"
-                            className="mt-1"
-                          />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <h3 className="text-base md:text-lg font-medium">Basic Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                           <div>
-                            <Label>Property Type</Label>
-                            <Select value={editProperty.type} onValueChange={(value: AdminProperty['type']) => setEditProperty(prev => ({ ...prev, type: value }))}>
-                              <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select property type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {propertyTypes.map((type) => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="edit-title">Property Name</Label>
+                            <Input
+                              id="edit-title"
+                              value={editProperty.title}
+                              onChange={(e) => setEditProperty(prev => ({ ...prev, title: e.target.value }))}
+                              placeholder="Enter property name"
+                              className="mt-1"
+                            />
                           </div>
                           <div>
-                            <Label>Listing Type</Label>
-                            <Select value={editProperty.listingType} onValueChange={(value: AdminProperty['listingType']) => setEditProperty(prev => ({ ...prev, listingType: value }))}>
+                            <Label>Status</Label>
+                            <Select value={editProperty.type} onValueChange={(value: AdminProperty['type']) => setEditProperty(prev => ({ ...prev, type: value }))}>
                               <SelectTrigger className="mt-1">
-                                <SelectValue placeholder="Select listing type" />
+                                <SelectValue placeholder="Active" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="For Sale">For Sale</SelectItem>
-                                <SelectItem value="For Rent">For Rent</SelectItem>
-                                <SelectItem value="For Lease">For Lease</SelectItem>
+                                <SelectItem value="Active">Active</SelectItem>
+                                <SelectItem value="Inactive">Inactive</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -2472,19 +2496,19 @@ const AdminDashboard = () => {
                     </div>
                   </div>
 
-                  <div className="flex justify-end space-x-4 pt-6 pb-2 px-6 border-t border-gray-100 mt-8 flex-shrink-0">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-6 pb-2 px-4 md:px-6 border-t border-gray-100 mt-8 flex-shrink-0">
                     <Button 
                       variant="outline" 
                       onClick={() => setIsEditPropertyOpen(false)}
-                      className="px-8 py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
+                      className="w-full sm:w-auto px-4 md:px-8 py-2 md:py-3 border-gray-300 text-gray-600 hover:bg-gray-50 rounded-xl"
                     >
                       Cancel
                     </Button>
                     <Button 
                       onClick={handleEditProperty}
-                      className="px-8 py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
+                      className="w-full sm:w-auto px-4 md:px-8 py-2 md:py-3 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg rounded-xl"
                     >
-                      Update Property
+                      Save Changes
                     </Button>
                   </div>
                 </DialogContent>
@@ -3746,72 +3770,62 @@ const AdminDashboard = () => {
       />
       {/* Profile Dialog */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-serif text-bahayCebu-darkGray">Profile</DialogTitle>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
+          <DialogHeader className="pb-6">
+            <DialogTitle className="text-xl md:text-2xl font-medium">Profile Settings</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                {currentUser.profilePicture ? (
-                  <img 
-                    src={currentUser.profilePicture} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <User className="h-8 w-8 text-gray-400" />
-                )}
+            <div className="flex flex-col sm:flex-row items-center gap-4">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[2px]">
+                <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                  {currentUser.profilePicture ? (
+                    <img 
+                      src={currentUser.profilePicture} 
+                      alt={currentUser.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-3xl text-bahayCebu-green font-medium">
+                      {currentUser.name.charAt(0)}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium text-bahayCebu-darkGray">{currentUser.name}</h4>
-                <p className="text-sm text-bahayCebu-darkGray/60">{currentUser.email}</p>
-                <div className="mt-1">
-                  <Badge variant="outline" className="bg-bahayCebu-green/10 text-bahayCebu-green border-bahayCebu-green/20">
-                    {currentUser.role}
-                  </Badge>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-lg font-medium text-gray-900">{currentUser.name}</h3>
+                <p className="text-gray-500">{currentUser.email}</p>
+                <div className="flex flex-col sm:flex-row items-center gap-2 mt-4">
+                  <Button
+                    onClick={openEditProfileDialog}
+                    className="w-full sm:w-auto flex items-center justify-center space-x-2"
+                  >
+                    <Pencil className="h-4 w-4" />
+                    <span>Edit Profile</span>
+                  </Button>
+                  <Button
+                    onClick={openChangePasswordDialog}
+                    variant="outline"
+                    className="w-full sm:w-auto flex items-center justify-center space-x-2"
+                  >
+                    <Key className="h-4 w-4" />
+                    <span>Change Password</span>
+                  </Button>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4 pt-4">
-              <Button 
-                variant="outline" 
-                className="w-full border-bahayCebu-green text-bahayCebu-green hover:bg-bahayCebu-green hover:text-white"
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  openEditProfileDialog();
-                }}
-              >
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full border-bahayCebu-terracotta text-bahayCebu-terracotta hover:bg-bahayCebu-terracotta hover:text-white"
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  openChangePasswordDialog();
-                }}
-              >
-                <Key className="h-4 w-4 mr-2" />
-                Change Password
-              </Button>
-              <Button 
-                variant="outline" 
-                className="w-full border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                onClick={() => {
-                  setIsProfileOpen(false);
-                  handleSignOut();
-                }}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
+
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Backdrop for mobile sidebar */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 };
