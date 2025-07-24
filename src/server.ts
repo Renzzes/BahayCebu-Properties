@@ -1,9 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
+import jwt from 'jsonwebtoken';
 import { prisma } from "./lib/db";
+import { sendPasswordResetEmail } from "./utils/emailService";
 import { User } from "./types/api";
 import { UserCreateInputType, UserUpdateInputType } from "./types/prisma-extensions";
+import { gmailService } from "./utils/gmailService";
 
 const app = express();
 
@@ -730,6 +733,165 @@ app.delete("/api/agents/:id", async (req: Request, res: Response) => {
 		}
 		return res.status(500).json({ error: 'Failed to delete agent' });
 	}
+});
+
+// Generate OTP function
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+// Request OTP endpoint
+app.post("/api/auth/request-otp", async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        error: "Validation Error",
+        message: "Email is required"
+      });
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ 
+        error: "Not Found",
+        message: "No account found with this email"
+      });
+    }
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 600000); // 10 minutes from now
+
+    // Save OTP and expiry in database
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otp,
+        otpExpiry
+      }
+    });
+
+    // Send OTP via email
+    await gmailService.sendOTP(email, otp);
+
+    return res.status(200).json({
+      message: "OTP has been sent to your email"
+    });
+  } catch (error) {
+    console.error("Request OTP error:", error);
+    return res.status(500).json({ 
+      error: "Server Error",
+      message: "Failed to send OTP"
+    });
+  }
+});
+
+// Verify OTP endpoint
+app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ 
+        error: "Validation Error",
+        message: "Email and OTP are required"
+      });
+    }
+
+    // Find user with valid OTP
+    const user = await prisma.user.findFirst({
+      where: {
+        email,
+        otp,
+        otpExpiry: {
+          gt: new Date()
+        }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({ 
+        error: "Invalid OTP",
+        message: "Invalid or expired OTP"
+      });
+    }
+
+    // Clear OTP after successful verification
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        otp: null,
+        otpExpiry: null
+      }
+    });
+
+    // Generate a temporary token for password reset
+    const tempToken = jwt.sign(
+      { userId: user.id },
+      process.env.JWT_SECRET || 'your-jwt-secret',
+      { expiresIn: '5m' }
+    );
+
+    return res.status(200).json({
+      message: "OTP verified successfully",
+      tempToken
+    });
+  } catch (error) {
+    console.error("Verify OTP error:", error);
+    return res.status(500).json({ 
+      error: "Server Error",
+      message: "Failed to verify OTP"
+    });
+  }
+});
+
+// Reset password with verified OTP
+app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+  try {
+    const { tempToken, newPassword } = req.body;
+
+    if (!tempToken || !newPassword) {
+      return res.status(400).json({ 
+        error: "Validation Error",
+        message: "Token and new password are required"
+      });
+    }
+
+    // Verify temporary token
+    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET || 'your-jwt-secret') as { userId: string };
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: decoded.userId },
+      data: {
+        password: hashedPassword
+      }
+    });
+
+    return res.status(200).json({
+      message: "Password has been reset successfully"
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(400).json({ 
+        error: "Invalid Token",
+        message: "Password reset token is invalid"
+      });
+    }
+
+    return res.status(500).json({ 
+      error: "Server Error",
+      message: "Failed to reset password"
+    });
+  }
 });
 
 app.listen(PORT, () => {

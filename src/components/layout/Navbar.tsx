@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, LogIn, Eye, EyeOff } from 'lucide-react';
+import { Menu, X, LogIn, Eye, EyeOff, Mail } from 'lucide-react';
 import ContactModal from '@/components/ui/ContactModal';
 import {
   Dialog,
@@ -42,12 +42,32 @@ const loginSchema = z.object({
   password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
 });
 
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+});
+
+const otpSchema = z.object({
+  otp: z.string().length(6, { message: 'OTP must be 6 digits' }),
+});
+
 const signupSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }).nonempty('Name is required'),
   email: z.string().email({ message: 'Please enter a valid email address' }),
   password: z.string().min(8, { message: 'Password must be at least 8 characters' }),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
+const resetPasswordSchema = z.object({
+  newPassword: z.string()
+    .min(8, { message: 'Password must be at least 8 characters long' })
+    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
+    .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
+    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
+  confirmPassword: z.string()
+}).refine((data) => data.newPassword === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 });
@@ -69,6 +89,9 @@ const Navbar: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isForgotPasswordOpen, setIsForgotPasswordOpen] = useState(false);
+  const [resetStep, setResetStep] = useState<'email' | 'otp' | 'password'>('email');
+  const [tempToken, setTempToken] = useState<string>('');
   const navigate = useNavigate();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -90,6 +113,28 @@ const Navbar: React.FC = () => {
     defaultValues: {
       email: '',
       password: '',
+    },
+  });
+
+  const forgotPasswordForm = useForm<z.infer<typeof forgotPasswordSchema>>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
+  const otpForm = useForm<z.infer<typeof otpSchema>>({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: '',
+    },
+  });
+
+  const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      newPassword: '',
+      confirmPassword: '',
     },
   });
 
@@ -262,6 +307,112 @@ const Navbar: React.FC = () => {
         showConfirmButton: true
       });
       signupForm.reset();
+    }
+  };
+
+  const onForgotPasswordSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
+    try {
+      const response = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to send OTP');
+      }
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'OTP Sent',
+        text: 'Please check your email for the OTP code.',
+        timer: 3000,
+        showConfirmButton: true,
+      });
+
+      setResetStep('otp');
+    } catch (error) {
+      console.error('Request OTP error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'Failed to send OTP',
+        timer: 3000,
+        showConfirmButton: true,
+      });
+    }
+  };
+
+  const onOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
+    try {
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: forgotPasswordForm.getValues('email'),
+          otp: values.otp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Invalid OTP');
+      }
+
+      setTempToken(data.tempToken);
+      setResetStep('password');
+    } catch (error) {
+      console.error('Verify OTP error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'Failed to verify OTP',
+        timer: 3000,
+        showConfirmButton: true,
+      });
+    }
+  };
+
+  const onResetPasswordSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tempToken,
+          newPassword: values.newPassword,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to reset password');
+      }
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Password Reset Successful',
+        text: 'You can now log in with your new password.',
+        timer: 3000,
+        showConfirmButton: true,
+      });
+
+      setIsForgotPasswordOpen(false);
+      setResetStep('email');
+      setTempToken('');
+    } catch (error) {
+      console.error('Reset password error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'Failed to reset password',
+        timer: 3000,
+        showConfirmButton: true,
+      });
     }
   };
 
@@ -493,6 +644,18 @@ const Navbar: React.FC = () => {
                 <Button type="submit" className="w-full bg-bahayCebu-green hover:bg-bahayCebu-green/90">
                   Login
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAuthDialogOpen(false);
+                      setIsForgotPasswordOpen(true);
+                    }}
+                    className="text-sm text-bahayCebu-green hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
               </form>
             </Form>
           ) : (
@@ -610,6 +773,177 @@ const Navbar: React.FC = () => {
               </p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isForgotPasswordOpen} onOpenChange={(open) => {
+        setIsForgotPasswordOpen(open);
+        if (!open) {
+          setResetStep('email');
+          setTempToken('');
+        }
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {resetStep === 'email' && 'Reset Password'}
+              {resetStep === 'otp' && 'Enter OTP'}
+              {resetStep === 'password' && 'Create New Password'}
+            </DialogTitle>
+            <DialogDescription>
+              {resetStep === 'email' && 'Enter your email address to receive a password reset OTP.'}
+              {resetStep === 'otp' && 'Enter the 6-digit OTP code sent to your email.'}
+              {resetStep === 'password' && 'Enter your new password.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          {resetStep === 'email' && (
+            <Form {...forgotPasswordForm}>
+              <form onSubmit={forgotPasswordForm.handleSubmit(onForgotPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={forgotPasswordForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input type="email" placeholder="your.email@example.com" {...field} />
+                          <Mail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 h-4 w-4" />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit" className="w-full bg-bahayCebu-green hover:bg-bahayCebu-green/90">
+                  Send OTP
+                </Button>
+              </form>
+            </Form>
+          )}
+
+          {resetStep === 'otp' && (
+            <Form {...otpForm}>
+              <form onSubmit={otpForm.handleSubmit(onOTPSubmit)} className="space-y-4">
+                <FormField
+                  control={otpForm.control}
+                  name="otp"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>OTP Code</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="text"
+                          placeholder="Enter 6-digit OTP"
+                          maxLength={6}
+                          {...field}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-between items-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setResetStep('email')}
+                    className="text-sm"
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" className="bg-bahayCebu-green hover:bg-bahayCebu-green/90">
+                    Verify OTP
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
+
+          {resetStep === 'password' && (
+            <Form {...resetPasswordForm}>
+              <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)} className="space-y-4">
+                <FormField
+                  control={resetPasswordForm.control}
+                  name="newPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>New Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? "text" : "password"}
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={resetPasswordForm.control}
+                  name="confirmPassword"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Confirm Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            type={showConfirmPassword ? "text" : "password"}
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-between items-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setResetStep('otp')}
+                    className="text-sm"
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" className="bg-bahayCebu-green hover:bg-bahayCebu-green/90">
+                    Reset Password
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
     </header>

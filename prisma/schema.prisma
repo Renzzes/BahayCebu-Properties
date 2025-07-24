@@ -44,6 +44,8 @@ model User {
   password       String
   profilePicture String?
   googleId       String?
+  otp            String?   @db.VarChar(6)
+  otpExpiry      DateTime?
   createdAt      DateTime  @default(now())
 }
 

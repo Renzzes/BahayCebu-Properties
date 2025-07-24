@@ -14,6 +14,7 @@ import About from "./pages/About";
 import Agent from "./pages/Agent";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./Admin/Dashboard";
+import ResetPassword from "./pages/ResetPassword";
 
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
@@ -69,6 +70,7 @@ const App = () => {
                 <Route path="/properties/:id" element={<MainLayout><PropertyDetail /></MainLayout>} />
                 <Route path="/about" element={<MainLayout><About /></MainLayout>} />
                 <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
+                <Route path="/reset-password" element={<MainLayout><ResetPassword /></MainLayout>} />
                 <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
                 <Route path="/admin/properties/:id/preview" element={<AdminLayout><PropertyPreview /></AdminLayout>} />
                 <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
