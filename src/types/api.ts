@@ -207,6 +207,8 @@ export interface User {
   password: string;
   profilePicture?: string;
   googleId?: string;
+  otp?: string;
+  otpExpiry?: Date;
   createdAt: Date;
 }
 
