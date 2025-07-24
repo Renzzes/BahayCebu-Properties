@@ -27,6 +27,15 @@ import * as z from 'zod';
 import { showSuccessAlert, showErrorAlert, showLoadingAlert, showToast } from '@/utils/sweetAlert';
 import Swal from 'sweetalert2';
 import { setInitialUserData } from '@/data/userData';
+import { useGoogleLogin, TokenResponse } from '@react-oauth/google';
+import jwt_decode from 'jwt-decode';
+
+interface GoogleUserInfo {
+  email: string;
+  name: string;
+  picture: string;
+  sub: string;
+}
 
 const loginSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -256,8 +265,110 @@ const Navbar: React.FC = () => {
     }
   };
 
-  const handleSocialLogin = (provider: 'facebook' | 'gmail') => {
-    console.log(`Login with ${provider}`);
+  const handleGoogleSuccess = async (response: TokenResponse) => {
+    try {
+      console.log('Google login response:', response);
+      
+      // Show loading state
+      Swal.fire({
+        title: 'Logging in...',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+          Swal.showLoading();
+        },
+      });
+
+      // Get user info from Google
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          Authorization: `Bearer ${response.access_token}`,
+        },
+      });
+
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user info from Google');
+      }
+
+      const userInfo: GoogleUserInfo = await userResponse.json();
+      console.log('Google user info:', userInfo);
+
+      // Send to your backend
+      const res = await fetch('http://localhost:4000/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture,
+          googleId: userInfo.sub,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to authenticate with server');
+      }
+
+      const data = await res.json();
+      console.log('Server response:', data);
+
+      // Store user data
+      setInitialUserData({
+        name: data.name,
+        email: data.email,
+        profilePicture: data.profilePicture,
+      });
+
+      // Show success message
+      await Swal.fire({
+        icon: 'success',
+        title: 'Login Successful!',
+        text: 'Welcome back!',
+        timer: 1500,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      });
+
+      // Close dialog and redirect
+      setIsAuthDialogOpen(false);
+      navigate('/admin');
+
+    } catch (error) {
+      console.error('Google login error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: error instanceof Error ? error.message : 'Failed to login with Google. Please try again.',
+        timer: 3000,
+        showConfirmButton: true
+      });
+    }
+  };
+
+  const googleLogin = useGoogleLogin({
+    onSuccess: handleGoogleSuccess,
+    onError: (error) => {
+      console.error('Google login error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: 'Failed to login with Google. Please try again.',
+        timer: 3000,
+        showConfirmButton: true
+      });
+    },
+    flow: 'implicit',
+    scope: 'email profile',
+  });
+
+  const handleSocialLogin = (provider: 'gmail') => {
+    if (provider === 'gmail') {
+      googleLogin();
+    }
   };
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);

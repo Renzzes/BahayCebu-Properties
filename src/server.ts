@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import { prisma } from "./lib/db";
+import { User } from "./types/api";
+import { UserCreateInputType, UserUpdateInputType } from "./types/prisma-extensions";
 
 const app = express();
 
@@ -17,6 +19,7 @@ const corsOptions = {
 		"http://localhost:3000", 
 		"http://localhost:5173",
 		"http://localhost:8081",
+		"http://localhost:4000",
 		process.env.PRODUCTION_URL || "", 
 		"https://bahaycebu-properties.vercel.app"
 	].filter((url): url is string => !!url), // Type guard to ensure string[]
@@ -30,6 +33,12 @@ app.use(cors(corsOptions));
 
 // Enable pre-flight requests for all routes
 app.options('*', cors(corsOptions));
+
+// Add this line to log all incoming requests
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -264,6 +273,70 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 			console.error('Error disconnecting from database:', disconnectError);
 		}
 	}
+});
+
+// Add Google auth endpoint
+app.post("/api/auth/google", async (req: Request, res: Response) => {
+  try {
+    const { email, name, picture, googleId } = req.body;
+    console.log("Google auth request:", { email, name, googleId });
+
+    if (!email || !name || !googleId) {
+      return res.status(400).json({ 
+        error: "Validation Error",
+        message: "Email, name, and googleId are required"
+      });
+    }
+
+    // Check if user exists
+    let user = await prisma.user.findUnique({
+      where: { email }
+    }) as User | null;
+
+    if (!user) {
+      // Create new user if doesn't exist
+      const randomPassword = Math.random().toString(36).slice(-8);
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      const createData: UserCreateInputType = {
+        email,
+        name,
+        password: hashedPassword,
+        profilePicture: picture,
+        googleId
+      };
+
+      user = await prisma.user.create({
+        data: createData
+      }) as User;
+      console.log("Created new user with Google auth:", user.email);
+    } else {
+      // Update existing user's Google info
+      const updateData: UserUpdateInputType = {
+        googleId,
+        profilePicture: picture || user.profilePicture
+      };
+
+      user = await prisma.user.update({
+        where: { email },
+        data: updateData
+      }) as User;
+      console.log("Updated existing user with Google auth:", user.email);
+    }
+
+    return res.status(200).json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      profilePicture: user.profilePicture
+    });
+  } catch (error) {
+    console.error("Google auth error:", error);
+    return res.status(500).json({ 
+      error: "Authentication failed",
+      message: error instanceof Error ? error.message : "Unknown error occurred"
+    });
+  }
 });
 
 // Create a new property

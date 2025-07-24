@@ -200,6 +200,16 @@ export interface UserLoginInput {
   password: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  password: string;
+  profilePicture?: string;
+  googleId?: string;
+  createdAt: Date;
+}
+
 export interface AgentCreateInput {
   name: string;
   title: string;

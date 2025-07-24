@@ -1,142 +1,158 @@
 # BahayCebu Properties
 
-A modern real estate platform for property management and listings.
+A modern real estate platform for property management and listings in Cebu, Philippines. The platform connects property seekers with real estate agents and provides comprehensive property information and management tools.
 
 ## Features
 
 ### Public Website
-- Property listings
-- Property details
-- Contact forms
-- Responsive design
+- Property listings with advanced filtering
+- Detailed property information with image galleries
+- Agent profiles and direct contact options
+- Interactive loan calculator
+- Travel times information
+- Responsive design optimized for all devices
+- Google Authentication for users
+- Contact forms with multiple communication channels
+
+### Agent Features
+- Personalized agent profiles
+- Property listing management
+- Lead tracking and management
+- Client communication tools
 
 ### Admin Dashboard
-A minimalist admin dashboard for property management with the following features:
-
-#### Sidebar Navigation
-- **Dashboard**: Overview with key metrics and stats
-- **Message**: Message management (placeholder)
-- **Properties**: Complete property management
-- **Profile**: User profile settings (placeholder)
+A comprehensive admin dashboard for property and agent management with the following features:
 
 #### Property Management
-- **View Properties**: Grid layout with property cards showing:
-  - Property images
-  - Property name and address
-  - Number of units and occupancy rate
-  - Status badges (Active, Off Market, Sold)
-  - Last updated date
-  - 30-day stats (views, leads, applications)
-  - Edit and delete buttons
+- Complete property CRUD operations
+- Bulk image upload and management
+- Unit type management
+- Property status tracking
+- Advanced property search and filtering
+- Property analytics and metrics
 
-- **Add Properties**: Modal form for adding new properties with:
-  - Property name
-  - Address
-  - Image upload
-  - Number of units
-  - Occupancy rate percentage
-  - Status selection (dropdown)
+#### Agent Management
+- Agent profile management
+- Performance tracking
+- Lead assignment
+- Communication tools
 
-- **Edit Properties**: In-place editing with pre-populated forms
-- **Delete Properties**: One-click property removal
-- **Search Properties**: Real-time search by name or address
-
-#### Dashboard Analytics
-- Total Properties count
-- Total Views (30-day aggregate)
-- Total Leads (30-day aggregate)
-- Total Applications (30-day aggregate)
+#### Analytics Dashboard
+- Property performance metrics
+- Lead generation statistics
+- User engagement analytics
+- Market trend analysis
 
 ## Getting Started
 
-1. Install dependencies:
+### Prerequisites
+- Node.js (v18 or higher)
+- MySQL database
+- Google OAuth credentials (for authentication)
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/BahayCebu-Properties.git
+cd BahayCebu-Properties
+```
+
+2. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Start the development server:
+3. Set up environment variables:
+Create a `.env` file in the root directory with the following variables:
+```env
+DATABASE_URL="mysql://user:password@localhost:3306/bahaycebu"
+GOOGLE_CLIENT_ID="your_google_client_id"
+GOOGLE_CLIENT_SECRET="your_google_client_secret"
+JWT_SECRET="your_jwt_secret"
+```
+
+4. Initialize the database:
+```bash
+npx prisma migrate dev
+```
+
+5. Start the development server:
 ```bash
 npm run dev
 ```
 
-3. Access the admin dashboard:
-```
-http://localhost:5173/admin
-```
+The application will be available at `http://localhost:5173`
 
 ## Technology Stack
 
-- **Frontend**: React + TypeScript
-- **Styling**: Tailwind CSS
-- **UI Components**: shadcn/ui
-- **Icons**: Lucide React
-- **Routing**: React Router
-- **Forms**: React Hook Form
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Routing**: React Router DOM
+- **State Management**: React Query (TanStack Query)
+- **Styling**: 
+  - Tailwind CSS
+  - shadcn/ui components
+  - Radix UI primitives
+- **Forms**: React Hook Form with Zod validation
+- **Authentication**: Google OAuth integration
+- **Data Visualization**: Recharts
+- **Image Handling**: React Image Crop
+- **UI Components**:
+  - Embla Carousel
+  - Sonner notifications
+  - Custom UI components
+
+### Backend
+- **Server**: Express.js
+- **Database**: MySQL with Prisma ORM
+- **Authentication**: JWT + Google OAuth
+- **API**: RESTful endpoints
+- **File Storage**: Local storage with image optimization
+
+### Development Tools
 - **Build Tool**: Vite
+- **Type Checking**: TypeScript
+- **Linting**: ESLint
+- **Package Manager**: npm
+- **Database Migrations**: Prisma Migrate
+- **API Testing**: Thunder Client/Postman
 
 ## Project Structure
 
 ```
 src/
-├── Admin/
-│   └── Dashboard.tsx       # Main admin dashboard
+├── Admin/                  # Admin dashboard components
+├── app/                    # App configuration and API routes
 ├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── layout/             # Layout components
-│   └── properties/         # Property-related components
-├── pages/                  # Public website pages
-└── lib/                    # Utilities and helpers
+│   ├── ui/                # Base UI components
+│   ├── home/              # Homepage components
+│   ├── layout/            # Layout components
+│   └── properties/        # Property-related components
+├── contexts/              # React contexts
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utilities and configurations
+├── pages/                 # Page components
+├── services/              # API services
+├── types/                 # TypeScript type definitions
+└── utils/                 # Helper functions
 ```
 
-## Design Features
+## Contributing
 
-- **Minimalist Design**: Clean, modern interface with plenty of whitespace
-- **Responsive Grid**: Property cards adapt to different screen sizes
-- **Hover Effects**: Smooth transitions and shadow effects
-- **Status Badges**: Color-coded property status indicators
-- **Image Handling**: Upload, preview, and fallback images
-- **Modal Forms**: Clean, accessible form dialogs
-- **Search Functionality**: Real-time property filtering
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## Admin Dashboard Access
+## License
 
-Navigate to `/admin` or `/admin/dashboard` to access the admin interface. The dashboard provides a complete property management system with an intuitive, modern design that matches the BahayCebu brand aesthetic.
+This project is proprietary software. All rights reserved.
 
-Tech Stack
-This project is built with a modern and robust tech stack to ensure scalability, performance, and developer experience. Below is a detailed breakdown of the technologies used:
-Frontend
+## Contact
 
-React (v18.3.1): Main frontend framework for building dynamic user interfaces.
-TypeScript: Strongly-typed programming language for enhanced code quality and maintainability.
-Vite (v5.4.1): Fast build tool and development server for an optimized development experience.
-TailwindCSS (v3.4.11): Utility-first CSS framework for rapid and responsive styling.
-Radix UI: Accessible and customizable UI components for building inclusive interfaces.
-React Router DOM (v6.30.0): Declarative routing for client-side navigation.
-React Query (@tanstack/react-query): Powerful data fetching and state management library.
-React Hook Form: Performant and flexible library for form handling and validation.
-Zod: TypeScript-first schema validation for robust data validation.
-Recharts: Lightweight library for creating interactive data visualizations.
-Lucide React: Modern, customizable icon library for a consistent UI.
-
-Backend
-
-Express.js: Minimal and flexible Node.js framework for building RESTful APIs.
-Prisma (v6.7.0): Next-generation ORM for seamless database operations.
-bcryptjs: Secure password hashing for user authentication.
-CORS: Middleware for enabling Cross-Origin Resource Sharing.
-
-Development Tools
-
-ESLint: Linting tool for maintaining consistent code quality.
-PostCSS: CSS post-processing for enhanced styling capabilities.
-SWC (via @vitejs/plugin-react-swc): Ultra-fast JavaScript/TypeScript compiler for improved build performance.
-
-UI Component Libraries
-
-shadcn/ui: Modern, customizable UI components (implied by project structure).
-Radix UI Components: Accessible UI primitives for building robust interfaces.
-Tailwind Typography: Enhanced typography styling for content-heavy applications.
-Embla Carousel: Performant and customizable carousel/slider components.
-Sonner: Lightweight and customizable toast notification library.
-Vaul: Additional UI components for enriched user interactions.
+For inquiries and support, please contact:
+- Website: [BahayCebu Properties](https://bahayceburealty.com)
+- Email: info@bahayceburealty.com
 
