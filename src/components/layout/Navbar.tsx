@@ -294,7 +294,7 @@ const Navbar: React.FC = () => {
       console.log('Google user info:', userInfo);
 
       // Send to your backend
-      const res = await fetch('http://localhost:4000/api/auth/google', {
+      const res = await fetch('/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

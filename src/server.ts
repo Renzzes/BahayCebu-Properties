@@ -45,9 +45,37 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Error handling middleware
 app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
-	console.error(err.stack);
-	res.status(500).json({ error: 'Something broke!', details: err.message });
-	next(err);
+  console.error('Error:', err);
+  console.error('Stack:', err.stack);
+  
+  // Check if it's a Prisma error
+  if (err.name === 'PrismaClientInitializationError') {
+    return res.status(500).json({ 
+      error: 'Database connection error',
+      message: 'Failed to connect to database. Please try again later.'
+    });
+  }
+  
+  // Handle other types of errors
+  res.status(500).json({ 
+    error: 'Server error', 
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
+  });
+  next(err);
+});
+
+// Add database connection check middleware
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await prisma.$connect();
+    next();
+  } catch (error) {
+    console.error('Database connection error:', error);
+    res.status(500).json({ 
+      error: 'Database connection error',
+      message: 'Failed to connect to database. Please try again later.'
+    });
+  }
 });
 
 // NEW: Simple ping route for testing
@@ -288,39 +316,47 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       });
     }
 
+    // Test database connection first
+    try {
+      await prisma.$connect();
+      console.log("Database connection successful");
+    } catch (dbError) {
+      console.error("Database connection error:", dbError);
+      return res.status(500).json({
+        error: "Server Error",
+        message: "Database connection failed"
+      });
+    }
+
     // Check if user exists
     let user = await prisma.user.findUnique({
       where: { email }
-    }) as User | null;
+    });
 
     if (!user) {
       // Create new user if doesn't exist
       const randomPassword = Math.random().toString(36).slice(-8);
       const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-      const createData: UserCreateInputType = {
-        email,
-        name,
-        password: hashedPassword,
-        profilePicture: picture,
-        googleId
-      };
-
       user = await prisma.user.create({
-        data: createData
-      }) as User;
+        data: {
+          email,
+          name,
+          password: hashedPassword,
+          profilePicture: picture,
+          googleId
+        }
+      });
       console.log("Created new user with Google auth:", user.email);
     } else {
       // Update existing user's Google info
-      const updateData: UserUpdateInputType = {
-        googleId,
-        profilePicture: picture || user.profilePicture
-      };
-
       user = await prisma.user.update({
         where: { email },
-        data: updateData
-      }) as User;
+        data: {
+          googleId,
+          profilePicture: picture || user.profilePicture
+        }
+      });
       console.log("Updated existing user with Google auth:", user.email);
     }
 
@@ -336,6 +372,12 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       error: "Authentication failed",
       message: error instanceof Error ? error.message : "Unknown error occurred"
     });
+  } finally {
+    try {
+      await prisma.$disconnect();
+    } catch (disconnectError) {
+      console.error('Error disconnecting from database:', disconnectError);
+    }
   }
 });
 
@@ -483,6 +525,33 @@ app.get("/api/test-create-user", async (_req: Request, res: Response) => {
 		console.error("Test user creation error:", err);
 		return res.status(500).json({ error: "Failed to create test user", details: err });
 	}
+});
+
+// Test database connection
+app.get("/api/test-db", async (_req: Request, res: Response) => {
+  try {
+    await prisma.$connect();
+    console.log("Database connection test successful");
+    
+    // Try a simple query
+    const userCount = await prisma.user.count();
+    console.log("User count:", userCount);
+    
+    return res.json({ 
+      status: "success",
+      message: "Database connection successful",
+      userCount 
+    });
+  } catch (error) {
+    console.error("Database connection test failed:", error);
+    return res.status(500).json({ 
+      status: "error",
+      message: "Database connection failed",
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
 });
 
 // Get all agents
