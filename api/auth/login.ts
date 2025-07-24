@@ -1,6 +1,7 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_db';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Received login request:', {
@@ -13,7 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
   // Handle preflight request
   if (req.method === 'OPTIONS') {
@@ -70,22 +71,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email, 
+        name: user.name 
+      },
+      process.env.JWT_SECRET || '',
+      { expiresIn: '24h' }
+    );
+
     console.log('Login successful for user:', email);
     return res.status(200).json({ 
-      id: user.id, 
-      email: user.email, 
-      name: user.name 
+      token,
+      user: {
+        id: user.id, 
+        email: user.email, 
+        name: user.name 
+      }
     });
-  } catch (err) {
-    console.error("Login error:", err);
-    // Ensure we're always sending a valid JSON response
+
+  } catch (err: unknown) {
+    console.error('Login error:', err);
     return res.status(500).json({ 
       error: "Login failed", 
-      details: err instanceof Error ? err.message : "Unknown error occurred",
-      stack: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.stack : undefined) : undefined
+      details: err instanceof Error ? err.message : "Unknown error occurred" 
     });
   } finally {
-    // Always disconnect from the database
     try {
       await prisma.$disconnect();
     } catch (disconnectError) {

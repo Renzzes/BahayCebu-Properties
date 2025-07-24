@@ -3,116 +3,110 @@ import cors from "cors";
 import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import { prisma } from "./lib/db";
-import { sendPasswordResetEmail } from "./utils/emailService";
 import { User } from "./types/api";
 import { UserCreateInputType, UserUpdateInputType } from "./types/prisma-extensions";
 import { gmailService } from "./utils/gmailService";
+import { authenticateToken, AuthRequest } from './middleware/auth';
 
 const app = express();
 
-// Global request logger middleware
+// Middleware setup
 app.use((req: Request, _res: Response, next: NextFunction) => {
-	console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.url}`);
-	next();
-});
-
-const corsOptions = {
-	origin: [
-		"http://localhost:8080", 
-		"http://localhost:3000", 
-		"http://localhost:5173",
-		"http://localhost:8081",
-		"http://localhost:4000",
-		process.env.PRODUCTION_URL || "", 
-		"https://bahaycebu-properties.vercel.app"
-	].filter((url): url is string => !!url), // Type guard to ensure string[]
-	credentials: true,
-	methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-	allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
-	optionsSuccessStatus: 200,
-};
-
-app.use(cors(corsOptions));
-
-// Enable pre-flight requests for all routes
-app.options('*', cors(corsOptions));
-
-// Add this line to log all incoming requests
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log(`[${new Date().toISOString()}] Received ${req.method} request for ${req.url}`);
   next();
 });
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+const corsOptions = {
+  origin: [
+    "http://localhost:8080", 
+    "http://localhost:3000", 
+    "http://localhost:5173",
+    "http://localhost:8081",
+    "http://localhost:4000",
+    process.env.PRODUCTION_URL || "", 
+    "https://bahaycebu-properties.vercel.app"
+  ].filter((url): url is string => !!url),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
 
-// Error handling middleware
-app.use((err: Error, _req: Request, res: Response, next: NextFunction) => {
-  console.error('Error:', err);
-  console.error('Stack:', err.stack);
-  
-  // Check if it's a Prisma error
-  if (err.name === 'PrismaClientInitializationError') {
-    return res.status(500).json({ 
-      error: 'Database connection error',
-      message: 'Failed to connect to database. Please try again later.'
-    });
-  }
-  
-  // Handle other types of errors
-  res.status(500).json({ 
-    error: 'Server error', 
-    message: process.env.NODE_ENV === 'development' ? err.message : 'An unexpected error occurred'
-  });
-  next(err);
-});
+app.use(cors(corsOptions));
+app.use(express.json());
 
-// Add database connection check middleware
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    await prisma.$connect();
-    next();
-  } catch (error) {
-    console.error('Database connection error:', error);
-    res.status(500).json({ 
-      error: 'Database connection error',
-      message: 'Failed to connect to database. Please try again later.'
-    });
-  }
-});
-
-// NEW: Simple ping route for testing
+// Public routes
 app.get('/api/ping', (_req, res) => {
-	console.log('PING received on backend!');
-	res.send('pong from backend');
+  console.log('PING received on backend!');
+  res.send('pong from backend');
 });
 
-const PORT = 4000;
-
-// Get all properties
-app.get("/api/properties", async (_req: Request, res: Response) => {
-	try {
-		const properties = await prisma.property.findMany();
-		return res.json(properties);
-	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
-	}
-});
-
-// Get a single property
-app.get("/api/properties/:id", async (req: Request, res: Response) => {
-	try {
-		const property = await prisma.property.findUnique({
-			where: { id: req.params.id },
+app.post("/api/auth/login", async (req: Request, res: Response) => {
+	const { email, password } = req.body;
+	console.log("Login attempt with email:", email);
+	
+	if (!email || !password) {
+		return res.status(400).json({ 
+			error: "Validation Error",
+			message: "Email and password are required"
 		});
-		if (!property) return res.status(404).json({ error: "Not found" });
-		return res.json(property);
+	}
+
+	try {
+		// Test database connection
+		try {
+			await prisma.$connect();
+			console.log('Database connection successful');
+		} catch (dbError) {
+			console.error('Database connection error:', dbError);
+			return res.status(500).json({ 
+				error: "Server Error",
+				message: "Unable to connect to the database. Please try again later."
+			});
+		}
+
+		const user = await prisma.user.findUnique({ where: { email } });
+		
+		if (!user) {
+			console.log("User not found:", email);
+			return res.status(401).json({ 
+				error: "Authentication Error",
+				message: "Invalid email or password"
+			});
+		}
+
+		const isValid = await bcrypt.compare(password, user.password);
+		
+		if (!isValid) {
+			console.log("Invalid password for user:", email);
+			return res.status(401).json({ 
+				error: "Authentication Error",
+				message: "Invalid email or password"
+			});
+		}
+
+		console.log("Login successful for user:", email);
+		return res.status(200).json({
+			id: user.id,
+			email: user.email,
+			name: user.name,
+			message: "Login successful"
+		});
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		console.error("Login error:", err);
+		return res.status(500).json({
+			error: "Server Error",
+			message: "Failed to process login. Please try again later.",
+			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
+		});
+	} finally {
+		try {
+			await prisma.$disconnect();
+		} catch (disconnectError) {
+			console.error('Error disconnecting from database:', disconnectError);
+		}
 	}
 });
 
-// Signup endpoint
 app.post("/api/auth/signup", async (req: Request, res: Response) => {
 	console.log("=== Signup Request ===");
 	console.log("Request body:", req.body);
@@ -238,74 +232,6 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 	}
 });
 
-// Login endpoint
-app.post("/api/auth/login", async (req: Request, res: Response) => {
-	const { email, password } = req.body;
-	console.log("Login attempt with email:", email);
-	
-	if (!email || !password) {
-		return res.status(400).json({ 
-			error: "Validation Error",
-			message: "Email and password are required"
-		});
-	}
-
-	try {
-		// Test database connection
-		try {
-			await prisma.$connect();
-			console.log('Database connection successful');
-		} catch (dbError) {
-			console.error('Database connection error:', dbError);
-			return res.status(500).json({ 
-				error: "Server Error",
-				message: "Unable to connect to the database. Please try again later."
-			});
-		}
-
-		const user = await prisma.user.findUnique({ where: { email } });
-		
-		if (!user) {
-			console.log("User not found:", email);
-			return res.status(401).json({ 
-				error: "Authentication Error",
-				message: "Invalid email or password"
-			});
-		}
-
-		const isValid = await bcrypt.compare(password, user.password);
-		
-		if (!isValid) {
-			console.log("Invalid password for user:", email);
-			return res.status(401).json({ 
-				error: "Authentication Error",
-				message: "Invalid email or password"
-			});
-		}
-
-		console.log("Login successful for user:", email);
-		return res.status(200).json({
-			id: user.id,
-			email: user.email,
-			name: user.name,
-			message: "Login successful"
-		});
-	} catch (err) {
-		console.error("Login error:", err);
-		return res.status(500).json({
-			error: "Server Error",
-			message: "Failed to process login. Please try again later.",
-			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
-		});
-	} finally {
-		try {
-			await prisma.$disconnect();
-		} catch (disconnectError) {
-			console.error('Error disconnecting from database:', disconnectError);
-		}
-	}
-});
-
 // Add Google auth endpoint
 app.post("/api/auth/google", async (req: Request, res: Response) => {
   try {
@@ -384,8 +310,30 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
   }
 });
 
-// Create a new property
-app.post("/api/properties", async (req: Request, res: Response) => {
+// Protected routes
+app.get("/api/properties", authenticateToken, async (req: AuthRequest, res: Response) => {
+	try {
+		const properties = await prisma.property.findMany();
+		return res.json(properties);
+	} catch (err) {
+		return res.status(500).json({ error: "Server error", details: err });
+	}
+});
+
+app.get("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
+	try {
+		const property = await prisma.property.findUnique({
+			where: { id: req.params.id },
+		});
+		if (!property) return res.status(404).json({ error: "Not found" });
+		return res.json(property);
+	} catch (err) {
+		return res.status(500).json({ error: "Server error", details: err });
+	}
+});
+
+// Protected admin routes
+app.post("/api/properties", authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		const data = req.body;
 		
@@ -422,14 +370,12 @@ app.post("/api/properties", async (req: Request, res: Response) => {
 		});
 
 		return res.status(201).json(property);
-	} catch (error) {
-		console.error('Error creating property:', error);
-		return res.status(500).json({ error: "Failed to create property" });
+	} catch (err) {
+		return res.status(500).json({ error: "Server error", details: err });
 	}
 });
 
-// Update a property
-app.put("/api/properties/:id", async (req: Request, res: Response) => {
+app.put("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		const {
 			title,
@@ -477,19 +423,16 @@ app.put("/api/properties/:id", async (req: Request, res: Response) => {
 		});
 		return res.json(property);
 	} catch (err) {
-		return res
-			.status(400)
-			.json({ error: "Invalid data or not found", details: err });
+		return res.status(500).json({ error: "Server error", details: err });
 	}
 });
 
-// Delete a property
-app.delete("/api/properties/:id", async (req: Request, res: Response) => {
+app.delete("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		await prisma.property.delete({ where: { id: req.params.id } });
 		return res.status(204).end();
 	} catch (err) {
-		return res.status(400).json({ error: "Not found", details: err });
+		return res.status(500).json({ error: "Server error", details: err });
 	}
 });
 
@@ -771,7 +714,7 @@ app.post("/api/auth/request-otp", async (req: Request, res: Response) => {
       data: {
         otp,
         otpExpiry
-      }
+      } as { otp: string | null; otpExpiry: Date | null }
     });
 
     // Send OTP via email
@@ -802,17 +745,11 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     }
 
     // Find user with valid OTP
-    const user = await prisma.user.findFirst({
-      where: {
-        email,
-        otp,
-        otpExpiry: {
-          gt: new Date()
-        }
-      }
-    });
+    const user = await prisma.user.findUnique({
+      where: { email }
+    }) as User & { otp: string | null; otpExpiry: Date | null };
 
-    if (!user) {
+    if (!user || user.otp !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
       return res.status(400).json({ 
         error: "Invalid OTP",
         message: "Invalid or expired OTP"
@@ -825,7 +762,7 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
       data: {
         otp: null,
         otpExpiry: null
-      }
+      } as { otp: string | null; otpExpiry: Date | null }
     });
 
     // Generate a temporary token for password reset
@@ -894,6 +831,7 @@ app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
   }
 });
 
+const PORT = 4000;
 app.listen(PORT, () => {
-	console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

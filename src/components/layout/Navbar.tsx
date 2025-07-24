@@ -29,6 +29,7 @@ import Swal from 'sweetalert2';
 import { setInitialUserData } from '@/data/userData';
 import { useGoogleLogin, TokenResponse } from '@react-oauth/google';
 import jwt_decode from 'jwt-decode';
+import { setToken, removeToken, isAuthenticated } from '../../utils/auth';
 
 interface GoogleUserInfo {
   email: string;
@@ -171,18 +172,14 @@ const Navbar: React.FC = () => {
         body: JSON.stringify(values)
       });
 
-      const responseText = await res.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', e);
-        throw new Error('Invalid response from server');
-      }
+      const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.message || 'Login failed');
+        throw new Error(data.error || 'Login failed');
       }
+
+      // Store the JWT token
+      setToken(data.token);
 
       // Close loading alert
       Swal.close();
@@ -211,6 +208,18 @@ const Navbar: React.FC = () => {
       });
       loginForm.reset();
     }
+  };
+
+  const handleLogout = () => {
+    removeToken();
+    navigate('/');
+    Swal.fire({
+      icon: 'success',
+      title: 'Logged Out',
+      text: 'You have been successfully logged out.',
+      timer: 1500,
+      showConfirmButton: false
+    });
   };
 
   const onSignupSubmit = async (values: z.infer<typeof signupSchema>) => {

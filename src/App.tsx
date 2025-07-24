@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AgentProvider } from "@/contexts/AgentContext";
 import ChatwayWidget from "@/components/ChatwayWidget";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 import Index from "./pages/Index";
 import Properties from "./pages/Properties";
@@ -71,8 +72,21 @@ const App = () => {
                 <Route path="/about" element={<MainLayout><About /></MainLayout>} />
                 <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
                 <Route path="/reset-password" element={<MainLayout><ResetPassword /></MainLayout>} />
-                <Route path="/admin/*" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-                <Route path="/admin/properties/:id/preview" element={<AdminLayout><PropertyPreview /></AdminLayout>} />
+                {/* Protected Admin Routes */}
+                <Route path="/admin/*" element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <AdminDashboard />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/properties/:id/preview" element={
+                  <ProtectedRoute>
+                    <AdminLayout>
+                      <PropertyPreview />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                } />
                 <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
               </Routes>
               <ChatwayWidgetWrapper />
