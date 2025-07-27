@@ -66,3 +66,9 @@ model Agent {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+model SystemConfig {
+  id                String   @id @default("singleton")
+  registrationEnabled Boolean @default(true)
+  updatedAt         DateTime @updatedAt
+}

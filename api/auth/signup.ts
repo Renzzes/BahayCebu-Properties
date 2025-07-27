@@ -27,6 +27,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Check if any users exist
+    const userCount = await prisma.user.count();
+    
+    // If users exist, check if registration is enabled
+    if (userCount > 0) {
+      const config = await prisma.systemConfig.findUnique({
+        where: { id: 'singleton' }
+      });
+
+      if (!config?.registrationEnabled) {
+        console.log('Registration is disabled');
+        return res.status(403).json({ error: "New registrations are currently disabled" });
+      }
+    }
+
     const { email, password, name } = req.body;
     console.log('Processing signup for:', { email, name });
 
@@ -53,6 +68,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name 
       },
     });
+
+    // If this is the first user, disable registration
+    if (userCount === 0) {
+      await prisma.systemConfig.upsert({
+        where: { id: 'singleton' },
+        update: { registrationEnabled: false },
+        create: {
+          id: 'singleton',
+          registrationEnabled: false
+        }
+      });
+      console.log('First user registered - disabled further registrations');
+    }
 
     console.log('User created successfully:', { id: user.id, email: user.email });
 
