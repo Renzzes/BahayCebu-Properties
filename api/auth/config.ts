@@ -21,10 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const token = authHeader.split(' ')[1];
-    const decoded = verifyToken(token);
-    
-    // Here you might want to add additional checks to ensure the user is an admin
-    // For example, checking a role field or specific email addresses
+    // Just verify the token, we don't need the decoded value for now
+    verifyToken(token);
 
     if (req.method === 'GET') {
       const config = await prisma.systemConfig.findUnique({
