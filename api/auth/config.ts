@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_db';
-import { verifyToken } from '../../src/utils/auth';
+import { verifyToken } from '../utils/auth';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Set CORS headers
