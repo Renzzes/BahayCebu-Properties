@@ -386,17 +386,12 @@ interface PropertyApiResponse {
 // Property management functions
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
-    // Get the API base URL from environment variables or config
-    const baseUrl = import.meta.env.VITE_API_URL || (
-      import.meta.env.MODE === 'production' 
-        ? window.location.origin // Use the current origin instead of hardcoded URL
-        : 'http://localhost:8081'
-    );
+    // Get the API base URL from environment variables or current origin in production
+    const baseUrl = import.meta.env.MODE === 'production'
+      ? window.location.origin // Use current domain in production
+      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
 
-    // Log the request in development
-    if (import.meta.env.MODE === 'development') {
-      console.log('Fetching properties from:', `${baseUrl}/api/properties`);
-    }
+    console.log('Fetching properties from:', `${baseUrl}/api/properties`);
 
     const response = await fetch(`${baseUrl}/api/properties`, {
       headers: {
@@ -404,27 +399,24 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache'
       },
-      credentials: 'include' // Include credentials if needed
+      credentials: 'include' // Include cookies
     });
 
     // First check if the response is ok
     if (!response.ok) {
       // Try to get more detailed error information
+      const errorText = await response.text();
+      console.error('Properties fetch error response:', errorText);
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
         // Try to parse as JSON first
-        const errorData = await response.json();
+        const errorData = JSON.parse(errorText);
         errorMessage = errorData.message || errorData.error || errorMessage;
       } catch {
-        // If not JSON, get the text
-        const errorText = await response.text();
-        // If it looks like HTML, provide a more useful message
+        // If not JSON, check if it's HTML
         if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<html')) {
-          errorMessage = `Server returned HTML instead of JSON. This usually means the API endpoint is not available or is misconfigured. Status: ${response.status}`;
-          // Log additional information in development
-          if (import.meta.env.MODE === 'development') {
-            console.error('Server response:', errorText);
-          }
+          console.error('Server returned HTML instead of JSON:', errorText);
+          errorMessage = 'Server returned HTML instead of JSON. This usually means the API endpoint is not available or is misconfigured.';
         } else {
           errorMessage = errorText || errorMessage;
         }
@@ -436,9 +428,8 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
-      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        throw new Error('Server returned HTML instead of JSON. Please check if the API endpoint is configured correctly.');
-      }
+      console.error('Unexpected content type:', contentType);
+      console.error('Response text:', text);
       throw new Error(`Expected JSON response but got ${contentType}. Response: ${text.substring(0, 100)}...`);
     }
 
@@ -446,6 +437,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     
     // Validate that data is an array
     if (!Array.isArray(data)) {
+      console.error('Invalid data format:', data);
       throw new Error('API returned invalid data format. Expected an array of properties.');
     }
     

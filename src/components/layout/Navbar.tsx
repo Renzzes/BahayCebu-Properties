@@ -439,7 +439,7 @@ const Navbar: React.FC = () => {
       });
 
       // Get the base URL - in production, use the current origin
-      const baseUrl = import.meta.env.MODE === 'production' 
+      const baseUrl = import.meta.env.MODE === 'production'
         ? window.location.origin // Use current domain in production
         : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
 
@@ -453,7 +453,10 @@ const Navbar: React.FC = () => {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          code: codeResponse.code
+          code: codeResponse.code,
+          redirect_uri: import.meta.env.MODE === 'production'
+            ? `${window.location.origin}/auth/google/callback`
+            : import.meta.env.VITE_GOOGLE_REDIRECT_URI
         }),
         credentials: 'include' // Include cookies
       });
@@ -525,7 +528,12 @@ const Navbar: React.FC = () => {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.error || errorMessage;
         } catch (e) {
-          errorMessage = errorText || errorMessage;
+          if (errorText.includes('<!DOCTYPE html>')) {
+            errorMessage = 'Server returned HTML instead of JSON. The API endpoint may be misconfigured.';
+            console.error('Full HTML response:', errorText);
+          } else {
+            errorMessage = errorText || errorMessage;
+          }
         }
         throw new Error(errorMessage);
       }
@@ -592,7 +600,10 @@ const Navbar: React.FC = () => {
       redirect_uri: import.meta.env.MODE === 'production'
         ? `${window.location.origin}/auth/google/callback`
         : import.meta.env.VITE_GOOGLE_REDIRECT_URI,
-      mode: import.meta.env.MODE
+      mode: import.meta.env.MODE,
+      baseUrl: import.meta.env.MODE === 'production'
+        ? window.location.origin
+        : import.meta.env.VITE_API_URL
     });
   }, []);
 
