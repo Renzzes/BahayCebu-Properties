@@ -24,25 +24,31 @@ interface JsonUnitTypeDetail {
   description?: string;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json',
+};
+
+export async function OPTIONS() {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   try {
-    // Add CORS headers
-    const headers = new Headers({
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    });
-
-    // Handle OPTIONS request for CORS
+    // Handle preflight request
     if (request.method === 'OPTIONS') {
-      return new NextResponse(null, { headers });
+      return NextResponse.json({}, { headers: corsHeaders });
     }
 
     const properties = await prisma.property.findMany();
     
     if (!properties) {
-      return NextResponse.json({ error: 'No properties found' }, { status: 404, headers });
+      return NextResponse.json({ error: 'No properties found' }, { 
+        status: 404, 
+        headers: corsHeaders 
+      });
     }
 
     // Ensure all fields are properly initialized for each property
@@ -53,24 +59,26 @@ export async function GET(request: NextRequest) {
       videoUrl: property.videoUrl || '',
       thumbnail: property.thumbnail || '',
       unitTypes: property.unitTypes || [],
-      unitTypeDetails: Array.isArray(property.unitTypeDetails) ? (property.unitTypeDetails as JsonUnitTypeDetail[]).map(detail => ({
-        type: detail?.type || '',
-        floorArea: detail?.floorArea || '',
-        priceRange: detail?.priceRange || '',
-        layoutImage: detail?.layoutImage || '',
-        reservationFee: detail?.reservationFee || '',
-        monthlyPayment: {
-          percentage: detail?.monthlyPayment?.percentage || 15,
-          amount: detail?.monthlyPayment?.amount || '',
-          terms: detail?.monthlyPayment?.terms || '6 months'
-        },
-        balancePayment: {
-          percentage: detail?.balancePayment?.percentage || 85,
-          amount: detail?.balancePayment?.amount || '',
-          terms: detail?.balancePayment?.terms || 'bank/cash'
-        },
-        description: detail?.description || ''
-      })) : [],
+      unitTypeDetails: Array.isArray(property.unitTypeDetails) 
+        ? (property.unitTypeDetails as JsonUnitTypeDetail[]).map(detail => ({
+            type: detail?.type || '',
+            floorArea: detail?.floorArea || '',
+            priceRange: detail?.priceRange || '',
+            layoutImage: detail?.layoutImage || '',
+            reservationFee: detail?.reservationFee || '',
+            monthlyPayment: {
+              percentage: detail?.monthlyPayment?.percentage || 15,
+              amount: detail?.monthlyPayment?.amount || '',
+              terms: detail?.monthlyPayment?.terms || '6 months'
+            },
+            balancePayment: {
+              percentage: detail?.balancePayment?.percentage || 85,
+              amount: detail?.balancePayment?.amount || '',
+              terms: detail?.balancePayment?.terms || 'bank/cash'
+            },
+            description: detail?.description || ''
+          }))
+        : [],
       amenities: property.amenities || [],
       residentialFeatures: property.residentialFeatures || [],
       provisions: property.provisions || [],
@@ -103,12 +111,12 @@ export async function GET(request: NextRequest) {
       }
     }));
 
-    return NextResponse.json(response, { headers });
+    return NextResponse.json(response, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching properties:', error);
     return NextResponse.json(
       { error: 'Failed to fetch properties' },
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: corsHeaders }
     );
   }
 }

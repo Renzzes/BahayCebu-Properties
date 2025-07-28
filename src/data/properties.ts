@@ -386,8 +386,30 @@ interface PropertyApiResponse {
 // Property management functions
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
-    const response = await fetch('/api/properties');
-    if (!response.ok) throw new Error('Failed to fetch properties');
+    const baseUrl = import.meta.env.MODE === 'production' 
+      ? 'https://bahaycebu-properties.com'
+      : 'http://localhost:8081';
+
+    const response = await fetch(`${baseUrl}/api/properties`, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response:', errorText);
+      throw new Error(`Failed to fetch properties: ${response.status} ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Invalid content type:', contentType, 'Response:', text);
+      throw new Error('Invalid response format from server');
+    }
+
     const data = await response.json();
     
     return data.map((property: PropertyApiResponse) => ({

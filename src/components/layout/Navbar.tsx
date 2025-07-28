@@ -27,8 +27,7 @@ import * as z from 'zod';
 import { showSuccessAlert, showErrorAlert, showLoadingAlert, showToast } from '@/utils/sweetAlert';
 import Swal from 'sweetalert2';
 import { setInitialUserData } from '@/data/userData';
-import { useGoogleLogin, TokenResponse } from '@react-oauth/google';
-import jwt_decode from 'jwt-decode';
+import { useGoogleLogin, CodeResponse } from '@react-oauth/google';
 import { setToken, removeToken, isAuthenticated } from '../../utils/auth';
 
 interface GoogleUserInfo {
@@ -425,9 +424,9 @@ const Navbar: React.FC = () => {
     }
   };
 
-  const handleGoogleSuccess = async (response: TokenResponse) => {
+  const handleGoogleSuccess = async (codeResponse: CodeResponse) => {
     try {
-      console.log('Google login response:', response);
+      console.log('Google login response:', codeResponse);
       
       // Show loading state
       Swal.fire({
@@ -439,10 +438,34 @@ const Navbar: React.FC = () => {
         },
       });
 
+      // Exchange code for tokens
+      const baseUrl = import.meta.env.MODE === 'production' 
+        ? 'https://bahaycebu-properties.com'
+        : 'http://localhost:8081';
+
+      const tokenResponse = await fetch(`${baseUrl}/api/auth/google/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          code: codeResponse.code
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        const errorData = await tokenResponse.json();
+        throw new Error(errorData.error || 'Failed to exchange code for token');
+      }
+
+      const { access_token } = await tokenResponse.json();
+
       // Get user info from Google
       const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
-          Authorization: `Bearer ${response.access_token}`,
+          'Authorization': `Bearer ${access_token}`,
+          'Accept': 'application/json'
         },
       });
 
@@ -454,7 +477,7 @@ const Navbar: React.FC = () => {
       console.log('Google user info:', userInfo);
 
       // Send to your backend
-      const res = await fetch('/api/auth/google', {
+      const res = await fetch(`${baseUrl}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -522,9 +545,8 @@ const Navbar: React.FC = () => {
       });
     },
     flow: 'auth-code',
-    redirect_uri: `${import.meta.env.VITE_GOOGLE_REDIRECT_URI}`,
-    ux_mode: 'redirect',
-    scope: 'email profile',
+    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    scope: 'email profile openid',
   });
 
   const handleSocialLogin = (provider: 'gmail') => {
