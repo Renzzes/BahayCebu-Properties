@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PropertyCreateInput, PropertyUpdateInput } from '@/types/api';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 interface JsonUnitTypeDetail {
   type?: string;
   floorArea?: string;
@@ -21,10 +24,27 @@ interface JsonUnitTypeDetail {
   description?: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Add CORS headers
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    });
+
+    // Handle OPTIONS request for CORS
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, { headers });
+    }
+
     const properties = await prisma.property.findMany();
     
+    if (!properties) {
+      return NextResponse.json({ error: 'No properties found' }, { status: 404, headers });
+    }
+
     // Ensure all fields are properly initialized for each property
     const response = properties.map(property => ({
       ...property,
@@ -83,10 +103,13 @@ export async function GET() {
       }
     }));
 
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers });
   } catch (error) {
     console.error('Error fetching properties:', error);
-    return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch properties' },
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
