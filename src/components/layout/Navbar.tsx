@@ -438,8 +438,12 @@ const Navbar: React.FC = () => {
         },
       });
 
-      // Get the base URL from the current origin
-      const baseUrl = window.location.origin;
+      // Get the base URL - in production, use the current origin
+      const baseUrl = import.meta.env.MODE === 'production' 
+        ? window.location.origin // Use current domain in production
+        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+
+      console.log('Using API base URL:', baseUrl);
 
       // Exchange code for tokens
       const tokenResponse = await fetch(`${baseUrl}/api/auth/google/token`, {
@@ -465,6 +469,7 @@ const Navbar: React.FC = () => {
           // If response is not JSON, use the raw text
           if (errorText.includes('<!DOCTYPE html>')) {
             errorMessage = 'Server returned HTML instead of JSON. The API endpoint may be misconfigured.';
+            console.error('Full HTML response:', errorText);
           } else {
             errorMessage = errorText || errorMessage;
           }
@@ -574,18 +579,21 @@ const Navbar: React.FC = () => {
       });
     },
     flow: 'auth-code',
-    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    redirect_uri: import.meta.env.MODE === 'production'
+      ? `${window.location.origin}/auth/google/callback`
+      : import.meta.env.VITE_GOOGLE_REDIRECT_URI,
     scope: 'email profile openid',
   });
 
   // Add debug logging
   useEffect(() => {
-    if (import.meta.env.MODE === 'development') {
-      console.log('Google OAuth Config:', {
-        redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID
-      });
-    }
+    console.log('Environment:', import.meta.env.MODE);
+    console.log('Google OAuth Config:', {
+      redirect_uri: import.meta.env.MODE === 'production'
+        ? `${window.location.origin}/auth/google/callback`
+        : import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+      mode: import.meta.env.MODE
+    });
   }, []);
 
   const handleSocialLogin = (provider: 'gmail') => {

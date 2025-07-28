@@ -18,17 +18,19 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 
 const corsOptions = {
   origin: [
-    "http://localhost:8080", 
-    "http://localhost:3000", 
-    "http://localhost:5173",
-    "http://localhost:8081",
+    "http://localhost:3000",
     "http://localhost:4000",
-    process.env.PRODUCTION_URL || "", 
+    "http://localhost:5173",
+    "http://localhost:8080",
+    "http://localhost:8081",
+    process.env.PRODUCTION_URL || "",
+    "https://bahaycebu-properties.com",
     "https://bahaycebu-properties.vercel.app"
   ].filter((url): url is string => !!url),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));
@@ -230,6 +232,52 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 			console.error("Error disconnecting from database:", disconnectError);
 		}
 	}
+});
+
+// Add Google auth token exchange endpoint
+app.post("/api/auth/google/token", async (req: Request, res: Response) => {
+  try {
+    const { code } = req.body;
+
+    if (!code) {
+      return res.status(400).json({ 
+        error: "Authorization code is required" 
+      });
+    }
+
+    // Exchange code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+        grant_type: 'authorization_code',
+      }),
+    });
+
+    if (!tokenResponse.ok) {
+      const errorData = await tokenResponse.json();
+      console.error('Token exchange error:', errorData);
+      return res.status(400).json({ 
+        error: 'Failed to exchange code for token',
+        details: errorData
+      });
+    }
+
+    const tokens = await tokenResponse.json();
+    return res.json(tokens);
+  } catch (error) {
+    console.error('Token exchange error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
 });
 
 // Add Google auth endpoint
