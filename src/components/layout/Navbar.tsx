@@ -456,11 +456,12 @@ const Navbar: React.FC = () => {
 
       // Handle non-JSON responses
       let tokenData;
-      const tokenText = await tokenResponse.text();
       try {
+        const tokenText = await tokenResponse.text();
+        console.log('Token response:', tokenText);
         tokenData = JSON.parse(tokenText);
       } catch (e) {
-        console.error('Invalid JSON response from token endpoint:', tokenText);
+        console.error('Failed to parse token response');
         throw new Error('Invalid response from server');
       }
 
@@ -481,11 +482,12 @@ const Navbar: React.FC = () => {
 
       // Handle non-JSON responses
       let userData;
-      const userText = await authResponse.text();
       try {
+        const userText = await authResponse.text();
+        console.log('Auth response:', userText);
         userData = JSON.parse(userText);
       } catch (e) {
-        console.error('Invalid JSON response from auth endpoint:', userText);
+        console.error('Failed to parse auth response');
         throw new Error('Invalid response from server');
       }
 
@@ -495,13 +497,13 @@ const Navbar: React.FC = () => {
 
       // Store user data
       setInitialUserData({
-        name: userData.name,
-        email: userData.email,
-        profilePicture: userData.picture
+        name: userData.user.name,
+        email: userData.user.email,
+        profilePicture: userData.user.profilePicture
       });
 
-      // Store the access token
-      setToken(tokenData.access_token);
+      // Store the token
+      setToken(userData.token);
 
       // Show success message
       await Swal.fire({

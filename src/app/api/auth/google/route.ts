@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge'; // Add this line to use Edge Runtime
+// Remove the edge runtime directive
+// export const runtime = 'edge';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -30,29 +31,42 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const responseText = await userResponse.text();
-    let userInfo;
-    
-    try {
-      userInfo = JSON.parse(responseText);
-    } catch (e) {
-      console.error('Failed to parse user info response:', responseText);
-      return NextResponse.json(
-        { error: 'Invalid response from Google' },
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
     if (!userResponse.ok) {
-      console.error('Google user info error:', userInfo);
+      const errorText = await userResponse.text();
+      console.error('Google API error:', errorText);
       return NextResponse.json(
-        { error: userInfo.error || 'Failed to get user info' },
+        { error: 'Failed to get user info from Google' },
         { status: userResponse.status, headers: corsHeaders }
       );
     }
 
-    // Return the user info
-    return NextResponse.json(userInfo, { headers: corsHeaders });
+    const userInfo = await userResponse.json();
+
+    // Forward the request to the API route that handles user creation
+    const authResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+        googleId: userInfo.sub,
+      }),
+    });
+
+    if (!authResponse.ok) {
+      const errorData = await authResponse.json();
+      return NextResponse.json(
+        { error: errorData.error || 'Authentication failed' },
+        { status: authResponse.status, headers: corsHeaders }
+      );
+    }
+
+    const data = await authResponse.json();
+    return NextResponse.json(data, { headers: corsHeaders });
+
   } catch (error) {
     console.error('Google auth error:', error);
     return NextResponse.json(

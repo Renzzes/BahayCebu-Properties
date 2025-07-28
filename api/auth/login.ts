@@ -63,6 +63,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    // Check if this is a Google OAuth user
+    if (user.googleId) {
+      console.log('Google OAuth user attempting password login:', email);
+      return res.status(400).json({ 
+        error: "Please use Google Sign-In for this account" 
+      });
+    }
+
+    // Ensure password exists for regular users
+    if (!user.password) {
+      console.log('User has no password set:', email);
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
     console.log('Verifying password for user:', email);
     const isValid = await bcrypt.compare(password, user.password);
     
@@ -75,24 +89,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = jwt.sign(
       { 
         userId: user.id, 
-        email: user.email, 
-        name: user.name 
+        email: user.email,
+        name: user.name,
+        role: user.role
       },
-      process.env.JWT_SECRET || '',
+      process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
 
     console.log('Login successful for user:', email);
     return res.status(200).json({ 
       token,
       user: {
-        id: user.id, 
-        email: user.email, 
-        name: user.name 
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        profilePicture: user.profilePicture
       }
     });
 
-  } catch (err: unknown) {
+  } catch (err) {
     console.error('Login error:', err);
     return res.status(500).json({ 
       error: "Login failed", 
