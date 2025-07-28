@@ -87,10 +87,27 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 		}
 
 		console.log("Login successful for user:", email);
+		
+		// Generate JWT token
+		const token = jwt.sign(
+			{ 
+				userId: user.id, 
+				email: user.email,
+				name: user.name,
+				role: user.role
+			},
+			process.env.JWT_SECRET || 'your-secret-key',
+			{ expiresIn: '24h' }
+		);
+
 		return res.status(200).json({
-			id: user.id,
-			email: user.email,
-			name: user.name,
+			token,
+			user: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				role: user.role
+			},
 			message: "Login successful"
 		});
 	} catch (err) {

@@ -165,16 +165,34 @@ const Navbar: React.FC = () => {
 
   const handleLoginRequest = async (values: z.infer<typeof loginSchema>) => {
     try {
-      const res = await fetch('/api/auth/login', {
+      // Use the same pattern as signup - get API URL from environment or fallback
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+      console.log('Making login request to:', `${apiUrl}/api/auth/login`);
+
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify(values)
       });
 
-      const data = await res.json();
+      // First, get the response as text to handle non-JSON responses
+      const responseText = await res.text();
+      console.log('Raw server response:', responseText);
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log('Parsed server response:', data);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid response from server. Please check if the server is running.');
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login failed');
+        throw new Error(data.error || data.message || 'Login failed');
       }
 
       // Store the JWT token
@@ -473,12 +491,18 @@ const Navbar: React.FC = () => {
         tokenData = JSON.parse(tokenText);
       } catch (e) {
         console.error('Failed to parse token response as JSON:', e);
-        throw new Error(`Invalid response from token endpoint: ${tokenText.substring(0, 100)}...`);
+        console.error('Response text:', tokenText);
+        throw new Error(`Invalid response from token endpoint. Server might be down or returning HTML instead of JSON.`);
       }
 
-      if (!tokenResponse.ok || !tokenData.access_token) {
+      if (!tokenResponse.ok) {
         console.error('Token response error:', tokenData);
-        throw new Error(tokenData.error || 'Failed to get access token');
+        throw new Error(tokenData.error || `Token exchange failed with status ${tokenResponse.status}`);
+      }
+
+      if (!tokenData.access_token) {
+        console.error('No access token in response:', tokenData);
+        throw new Error('No access token received from Google');
       }
 
       // Now get user info
@@ -509,12 +533,13 @@ const Navbar: React.FC = () => {
         userData = JSON.parse(userText);
       } catch (e) {
         console.error('Failed to parse auth response as JSON:', e);
-        throw new Error(`Invalid response from auth endpoint: ${userText.substring(0, 100)}...`);
+        console.error('Response text:', userText);
+        throw new Error(`Invalid response from auth endpoint. Server might be down or returning HTML instead of JSON.`);
       }
 
       if (!authResponse.ok) {
         console.error('Auth response error:', userData);
-        throw new Error(userData.error || 'Failed to authenticate');
+        throw new Error(userData.error || `Authentication failed with status ${authResponse.status}`);
       }
 
       console.log('Successfully got user data:', userData);

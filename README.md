@@ -156,3 +156,88 @@ For inquiries and support, please contact:
 - Website: [BahayCebu Properties](https://bahayceburealty.com)
 - Email: info@bahayceburealty.com
 
+## Development Setup
+
+### Prerequisites
+- Node.js (v18 or higher)
+- MySQL database
+- Environment variables configured
+
+### Running the Application
+
+#### Option 1: Run Both Servers Together (Recommended)
+```bash
+npm run dev:full
+```
+This will start both the backend server (port 4000) and frontend server (port 8081) simultaneously.
+
+#### Option 2: Run Servers Separately
+1. Start the backend server:
+```bash
+npm run dev:server
+```
+
+2. In a new terminal, start the frontend:
+```bash
+npm run dev
+```
+
+### Important Notes
+- The backend server must be running on port 4000 for the login functionality to work
+- If you see a "Login Failed" error with "Unexpected token '<'" message, it means the backend server is not running
+- Make sure your environment variables are properly configured (DATABASE_URL, JWT_SECRET, etc.)
+
+### Environment Variables
+Create a `.env` file in the root directory with:
+```
+DATABASE_URL="mysql://username:password@localhost:3306/database_name"
+JWT_SECRET="your-secret-key"
+VITE_API_URL="http://localhost:4000"
+```
+
+### Production Environment Variables
+For production deployment on Vercel, make sure to set these environment variables:
+
+**Required for Google Authentication:**
+```
+GOOGLE_CLIENT_ID="your-google-client-id"
+GOOGLE_CLIENT_SECRET="your-google-client-secret"
+GOOGLE_REDIRECT_URI="https://your-domain.com/auth/google/callback"
+NEXT_PUBLIC_API_URL="https://your-domain.com"
+JWT_SECRET="your-secret-key"
+DATABASE_URL="your-production-database-url"
+```
+
+**Google OAuth Setup:**
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing one
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URIs:
+   - `https://your-domain.com/auth/google/callback`
+   - `http://localhost:8081/auth/google/callback` (for development)
+
+## Troubleshooting
+
+### Login Error: "Unexpected token '<'"
+This error occurs when the frontend receives an HTML response instead of JSON from the API. This usually happens when:
+1. The backend server is not running on port 4000
+2. The API endpoint is not accessible
+3. There's a network connectivity issue
+
+**Solution**: Make sure to run `npm run dev:full` or start both servers separately.
+
+### Google Login Error in Production
+If Google login fails in production with "Unexpected token '<'" error:
+
+1. **Check Environment Variables**: Ensure all Google OAuth environment variables are set in Vercel
+2. **Verify Redirect URI**: Make sure the redirect URI matches exactly in Google Cloud Console
+3. **Check API Routes**: Ensure the Vercel API routes are deployed correctly
+4. **Database Connection**: Verify the production database is accessible
+
+**Debug Steps:**
+1. Check browser console for detailed error messages
+2. Verify `NEXT_PUBLIC_API_URL` is set correctly in production
+3. Ensure `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are valid
+4. Check Vercel function logs for API errors
+

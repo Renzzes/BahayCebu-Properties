@@ -1,5 +1,6 @@
 import { prisma } from '../_db';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import type { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
@@ -68,12 +69,33 @@ export default async function handler(req: Request, res: Response) {
       });
     }
 
-    // Set session or return token here
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        name: user.name,
+        role: user.role
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
+    // Update last login
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLogin: new Date() }
+    });
+
     return res.status(200).json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      profilePicture: user.profilePicture,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        profilePicture: user.profilePicture
+      }
     });
   } catch (error) {
     console.error('Google auth error:', error);
