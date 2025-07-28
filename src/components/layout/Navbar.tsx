@@ -545,7 +545,7 @@ const Navbar: React.FC = () => {
       });
     },
     flow: 'auth-code',
-    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    redirect_uri: 'https://bahaycebu-properties.com/auth/google/callback',
     scope: 'email profile openid',
   });
 
