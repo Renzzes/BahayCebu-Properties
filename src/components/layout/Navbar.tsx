@@ -521,7 +521,8 @@ const Navbar: React.FC = () => {
         showConfirmButton: true
       });
     },
-    flow: 'implicit',
+    flow: 'auth-code',
+    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
     scope: 'email profile',
   });
 

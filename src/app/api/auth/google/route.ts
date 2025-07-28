@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
+interface GoogleUserInfo {
+  email: string;
+  name: string;
+  picture: string;
+  sub: string;
+}
+
 export async function GET(request: NextRequest) {
   // Handle the OAuth callback
   const searchParams = request.nextUrl.searchParams;
@@ -14,16 +21,18 @@ export async function GET(request: NextRequest) {
   try {
     // Exchange code for tokens
     const tokens = await exchangeCodeForTokens(code);
-    const userData = await getUserInfo(tokens.access_token);
+    
+    // Get user info from Google
+    const userInfo = await getUserInfo(tokens.access_token);
 
     // Find or create user
-    const user = await findOrCreateUser(userData);
+    const user = await findOrCreateUser(userInfo);
 
-    // Set session/token
-    const response = NextResponse.redirect('/');
+    // Create JWT token or session
     // Add your session/token logic here
     
-    return response;
+    // Redirect to success page
+    return NextResponse.redirect('/login?success=true');
   } catch (error) {
     console.error('Google auth error:', error);
     return NextResponse.redirect('/login?error=auth_failed');
@@ -101,21 +110,30 @@ async function exchangeCodeForTokens(code: string) {
     }),
   });
 
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Failed to exchange code: ${JSON.stringify(error)}`);
+  }
+
   return response.json();
 }
 
-async function getUserInfo(accessToken: string) {
-  const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+async function getUserInfo(accessToken: string): Promise<GoogleUserInfo> {
+  const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
     headers: {
       Authorization: `Bearer ${accessToken}`,
     },
   });
 
+  if (!response.ok) {
+    throw new Error('Failed to get user info from Google');
+  }
+
   return response.json();
 }
 
-async function findOrCreateUser(userData: any) {
-  const { email, name, picture: profilePicture, id: googleId } = userData;
+async function findOrCreateUser(userInfo: GoogleUserInfo) {
+  const { email, name, picture: profilePicture, sub: googleId } = userInfo;
 
   let user = await prisma.user.findUnique({
     where: { email }
