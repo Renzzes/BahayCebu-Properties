@@ -4,6 +4,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json'
 };
 
 export async function OPTIONS() {
@@ -12,6 +13,11 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Handle preflight request
+    if (request.method === 'OPTIONS') {
+      return NextResponse.json({}, { headers: corsHeaders });
+    }
+
     const { code } = await request.json();
 
     if (!code) {
@@ -43,15 +49,32 @@ export async function POST(request: NextRequest) {
       }),
     });
 
+    // First try to get the response as text
+    const responseText = await tokenResponse.text();
+    let responseData;
+
+    try {
+      // Try to parse as JSON
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error('Failed to parse token response as JSON:', responseText);
+      return NextResponse.json({ 
+        error: 'Invalid response from Google',
+        details: 'Received non-JSON response'
+      }, { 
+        status: 500,
+        headers: corsHeaders
+      });
+    }
+
     if (!tokenResponse.ok) {
-      const error = await tokenResponse.json();
-      console.error('Token exchange error:', error);
+      console.error('Token exchange error:', responseData);
       
       // Check for specific error types
-      if (error.error === 'redirect_uri_mismatch') {
+      if (responseData.error === 'redirect_uri_mismatch') {
         return NextResponse.json({ 
           error: 'Invalid redirect URI configuration',
-          details: error
+          details: responseData
         }, { 
           status: 400,
           headers: corsHeaders
@@ -60,15 +83,14 @@ export async function POST(request: NextRequest) {
       
       return NextResponse.json({ 
         error: 'Failed to exchange code for token',
-        details: error
+        details: responseData
       }, { 
         status: 500,
         headers: corsHeaders
       });
     }
 
-    const tokens = await tokenResponse.json();
-    return NextResponse.json(tokens, { headers: corsHeaders });
+    return NextResponse.json(responseData, { headers: corsHeaders });
   } catch (error) {
     console.error('Token exchange error:', error);
     return NextResponse.json({ 

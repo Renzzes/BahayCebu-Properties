@@ -438,11 +438,10 @@ const Navbar: React.FC = () => {
         },
       });
 
-      // Exchange code for tokens
-      const baseUrl = import.meta.env.MODE === 'production' 
-        ? 'https://bahaycebu-properties.com'
-        : 'http://localhost:8081';
+      // Get the base URL from the current origin
+      const baseUrl = window.location.origin;
 
+      // Exchange code for tokens
       const tokenResponse = await fetch(`${baseUrl}/api/auth/google/token`, {
         method: 'POST',
         headers: {
@@ -454,12 +453,23 @@ const Navbar: React.FC = () => {
         }),
       });
 
-      if (!tokenResponse.ok) {
-        const errorData = await tokenResponse.json();
-        throw new Error(errorData.error || 'Failed to exchange code for token');
+      // First try to get the response as text
+      const tokenResponseText = await tokenResponse.text();
+      let tokenData;
+
+      try {
+        // Try to parse as JSON
+        tokenData = JSON.parse(tokenResponseText);
+      } catch (e) {
+        console.error('Failed to parse token response as JSON:', tokenResponseText);
+        throw new Error('Invalid response from server');
       }
 
-      const { access_token } = await tokenResponse.json();
+      if (!tokenResponse.ok) {
+        throw new Error(tokenData.error || 'Failed to exchange code for token');
+      }
+
+      const { access_token } = tokenData;
 
       // Get user info from Google
       const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -469,11 +479,22 @@ const Navbar: React.FC = () => {
         },
       });
 
+      // First try to get the response as text
+      const userResponseText = await userResponse.text();
+      let userInfo: GoogleUserInfo;
+
+      try {
+        // Try to parse as JSON
+        userInfo = JSON.parse(userResponseText);
+      } catch (e) {
+        console.error('Failed to parse user info response as JSON:', userResponseText);
+        throw new Error('Invalid response from Google');
+      }
+
       if (!userResponse.ok) {
         throw new Error('Failed to get user info from Google');
       }
 
-      const userInfo: GoogleUserInfo = await userResponse.json();
       console.log('Google user info:', userInfo);
 
       // Send to your backend
@@ -491,12 +512,22 @@ const Navbar: React.FC = () => {
         }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to authenticate with server');
+      // First try to get the response as text
+      const authResponseText = await res.text();
+      let data;
+
+      try {
+        // Try to parse as JSON
+        data = JSON.parse(authResponseText);
+      } catch (e) {
+        console.error('Failed to parse auth response as JSON:', authResponseText);
+        throw new Error('Invalid response from server');
       }
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to authenticate with server');
+      }
+
       console.log('Server response:', data);
 
       // Store user data
