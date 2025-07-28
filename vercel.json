@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
   "builds": [
     {
       "src": "api/**/*.ts",
@@ -11,46 +13,30 @@
       "config": { "distDir": "dist" }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/auth/google/callback",
-      "dest": "/api/auth/google/route.ts"
+      "source": "/auth/google/callback",
+      "destination": "/api/auth/google/route"
     },
     {
-      "src": "/api/auth/(.*)",
-      "dest": "/api/auth/$1.ts"
+      "source": "/api/auth/:path*",
+      "destination": "/api/auth/:path*"
     },
     {
-      "src": "/api/properties",
-      "dest": "/api/properties/route.ts"
+      "source": "/api/properties",
+      "destination": "/api/properties/route"
     },
     {
-      "src": "/api/properties/(.*)",
-      "dest": "/api/properties/$1.ts"
+      "source": "/api/properties/:path*",
+      "destination": "/api/properties/:path*"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "/api/$1.ts"
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
     },
     {
-      "src": "^/carousel/(.*)",
-      "dest": "/carousel/$1"
-    },
-    {
-      "src": "^/LOGO/(.*)",
-      "dest": "/LOGO/$1"
-    },
-    {
-      "src": "^/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "^/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": ".*",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
