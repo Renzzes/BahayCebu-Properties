@@ -13,6 +13,14 @@
   ],
   "routes": [
     {
+      "src": "/auth/google/callback",
+      "dest": "/api/auth/google/route.ts"
+    },
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "/api/auth/$1.ts"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1.ts"
     },
