@@ -505,20 +505,70 @@ const Navbar: React.FC = () => {
         throw new Error('No access token received from Google');
       }
 
-      // Now get user info
-      console.log('Getting user info...');
-      const authEndpoint = `${baseUrl}/api/auth/google`;
+      // Now get user info from Google
+      console.log('Getting user info from Google...');
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${tokenData.access_token}`
+        }
+      });
+
+      if (!userInfoResponse.ok) {
+        const errorText = await userInfoResponse.text();
+        console.error('Google user info error:', errorText);
+        throw new Error('Failed to get user info from Google');
+      }
+
+      const userInfo = await userInfoResponse.json();
+      console.log('Google user info:', userInfo);
+
+      // Test Vercel API accessibility first
+      console.log('Testing Vercel API accessibility...');
+      const testResponse = await fetch('https://bahaycebu-properties.vercel.app/api/health');
+      console.log('Health check status:', testResponse.status);
+      const testText = await testResponse.text();
+      console.log('Health check response:', testText);
+
+      // Call the Vercel API with user info
+      console.log('Calling Vercel API...');
+      const isProduction = import.meta.env.PROD;
+      let authEndpoint = isProduction 
+        ? 'https://bahaycebu-properties.vercel.app/api/auth/google'
+        : `${baseUrl}/api/auth/google`;
       console.log('Auth endpoint:', authEndpoint);
 
-      const authResponse = await fetch(authEndpoint, {
+      let authResponse = await fetch(authEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          code: tokenData.access_token
+          email: userInfo.email,
+          name: userInfo.name,
+          picture: userInfo.picture,
+          googleId: userInfo.sub
         })
       });
+
+      // If Vercel API fails, try the local API as fallback
+      if (!authResponse.ok && isProduction) {
+        console.log('Vercel API failed, trying local API as fallback...');
+        authEndpoint = `${baseUrl}/api/auth/google`;
+        console.log('Fallback auth endpoint:', authEndpoint);
+        
+        authResponse = await fetch(authEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: userInfo.email,
+            name: userInfo.name,
+            picture: userInfo.picture,
+            googleId: userInfo.sub
+          })
+        });
+      }
 
       console.log('Auth response status:', authResponse.status);
       console.log('Auth response headers:', Object.fromEntries(authResponse.headers.entries()));
@@ -526,6 +576,8 @@ const Navbar: React.FC = () => {
       // Read the response as text first
       const userText = await authResponse.text();
       console.log('Raw auth response:', userText);
+      console.log('Response status:', authResponse.status);
+      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()));
 
       // Try to parse as JSON
       let userData;
@@ -534,7 +586,8 @@ const Navbar: React.FC = () => {
       } catch (e) {
         console.error('Failed to parse auth response as JSON:', e);
         console.error('Response text:', userText);
-        throw new Error(`Invalid response from auth endpoint. Server might be down or returning HTML instead of JSON.`);
+        console.error('Response URL:', authResponse.url);
+        throw new Error(`Invalid response from auth endpoint. Server might be down or returning HTML instead of JSON. Response: ${userText.substring(0, 200)}...`);
       }
 
       if (!authResponse.ok) {
@@ -568,16 +621,21 @@ const Navbar: React.FC = () => {
       setIsAuthDialogOpen(false);
       navigate('/admin');
 
-    } catch (error) {
-      console.error('Google login error:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Login Failed',
-        text: error instanceof Error ? error.message : 'Failed to login with Google. Please try again.',
-        timer: 3000,
-        showConfirmButton: true
-      });
-    }
+          } catch (error) {
+        console.error('Google login error:', error);
+        console.error('Error details:', {
+          name: error instanceof Error ? error.name : 'Unknown',
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : 'No stack trace'
+        });
+        Swal.fire({
+          icon: 'error',
+          title: 'Login Failed',
+          text: error instanceof Error ? error.message : 'Failed to login with Google. Please try again.',
+          timer: 3000,
+          showConfirmButton: true
+        });
+      }
   };
 
   const googleLogin = useGoogleLogin({

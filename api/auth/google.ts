@@ -4,12 +4,32 @@ import jwt from 'jsonwebtoken';
 import type { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
+  console.log('Google auth API called:', {
+    method: req.method,
+    headers: req.headers,
+    body: req.body
+  });
+
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  // Handle preflight request
+  if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request');
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
+    console.log('Invalid method:', req.method);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const { email, name, picture, googleId } = req.body;
+    console.log('Request body:', { email, name, googleId, picture: picture ? 'present' : 'missing' });
 
     // Check if user exists
     let user = await prisma.user.findUnique({
