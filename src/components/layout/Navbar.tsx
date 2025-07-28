@@ -451,54 +451,53 @@ const Navbar: React.FC = () => {
         body: JSON.stringify({
           code: codeResponse.code
         }),
+        credentials: 'include' // Include cookies
       });
 
-      // First try to get the response as text
-      const tokenResponseText = await tokenResponse.text();
-      let tokenData;
-
-      try {
-        // Try to parse as JSON
-        tokenData = JSON.parse(tokenResponseText);
-      } catch (e) {
-        console.error('Failed to parse token response as JSON:', tokenResponseText);
-        throw new Error('Invalid response from server');
-      }
-
       if (!tokenResponse.ok) {
-        throw new Error(tokenData.error || 'Failed to exchange code for token');
+        const errorText = await tokenResponse.text();
+        console.error('Token exchange error response:', errorText);
+        let errorMessage = 'Failed to exchange code for token';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use the raw text
+          if (errorText.includes('<!DOCTYPE html>')) {
+            errorMessage = 'Server returned HTML instead of JSON. The API endpoint may be misconfigured.';
+          } else {
+            errorMessage = errorText || errorMessage;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
+      const tokenData = await tokenResponse.json();
       const { access_token } = tokenData;
+
+      if (!access_token) {
+        throw new Error('No access token received from server');
+      }
 
       // Get user info from Google
       const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: {
           'Authorization': `Bearer ${access_token}`,
           'Accept': 'application/json'
-        },
+        }
       });
 
-      // First try to get the response as text
-      const userResponseText = await userResponse.text();
-      let userInfo: GoogleUserInfo;
-
-      try {
-        // Try to parse as JSON
-        userInfo = JSON.parse(userResponseText);
-      } catch (e) {
-        console.error('Failed to parse user info response as JSON:', userResponseText);
-        throw new Error('Invalid response from Google');
-      }
-
       if (!userResponse.ok) {
+        const errorText = await userResponse.text();
+        console.error('User info error response:', errorText);
         throw new Error('Failed to get user info from Google');
       }
 
+      const userInfo: GoogleUserInfo = await userResponse.json();
       console.log('Google user info:', userInfo);
 
       // Send to your backend
-      const res = await fetch(`${baseUrl}/api/auth/google`, {
+      const authResponse = await fetch(`${baseUrl}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -510,24 +509,23 @@ const Navbar: React.FC = () => {
           picture: userInfo.picture,
           googleId: userInfo.sub,
         }),
+        credentials: 'include' // Include cookies
       });
 
-      // First try to get the response as text
-      const authResponseText = await res.text();
-      let data;
-
-      try {
-        // Try to parse as JSON
-        data = JSON.parse(authResponseText);
-      } catch (e) {
-        console.error('Failed to parse auth response as JSON:', authResponseText);
-        throw new Error('Invalid response from server');
+      if (!authResponse.ok) {
+        const errorText = await authResponse.text();
+        console.error('Auth error response:', errorText);
+        let errorMessage = 'Failed to authenticate with server';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to authenticate with server');
-      }
-
+      const data = await authResponse.json();
       console.log('Server response:', data);
 
       // Store user data
@@ -577,7 +575,6 @@ const Navbar: React.FC = () => {
     },
     flow: 'auth-code',
     redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
-    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scope: 'email profile openid',
   });
 
