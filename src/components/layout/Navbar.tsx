@@ -426,7 +426,8 @@ const Navbar: React.FC = () => {
 
   const handleGoogleSuccess = async (codeResponse: CodeResponse) => {
     try {
-      console.log('Google login response:', codeResponse);
+      console.log('Starting Google login process...');
+      console.log('Code response:', codeResponse);
       
       // Show loading state
       Swal.fire({
@@ -440,10 +441,15 @@ const Navbar: React.FC = () => {
 
       // Get the base URL from environment variable or fallback to window.location.origin
       const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-      console.log('Using API base URL:', baseUrl);
+      console.log('API Base URL:', baseUrl);
+      console.log('Redirect URI:', import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`);
 
-      // Exchange code for tokens
-      const tokenResponse = await fetch(`${baseUrl}/api/auth/google/token`, {
+      // First, exchange code for tokens
+      console.log('Exchanging code for tokens...');
+      const tokenEndpoint = `${baseUrl}/api/auth/google/token`;
+      console.log('Token endpoint:', tokenEndpoint);
+
+      const tokenResponse = await fetch(tokenEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -454,23 +460,33 @@ const Navbar: React.FC = () => {
         })
       });
 
-      // Handle non-JSON responses
+      console.log('Token response status:', tokenResponse.status);
+      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()));
+
+      // Read the response as text first
+      const tokenText = await tokenResponse.text();
+      console.log('Raw token response:', tokenText);
+
+      // Try to parse as JSON
       let tokenData;
       try {
-        const tokenText = await tokenResponse.text();
-        console.log('Token response:', tokenText);
         tokenData = JSON.parse(tokenText);
       } catch (e) {
-        console.error('Failed to parse token response');
-        throw new Error('Invalid response from server');
+        console.error('Failed to parse token response as JSON:', e);
+        throw new Error(`Invalid response from token endpoint: ${tokenText.substring(0, 100)}...`);
       }
 
       if (!tokenResponse.ok || !tokenData.access_token) {
+        console.error('Token response error:', tokenData);
         throw new Error(tokenData.error || 'Failed to get access token');
       }
 
-      // Get user info using the token
-      const authResponse = await fetch(`${baseUrl}/api/auth/google`, {
+      // Now get user info
+      console.log('Getting user info...');
+      const authEndpoint = `${baseUrl}/api/auth/google`;
+      console.log('Auth endpoint:', authEndpoint);
+
+      const authResponse = await fetch(authEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -480,20 +496,28 @@ const Navbar: React.FC = () => {
         })
       });
 
-      // Handle non-JSON responses
+      console.log('Auth response status:', authResponse.status);
+      console.log('Auth response headers:', Object.fromEntries(authResponse.headers.entries()));
+
+      // Read the response as text first
+      const userText = await authResponse.text();
+      console.log('Raw auth response:', userText);
+
+      // Try to parse as JSON
       let userData;
       try {
-        const userText = await authResponse.text();
-        console.log('Auth response:', userText);
         userData = JSON.parse(userText);
       } catch (e) {
-        console.error('Failed to parse auth response');
-        throw new Error('Invalid response from server');
+        console.error('Failed to parse auth response as JSON:', e);
+        throw new Error(`Invalid response from auth endpoint: ${userText.substring(0, 100)}...`);
       }
 
       if (!authResponse.ok) {
+        console.error('Auth response error:', userData);
         throw new Error(userData.error || 'Failed to authenticate');
       }
+
+      console.log('Successfully got user data:', userData);
 
       // Store user data
       setInitialUserData({

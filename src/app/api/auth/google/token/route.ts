@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'edge'; // Add this line to use Edge Runtime
-
+// Configure CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Content-Type': 'application/json'
 };
 
 export async function OPTIONS() {
@@ -14,9 +14,16 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { code, redirect_uri } = await request.json();
+    // Log request details
+    console.log('Received token exchange request');
+    
+    const body = await request.json();
+    console.log('Request body:', { ...body, code: '[REDACTED]' });
+
+    const { code, redirect_uri } = body;
 
     if (!code) {
+      console.log('Missing code in request');
       return NextResponse.json(
         { error: 'Authorization code is required' },
         { status: 400, headers: corsHeaders }
@@ -24,6 +31,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Exchange code for tokens
+    console.log('Exchanging code for tokens...');
+    console.log('Using redirect URI:', redirect_uri);
+
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -38,13 +48,17 @@ export async function POST(request: NextRequest) {
       }).toString(),
     });
 
-    const responseText = await tokenResponse.text();
-    let tokens;
+    // Log response details
+    console.log('Token response status:', tokenResponse.status);
     
+    const responseText = await tokenResponse.text();
+    console.log('Raw token response:', responseText);
+
+    let tokens;
     try {
       tokens = JSON.parse(responseText);
     } catch (e) {
-      console.error('Failed to parse token response:', responseText);
+      console.error('Failed to parse token response:', e);
       return NextResponse.json(
         { error: 'Invalid response from Google' },
         { status: 500, headers: corsHeaders }
@@ -59,7 +73,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('Successfully exchanged code for tokens');
     return NextResponse.json(tokens, { headers: corsHeaders });
+
   } catch (error) {
     console.error('Token exchange error:', error);
     return NextResponse.json(
