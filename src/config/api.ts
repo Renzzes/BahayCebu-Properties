@@ -1,13 +1,13 @@
 export const getApiBaseUrl = () => {
   if (import.meta.env.MODE === 'production') {
-    return 'https://bahay-cebu-properties.vercel.app';
+    return 'https://bahaycebu-properties.com';
   }
   return 'http://localhost:8081';
 };
 
 export const getBaseUrl = () => {
   if (import.meta.env.MODE === 'production') {
-    return 'https://bahay-cebu-properties.vercel.app';
+    return 'https://bahaycebu-properties.com';
   }
   return 'http://localhost:8081';
 };
