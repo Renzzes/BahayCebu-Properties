@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PropertyCreateInput, PropertyUpdateInput } from '@/types/api';
+import jwt from 'jsonwebtoken';
 
-export const runtime = 'edge';
+// Remove edge runtime since it's not compatible with Prisma
+// export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 interface JsonUnitTypeDetail {
@@ -35,6 +37,26 @@ export async function OPTIONS() {
   return NextResponse.json({}, { headers: corsHeaders });
 }
 
+// Verify JWT token
+const verifyToken = (request: NextRequest) => {
+  try {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.split(' ')[1];
+
+    if (!token) {
+      return null;
+    }
+
+    return jwt.verify(token, process.env.JWT_SECRET || '') as {
+      userId: string;
+      email: string;
+      name: string;
+    };
+  } catch (err) {
+    return null;
+  }
+};
+
 export async function GET(request: NextRequest) {
   try {
     // Handle preflight request
@@ -42,6 +64,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({}, { headers: corsHeaders });
     }
 
+    // GET requests are public
     const properties = await prisma.property.findMany();
     
     if (!properties) {
@@ -115,7 +138,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching properties:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch properties' },
+      { error: 'Failed to fetch properties', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -123,6 +146,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication for protected routes
+    const user = verifyToken(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     const data = await request.json() as PropertyCreateInput;
 
     // Validate required fields
@@ -196,6 +228,15 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    // Check authentication for protected routes
+    const user = verifyToken(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
     const data = await request.json() as PropertyUpdateInput;
     
     if (!data.id) {

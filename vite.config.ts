@@ -6,6 +6,9 @@ export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isProduction = mode === 'production';
   
+  // Get API URL from environment variables or use default
+  const apiUrl = env.VITE_API_URL || (isProduction ? 'https://bahaycebu-properties.com' : 'http://localhost:4000');
+  
   return {
     base: '/',
     publicDir: 'public',
@@ -14,17 +17,29 @@ export default defineConfig(({ command, mode }) => {
       port: 8081,
       proxy: {
         '/api': {
-          target: isProduction ? env.VITE_API_URL : 'http://localhost:4000',
+          target: apiUrl,
           changeOrigin: true,
-          secure: false,
-          rewrite: (path) => path
+          secure: isProduction,
+          rewrite: (path) => path,
+          configure: (proxy, options) => {
+            // Add error handling for proxy
+            proxy.on('error', (err, req, res) => {
+              console.error('Proxy error:', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              // Log proxy requests in development
+              if (!isProduction) {
+                console.log('Proxying:', req.method, req.url, 'to', apiUrl);
+              }
+            });
+          }
         }
       }
     },
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: true,
+      sourcemap: !isProduction,
       copyPublicDir: true,
       rollupOptions: {
         output: {
@@ -51,6 +66,9 @@ export default defineConfig(({ command, mode }) => {
           },
         },
       },
+      // Add minification options
+      minify: isProduction ? 'esbuild' : false,
+      target: 'esnext',
     },
     plugins: [
       react()
@@ -59,6 +77,11 @@ export default defineConfig(({ command, mode }) => {
       alias: {
         "@": path.resolve(__dirname, "./src"),
       },
+    },
+    // Add environment variable handling
+    define: {
+      'process.env.NODE_ENV': JSON.stringify(mode),
+      'process.env.VITE_API_URL': JSON.stringify(apiUrl),
     },
   }
 });

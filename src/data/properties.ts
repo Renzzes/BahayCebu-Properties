@@ -386,107 +386,163 @@ interface PropertyApiResponse {
 // Property management functions
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
-    const baseUrl = import.meta.env.MODE === 'production' 
-      ? 'https://bahaycebu-properties.com'
-      : 'http://localhost:8081';
+    // Get the API base URL from environment variables or config
+    const baseUrl = import.meta.env.VITE_API_URL || (
+      import.meta.env.MODE === 'production' 
+        ? window.location.origin // Use the current origin instead of hardcoded URL
+        : 'http://localhost:8081'
+    );
+
+    // Log the request in development
+    if (import.meta.env.MODE === 'development') {
+      console.log('Fetching properties from:', `${baseUrl}/api/properties`);
+    }
 
     const response = await fetch(`${baseUrl}/api/properties`, {
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache'
+      },
+      credentials: 'include' // Include credentials if needed
     });
 
+    // First check if the response is ok
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('API Error Response:', errorText);
-      throw new Error(`Failed to fetch properties: ${response.status} ${response.statusText}`);
+      // Try to get more detailed error information
+      let errorMessage = `HTTP error! status: ${response.status}`;
+      try {
+        // Try to parse as JSON first
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorData.error || errorMessage;
+      } catch {
+        // If not JSON, get the text
+        const errorText = await response.text();
+        // If it looks like HTML, provide a more useful message
+        if (errorText.trim().startsWith('<!DOCTYPE') || errorText.trim().startsWith('<html')) {
+          errorMessage = `Server returned HTML instead of JSON. This usually means the API endpoint is not available or is misconfigured. Status: ${response.status}`;
+          // Log additional information in development
+          if (import.meta.env.MODE === 'development') {
+            console.error('Server response:', errorText);
+          }
+        } else {
+          errorMessage = errorText || errorMessage;
+        }
+      }
+      throw new Error(errorMessage);
     }
 
+    // Check content type before trying to parse JSON
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       const text = await response.text();
-      console.error('Invalid content type:', contentType, 'Response:', text);
-      throw new Error('Invalid response format from server');
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        throw new Error('Server returned HTML instead of JSON. Please check if the API endpoint is configured correctly.');
+      }
+      throw new Error(`Expected JSON response but got ${contentType}. Response: ${text.substring(0, 100)}...`);
     }
 
     const data = await response.json();
     
-    return data.map((property: PropertyApiResponse) => ({
-      id: property.id,
-      title: property.title,
-      location: property.location,
-      description: property.description || '',
-      image: property.images?.[0] || '',
-      images: property.images || [],
-      price: property.price,
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      area: property.area,
-      type: property.type as AdminProperty['type'],
-      featured: property.featured || false,
-      videoUrl: property.videoUrl || '',
-      thumbnail: property.thumbnail || '',
-      lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      createdAt: property.updatedAt,
-      unitTypes: property.unitTypes || [],
-      unitTypeDetails: Array.isArray(property.unitTypeDetails) ? property.unitTypeDetails.map(detail => ({
-        type: detail?.type || '',
-        floorArea: detail?.floorArea || '',
-        priceRange: detail?.priceRange || '',
-        layoutImage: detail?.layoutImage || '',
-        reservationFee: detail?.reservationFee || '',
-        monthlyPayment: {
-          percentage: detail?.monthlyPayment?.percentage || 15,
-          amount: detail?.monthlyPayment?.amount || '',
-          terms: detail?.monthlyPayment?.terms || '6 months'
-        },
-        balancePayment: {
-          percentage: detail?.balancePayment?.percentage || 85,
-          amount: detail?.balancePayment?.amount || '',
-          terms: detail?.balancePayment?.terms || 'bank/cash'
-        },
-        description: detail?.description || ''
-      })) : [],
-      amenities: property.amenities || [],
-      residentialFeatures: property.residentialFeatures || [],
-      provisions: property.provisions || [],
-      buildingFeatures: property.buildingFeatures || [],
-      stats: {
-        views: Math.floor(Math.random() * 1000),
-        leads: Math.floor(Math.random() * 50),
-        applications: Math.floor(Math.random() * 20)
-      },
-      listingType: property.listingType || 'For Sale',
-      units: property.units || 0,
-      occupancyRate: property.occupancyRate || 0,
-      locationAccessibility: property.locationAccessibility || {
-        nearbyLandmarks: [],
-        publicTransport: [],
-        mainRoads: [],
-        travelTimes: []
-      },
-      featuresAmenities: property.featuresAmenities || {
-        propertyHighlights: [],
-        smartHomeFeatures: [],
-        securityFeatures: [],
-        sustainabilityFeatures: []
-      },
-      lifestyleCommunity: property.lifestyleCommunity || {
-        neighborhoodType: '',
-        localAmenities: [],
-        communityFeatures: [],
-        nearbyEstablishments: []
-      },
-      additionalInformation: property.additionalInformation || {
-        propertyHistory: '',
-        legalInformation: '',
-        developmentPlans: '',
-        specialNotes: ''
+    // Validate that data is an array
+    if (!Array.isArray(data)) {
+      throw new Error('API returned invalid data format. Expected an array of properties.');
+    }
+    
+    return data.map((property: PropertyApiResponse) => {
+      // Validate and convert listingType to proper type
+      let listingType: AdminProperty['listingType'] = 'For Sale';
+      if (property.listingType === 'For Rent' || property.listingType === 'Resale') {
+        listingType = property.listingType;
       }
-    }));
+
+      return {
+        id: property.id,
+        title: property.title,
+        location: property.location,
+        description: property.description || '',
+        image: property.images?.[0] || '',
+        images: property.images || [],
+        price: property.price,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        area: property.area,
+        type: property.type as AdminProperty['type'],
+        featured: property.featured || false,
+        videoUrl: property.videoUrl || '',
+        thumbnail: property.thumbnail || '',
+        lastUpdated: new Date(property.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        createdAt: property.updatedAt,
+        unitTypes: property.unitTypes || [],
+        unitTypeDetails: Array.isArray(property.unitTypeDetails) ? property.unitTypeDetails.map(detail => ({
+          type: detail?.type || '',
+          floorArea: detail?.floorArea || '',
+          priceRange: detail?.priceRange || '',
+          layoutImage: detail?.layoutImage || '',
+          reservationFee: detail?.reservationFee || '',
+          monthlyPayment: {
+            percentage: detail?.monthlyPayment?.percentage || 15,
+            amount: detail?.monthlyPayment?.amount || '',
+            terms: detail?.monthlyPayment?.terms || '6 months'
+          },
+          balancePayment: {
+            percentage: detail?.balancePayment?.percentage || 85,
+            amount: detail?.balancePayment?.amount || '',
+            terms: detail?.balancePayment?.terms || 'bank/cash'
+          },
+          description: detail?.description || ''
+        })) : [],
+        amenities: property.amenities || [],
+        residentialFeatures: property.residentialFeatures || [],
+        provisions: property.provisions || [],
+        buildingFeatures: property.buildingFeatures || [],
+        stats: {
+          views: Math.floor(Math.random() * 1000),
+          leads: Math.floor(Math.random() * 50),
+          applications: Math.floor(Math.random() * 20)
+        },
+        listingType,
+        units: property.units || 0,
+        occupancyRate: property.occupancyRate || 0,
+        locationAccessibility: property.locationAccessibility || {
+          nearbyLandmarks: [],
+          publicTransport: [],
+          mainRoads: [],
+          travelTimes: []
+        },
+        featuresAmenities: property.featuresAmenities || {
+          propertyHighlights: [],
+          smartHomeFeatures: [],
+          securityFeatures: [],
+          sustainabilityFeatures: []
+        },
+        lifestyleCommunity: property.lifestyleCommunity || {
+          neighborhoodType: '',
+          localAmenities: [],
+          communityFeatures: [],
+          nearbyEstablishments: []
+        },
+        additionalInformation: property.additionalInformation || {
+          propertyHistory: '',
+          legalInformation: '',
+          developmentPlans: '',
+          specialNotes: ''
+        }
+      };
+    });
   } catch (error) {
-    console.error('Error fetching properties:', error);
+    // Improve error logging
+    console.error('Error fetching properties:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      mode: import.meta.env.MODE,
+      error
+    });
+    
+    // In development, log more details about the error
+    if (import.meta.env.MODE === 'development') {
+      console.error('Full error details:', error);
+    }
+    
     return [];
   }
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, Eye, EyeOff, Mail } from 'lucide-react';
@@ -545,9 +545,20 @@ const Navbar: React.FC = () => {
       });
     },
     flow: 'auth-code',
-    redirect_uri: 'https://bahaycebu-properties.com/auth/google/callback',
+    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
     scope: 'email profile openid',
   });
+
+  // Add debug logging
+  useEffect(() => {
+    if (import.meta.env.MODE === 'development') {
+      console.log('Google OAuth Config:', {
+        redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID
+      });
+    }
+  }, []);
 
   const handleSocialLogin = (provider: 'gmail') => {
     if (provider === 'gmail') {
@@ -660,7 +671,7 @@ const Navbar: React.FC = () => {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Input type={showPassword ? "text" : "password"} {...field} />
+                          <Input type={showPassword ? "text" : "password"} {...field} autoComplete="current-password" />
                           <button
                             type="button"
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
@@ -728,7 +739,7 @@ const Navbar: React.FC = () => {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Input type={showPassword ? "text" : "password"} {...field} />
+                          <Input type={showPassword ? "text" : "password"} {...field} autoComplete="new-password" />
                           <button
                             type="button"
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
@@ -750,7 +761,7 @@ const Navbar: React.FC = () => {
                       <FormLabel>Confirm Password</FormLabel>
                       <FormControl>
                         <div className="relative">
-                          <Input type={showConfirmPassword ? "text" : "password"} {...field} />
+                          <Input type={showConfirmPassword ? "text" : "password"} {...field} autoComplete="new-password" />
                           <button
                             type="button"
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"

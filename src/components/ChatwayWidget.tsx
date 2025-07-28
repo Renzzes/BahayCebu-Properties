@@ -117,30 +117,43 @@ const ChatwayWidget = () => {
       script.src = `https://cdn.chatway.app/widget.js?id=${CHATWAY_ID}`;
       scriptRef.current = script;
 
+      // Add error handling for script loading
+      script.onerror = () => {
+        console.warn('Chatway widget failed to load. This may be due to an ad blocker.');
+        cleanup(); // Clean up any partial widget elements
+        isInitialized.current = false;
+      };
+
       // Initialize Chatway with custom configuration after script loads
       script.onload = () => {
-        if (window.Chatway) {
-          window.Chatway.init({
-            id: CHATWAY_ID,
-            hideDefaultButton: false,
-            position: 'bottom-right',
-            offset: {
-              bottom: '20px',
-              right: '20px'
-            },
-            styles: {
-              button: {
-                backgroundColor: '#10B981',
-                borderRadius: '50%',
-                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+        try {
+          if (window.Chatway) {
+            window.Chatway.init({
+              id: CHATWAY_ID,
+              hideDefaultButton: false,
+              position: 'bottom-right',
+              offset: {
+                bottom: '20px',
+                right: '20px'
               },
-              widget: {
-                borderRadius: '12px',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              styles: {
+                button: {
+                  backgroundColor: '#10B981',
+                  borderRadius: '50%',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.25)'
+                },
+                widget: {
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                }
               }
-            }
-          });
-          isInitialized.current = true;
+            });
+            isInitialized.current = true;
+          }
+        } catch (error) {
+          console.warn('Failed to initialize Chatway widget:', error);
+          cleanup(); // Clean up any partial widget elements
+          isInitialized.current = false;
         }
       };
 
