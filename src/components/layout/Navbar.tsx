@@ -438,11 +438,8 @@ const Navbar: React.FC = () => {
         },
       });
 
-      // Get the base URL - in production, use the current origin
-      const baseUrl = import.meta.env.MODE === 'production'
-        ? window.location.origin // Use current domain in production
-        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
-
+      // Get the base URL from environment variable or fallback to window.location.origin
+      const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
       console.log('Using API base URL:', baseUrl);
 
       // Exchange code for tokens
@@ -450,103 +447,61 @@ const Navbar: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({
           code: codeResponse.code,
-          redirect_uri: import.meta.env.MODE === 'production'
-            ? `${window.location.origin}/auth/google/callback`
-            : import.meta.env.VITE_GOOGLE_REDIRECT_URI
-        }),
-        credentials: 'include' // Include cookies
+          redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`
+        })
       });
 
-      if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
-        console.error('Token exchange error response:', errorText);
-        let errorMessage = 'Failed to exchange code for token';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          // If response is not JSON, use the raw text
-          if (errorText.includes('<!DOCTYPE html>')) {
-            errorMessage = 'Server returned HTML instead of JSON. The API endpoint may be misconfigured.';
-            console.error('Full HTML response:', errorText);
-          } else {
-            errorMessage = errorText || errorMessage;
-          }
-        }
-        throw new Error(errorMessage);
+      // Handle non-JSON responses
+      let tokenData;
+      const tokenText = await tokenResponse.text();
+      try {
+        tokenData = JSON.parse(tokenText);
+      } catch (e) {
+        console.error('Invalid JSON response from token endpoint:', tokenText);
+        throw new Error('Invalid response from server');
       }
 
-      const tokenData = await tokenResponse.json();
-      const { access_token } = tokenData;
-
-      if (!access_token) {
-        throw new Error('No access token received from server');
+      if (!tokenResponse.ok || !tokenData.access_token) {
+        throw new Error(tokenData.error || 'Failed to get access token');
       }
 
-      // Get user info from Google
-      const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${access_token}`,
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!userResponse.ok) {
-        const errorText = await userResponse.text();
-        console.error('User info error response:', errorText);
-        throw new Error('Failed to get user info from Google');
-      }
-
-      const userInfo: GoogleUserInfo = await userResponse.json();
-      console.log('Google user info:', userInfo);
-
-      // Send to your backend
+      // Get user info using the token
       const authResponse = await fetch(`${baseUrl}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
         body: JSON.stringify({
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture,
-          googleId: userInfo.sub,
-        }),
-        credentials: 'include' // Include cookies
+          code: tokenData.access_token
+        })
       });
 
-      if (!authResponse.ok) {
-        const errorText = await authResponse.text();
-        console.error('Auth error response:', errorText);
-        let errorMessage = 'Failed to authenticate with server';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          if (errorText.includes('<!DOCTYPE html>')) {
-            errorMessage = 'Server returned HTML instead of JSON. The API endpoint may be misconfigured.';
-            console.error('Full HTML response:', errorText);
-          } else {
-            errorMessage = errorText || errorMessage;
-          }
-        }
-        throw new Error(errorMessage);
+      // Handle non-JSON responses
+      let userData;
+      const userText = await authResponse.text();
+      try {
+        userData = JSON.parse(userText);
+      } catch (e) {
+        console.error('Invalid JSON response from auth endpoint:', userText);
+        throw new Error('Invalid response from server');
       }
 
-      const data = await authResponse.json();
-      console.log('Server response:', data);
+      if (!authResponse.ok) {
+        throw new Error(userData.error || 'Failed to authenticate');
+      }
 
       // Store user data
       setInitialUserData({
-        name: data.name,
-        email: data.email,
-        profilePicture: data.profilePicture,
+        name: userData.name,
+        email: userData.email,
+        profilePicture: userData.picture
       });
+
+      // Store the access token
+      setToken(tokenData.access_token);
 
       // Show success message
       await Swal.fire({
@@ -587,23 +542,17 @@ const Navbar: React.FC = () => {
       });
     },
     flow: 'auth-code',
-    redirect_uri: import.meta.env.MODE === 'production'
-      ? `${window.location.origin}/auth/google/callback`
-      : import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
     scope: 'email profile openid',
   });
 
-  // Add debug logging
+  // Update debug logging
   useEffect(() => {
     console.log('Environment:', import.meta.env.MODE);
     console.log('Google OAuth Config:', {
-      redirect_uri: import.meta.env.MODE === 'production'
-        ? `${window.location.origin}/auth/google/callback`
-        : import.meta.env.VITE_GOOGLE_REDIRECT_URI,
+      redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
       mode: import.meta.env.MODE,
-      baseUrl: import.meta.env.MODE === 'production'
-        ? window.location.origin
-        : import.meta.env.VITE_API_URL
+      baseUrl: import.meta.env.VITE_API_URL || window.location.origin
     });
   }, []);
 

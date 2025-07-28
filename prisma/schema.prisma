@@ -41,12 +41,14 @@ model User {
   id             String    @id @default(cuid())
   email          String    @unique
   name           String
-  password       String
+  password       String?   // Make password optional for Google OAuth users
   profilePicture String?
-  googleId       String?
-  otp            String?   @db.VarChar(6)
-  otpExpiry      DateTime?
+  googleId       String?   @unique
+  role           String    @default("USER")
+  lastLogin      DateTime  @default(now())
   createdAt      DateTime  @default(now())
+  otp            String?
+  otpExpiry      DateTime?
 }
 
 model Agent {
