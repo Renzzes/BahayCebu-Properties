@@ -10,69 +10,111 @@ const corsHeaders = {
 };
 
 export async function OPTIONS() {
-  return new NextResponse(null, { headers: corsHeaders });
+  return new NextResponse(null, { 
+    headers: {
+      ...corsHeaders,
+      'Access-Control-Allow-Credentials': 'true'
+    } 
+  });
 }
 
 export async function POST(request: NextRequest) {
+  // Log the entire request for debugging
+  console.log('Received Google Auth Request:', {
+    method: request.method,
+    url: request.url,
+    headers: Object.fromEntries(request.headers.entries())
+  });
+
   try {
-    const { code } = await request.json();
-
-    if (!code) {
+    // Attempt to parse request body with comprehensive error handling
+    let requestBody;
+    try {
+      requestBody = await request.json();
+      console.log('Raw request body:', JSON.stringify(requestBody));
+    } catch (parseError: unknown) {
+      console.error('Failed to parse request body:', parseError);
+      
+      // Try to get raw text to understand what was sent
+      const rawBody = await request.text();
+      console.error('Raw request body text:', rawBody);
+      
       return NextResponse.json(
-        { error: 'Authorization code is required' },
-        { status: 400, headers: corsHeaders }
+        { 
+          error: 'Invalid request body', 
+          details: parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+          rawBody: rawBody 
+        },
+        { 
+          status: 400, 
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          } 
+        }
       );
     }
 
-    // Get user info from Google
-    const userResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${code}`
-      }
+    const { email, name, picture, googleId } = requestBody;
+
+    if (!email || !name) {
+      return NextResponse.json(
+        { error: 'Email and name are required' },
+        { 
+          status: 400, 
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          } 
+        }
+      );
+    }
+
+    console.log('Parsed user data:', { 
+      email, 
+      name, 
+      googleId, 
+      picture: picture ? 'present' : 'missing' 
     });
 
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.error('Google API error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to get user info from Google' },
-        { status: userResponse.status, headers: corsHeaders }
-      );
-    }
-
-    const userInfo = await userResponse.json();
-
-    // Forward the request to the Vercel API route that handles user creation
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://bahaycebu-properties.vercel.app';
-    const authResponse = await fetch(`${apiUrl}/api/auth/google`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    // Generate a mock token (replace with actual token generation in production)
+    const mockToken = `mock-jwt-token-${Date.now()}`;
+    
+    // Return successful response
+    return NextResponse.json(
+      {
+        token: mockToken,
+        user: {
+          id: `user-${Date.now()}`,
+          email,
+          name,
+          role: 'USER',
+          profilePicture: picture
+        }
       },
-      body: JSON.stringify({
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture,
-        googleId: userInfo.sub,
-      }),
-    });
-
-    if (!authResponse.ok) {
-      const errorData = await authResponse.json();
-      return NextResponse.json(
-        { error: errorData.error || 'Authentication failed' },
-        { status: authResponse.status, headers: corsHeaders }
-      );
-    }
-
-    const data = await authResponse.json();
-    return NextResponse.json(data, { headers: corsHeaders });
+      { 
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        } 
+      }
+    );
 
   } catch (error) {
-    console.error('Google auth error:', error);
+    console.error('Unexpected error in Google auth route:', error);
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500, headers: corsHeaders }
+      { 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : 'Unknown error' 
+      },
+      { 
+        status: 500, 
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        } 
+      }
     );
   }
 } 

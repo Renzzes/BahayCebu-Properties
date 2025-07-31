@@ -158,49 +158,70 @@ const Navbar: React.FC = () => {
         Swal.showLoading();
       },
       didOpen: () => {
-        handleLoginRequest(values);
+        handleLoginRequest(values.email, values.password);
       }
     });
   };
 
-  const handleLoginRequest = async (values: z.infer<typeof loginSchema>) => {
+  const handleLoginRequest = async (email: string, password: string) => {
     try {
-      // Use the same pattern as signup - get API URL from environment or fallback
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000';
-      console.log('Making login request to:', `${apiUrl}/api/auth/login`);
+      console.log('Attempting login with email:', email);
+      
+      // Use Vercel API URL for production
+      const apiUrl = import.meta.env.PROD 
+        ? 'https://bahay-cebu-properties-oh2od6o5k-rences-projects-f8660086.vercel.app'
+        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      
+      const loginEndpoint = `${apiUrl}/api/auth/login`;
+      console.log('Login endpoint:', loginEndpoint);
 
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
+      const response = await fetch(loginEndpoint, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
         },
-        body: JSON.stringify(values)
+        body: JSON.stringify({ email, password }),
       });
 
-      // First, get the response as text to handle non-JSON responses
-      const responseText = await res.text();
-      console.log('Raw server response:', responseText);
-      
+      console.log('Login response status:', response.status);
+
+      // Read response as text first for debugging
+      const responseText = await response.text();
+      console.log('Raw login response:', responseText);
+
+      // Try to parse as JSON
       let data;
       try {
         data = JSON.parse(responseText);
-        console.log('Parsed server response:', data);
       } catch (e) {
-        console.error('Failed to parse response as JSON:', e);
-        throw new Error('Invalid response from server. Please check if the server is running.');
+        console.error('Failed to parse login response as JSON:', e);
+        console.error('Response text:', responseText);
+        throw new Error('Invalid response from server. Please try again.');
       }
 
-      if (!res.ok) {
-        throw new Error(data.error || data.message || 'Login failed');
+      if (!response.ok) {
+        console.error('Login failed:', data);
+        throw new Error(data.error || 'Login failed');
       }
 
-      // Store the JWT token
+      console.log('Login successful:', data);
+
+      // Store the token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Update the user state
+      setInitialUserData({
+        name: data.user.name,
+        email: data.user.email,
+        profilePicture: data.user.profilePicture
+      });
       setToken(data.token);
 
-      // Close loading alert
-      Swal.close();
-      
+      // Close the modal
+      setIsAuthDialogOpen(false);
+      navigate('/admin');
+
       // Show success message
       await Swal.fire({
         icon: 'success',
@@ -209,19 +230,16 @@ const Navbar: React.FC = () => {
         timer: 1500,
         showConfirmButton: false,
         timerProgressBar: true,
-        willClose: () => {
-          setIsAuthDialogOpen(false);
-          navigate('/admin');
-        }
       });
-    } catch (err: unknown) {
-      console.error('Login error:', err);
+
+    } catch (error) {
+      console.error('Login error:', error);
       Swal.fire({
         icon: 'error',
         title: 'Login Failed',
-        text: err instanceof Error ? err.message : 'An unknown error occurred.',
-        timer: 1500,
-        showConfirmButton: false
+        text: error instanceof Error ? error.message : "An error occurred during login",
+        timer: 3000,
+        showConfirmButton: true
       });
       loginForm.reset();
     }
@@ -262,7 +280,10 @@ const Navbar: React.FC = () => {
         passwordLength: values.password.length
       });
 
-      const res = await fetch('http://localhost:4000/api/auth/signup', {
+      const apiUrl = import.meta.env.PROD 
+        ? 'https://bahaycebu-properties.com'  // Use your actual production domain
+        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -442,170 +463,87 @@ const Navbar: React.FC = () => {
     }
   };
 
-  const handleGoogleSuccess = async (codeResponse: CodeResponse) => {
+  const handleGoogleSuccess = async (response: { access_token: string }) => {
     try {
-      console.log('Starting Google login process...');
-      console.log('Code response:', codeResponse);
+      console.log('Google login response:', response);
       
-      // Show loading state
-      Swal.fire({
-        title: 'Logging in...',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
-      });
-
-      // Get the base URL from environment variable or fallback to window.location.origin
-      const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-      console.log('API Base URL:', baseUrl);
-      console.log('Redirect URI:', import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`);
-
-      // First, exchange code for tokens
-      console.log('Exchanging code for tokens...');
-      const tokenEndpoint = `${baseUrl}/api/auth/google/token`;
-      console.log('Token endpoint:', tokenEndpoint);
-
-      const tokenResponse = await fetch(tokenEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          code: codeResponse.code,
-          redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`
-        })
-      });
-
-      console.log('Token response status:', tokenResponse.status);
-      console.log('Token response headers:', Object.fromEntries(tokenResponse.headers.entries()));
-
-      // Read the response as text first
-      const tokenText = await tokenResponse.text();
-      console.log('Raw token response:', tokenText);
-
-      // Try to parse as JSON
-      let tokenData;
-      try {
-        tokenData = JSON.parse(tokenText);
-      } catch (e) {
-        console.error('Failed to parse token response as JSON:', e);
-        console.error('Response text:', tokenText);
-        throw new Error(`Invalid response from token endpoint. Server might be down or returning HTML instead of JSON.`);
-      }
-
-      if (!tokenResponse.ok) {
-        console.error('Token response error:', tokenData);
-        throw new Error(tokenData.error || `Token exchange failed with status ${tokenResponse.status}`);
-      }
-
-      if (!tokenData.access_token) {
-        console.error('No access token in response:', tokenData);
-        throw new Error('No access token received from Google');
-      }
-
-      // Now get user info from Google
-      console.log('Getting user info from Google...');
-      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`
-        }
-      });
-
-      if (!userInfoResponse.ok) {
-        const errorText = await userInfoResponse.text();
-        console.error('Google user info error:', errorText);
-        throw new Error('Failed to get user info from Google');
-      }
-
+      // Get user info from Google
+      const userInfoResponse = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${response.access_token}`);
       const userInfo = await userInfoResponse.json();
       console.log('Google user info:', userInfo);
 
-      // Test Vercel API accessibility first
-      console.log('Testing Vercel API accessibility...');
-      const testResponse = await fetch('https://bahaycebu-properties.vercel.app/api/health');
-      console.log('Health check status:', testResponse.status);
-      const testText = await testResponse.text();
-      console.log('Health check response:', testText);
-
-      // Call the Vercel API with user info
-      console.log('Calling Vercel API...');
-      const isProduction = import.meta.env.PROD;
-      let authEndpoint = isProduction 
-        ? 'https://bahaycebu-properties.vercel.app/api/auth/google'
-        : `${baseUrl}/api/auth/google`;
+      // Call the Vercel API route for user authentication
+      console.log('Calling Vercel API route...');
+      const apiUrl = import.meta.env.PROD 
+        ? 'https://bahaycebu-properties.com'  // Use your actual production domain
+        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      const authEndpoint = `${apiUrl}/api/auth/google`;
       console.log('Auth endpoint:', authEndpoint);
 
-      let authResponse = await fetch(authEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      let authResponse;
+      try {
+        const requestBody = {
           email: userInfo.email,
           name: userInfo.name,
           picture: userInfo.picture,
           googleId: userInfo.sub
-        })
-      });
+        };
 
-      // If Vercel API fails, try the local API as fallback
-      if (!authResponse.ok && isProduction) {
-        console.log('Vercel API failed, trying local API as fallback...');
-        authEndpoint = `${baseUrl}/api/auth/google`;
-        console.log('Fallback auth endpoint:', authEndpoint);
-        
+        console.log('Request body:', JSON.stringify(requestBody));
+
         authResponse = await fetch(authEndpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            email: userInfo.email,
-            name: userInfo.name,
-            picture: userInfo.picture,
-            googleId: userInfo.sub
-          })
+          body: JSON.stringify(requestBody)
         });
+        console.log('Backend API call completed');
+        console.log('Response status:', authResponse.status);
+        console.log('Response URL:', authResponse.url);
+        console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()));
+      } catch (error) {
+        console.error('Backend API call failed:', error);
+        throw error;
       }
 
-      console.log('Auth response status:', authResponse.status);
-      console.log('Auth response headers:', Object.fromEntries(authResponse.headers.entries()));
-
-      // Read the response as text first
-      const userText = await authResponse.text();
-      console.log('Raw auth response:', userText);
-      console.log('Response status:', authResponse.status);
-      console.log('Response headers:', Object.fromEntries(authResponse.headers.entries()));
-
-      // Try to parse as JSON
-      let userData;
-      try {
-        userData = JSON.parse(userText);
-      } catch (e) {
-        console.error('Failed to parse auth response as JSON:', e);
-        console.error('Response text:', userText);
-        console.error('Response URL:', authResponse.url);
-        throw new Error(`Invalid response from auth endpoint. Server might be down or returning HTML instead of JSON. Response: ${userText.substring(0, 200)}...`);
-      }
+      // Read the response as text first for debugging
+      const responseText = await authResponse.text();
+      console.log('Raw response text:', responseText);
+      console.log('Response text length:', responseText.length);
+      console.log('Response text starts with:', responseText.substring(0, 100));
 
       if (!authResponse.ok) {
-        console.error('Auth response error:', userData);
-        throw new Error(userData.error || `Authentication failed with status ${authResponse.status}`);
+        console.error('Auth response not ok:', authResponse.status, responseText);
+        throw new Error(`Authentication failed: ${authResponse.status} - ${responseText.substring(0, 200)}`);
       }
 
-      console.log('Successfully got user data:', userData);
+      // Try to parse as JSON
+      let authData;
+      try {
+        authData = JSON.parse(responseText);
+        console.log('Auth data received:', authData);
+      } catch (parseError) {
+        console.error('Failed to parse response as JSON:', parseError);
+        console.error('Response text:', responseText);
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}`);
+      }
 
-      // Store user data
+      // Store the token and user data
+      localStorage.setItem('token', authData.token);
+      localStorage.setItem('user', JSON.stringify(authData.user));
+
+      // Update the user state
       setInitialUserData({
-        name: userData.user.name,
-        email: userData.user.email,
-        profilePicture: userData.user.profilePicture
+        name: authData.user.name,
+        email: authData.user.email,
+        profilePicture: authData.user.profilePicture
       });
+      setToken(authData.token);
 
-      // Store the token
-      setToken(userData.token);
+      // Close the modal
+      setIsAuthDialogOpen(false);
+      navigate('/admin');
 
       // Show success message
       await Swal.fire({
@@ -617,25 +555,16 @@ const Navbar: React.FC = () => {
         timerProgressBar: true,
       });
 
-      // Close dialog and redirect
-      setIsAuthDialogOpen(false);
-      navigate('/admin');
-
-          } catch (error) {
-        console.error('Google login error:', error);
-        console.error('Error details:', {
-          name: error instanceof Error ? error.name : 'Unknown',
-          message: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : 'No stack trace'
-        });
-        Swal.fire({
-          icon: 'error',
-          title: 'Login Failed',
-          text: error instanceof Error ? error.message : 'Failed to login with Google. Please try again.',
-          timer: 3000,
-          showConfirmButton: true
-        });
-      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Login Failed',
+        text: error instanceof Error ? error.message : "An error occurred during login",
+        timer: 3000,
+        showConfirmButton: true
+      });
+    }
   };
 
   const googleLogin = useGoogleLogin({
@@ -650,8 +579,7 @@ const Navbar: React.FC = () => {
         showConfirmButton: true
       });
     },
-    flow: 'auth-code',
-    redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
+    flow: 'implicit',
     scope: 'email profile openid',
   });
 

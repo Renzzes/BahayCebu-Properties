@@ -1,9 +1,9 @@
 import { prisma } from '../_db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import type { Request, Response } from 'express';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: Request, res: Response) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Google auth API called:', {
     method: req.method,
     headers: req.headers,

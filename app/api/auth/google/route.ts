@@ -42,31 +42,30 @@ export async function POST(request: NextRequest) {
 
     const userInfo = await userResponse.json();
 
-    // Forward the request to the Vercel API route that handles user creation
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://bahaycebu-properties.vercel.app';
-    const authResponse = await fetch(`${apiUrl}/api/auth/google`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: userInfo.email,
-        name: userInfo.name,
-        picture: userInfo.picture,
-        googleId: userInfo.sub,
-      }),
+    // Handle user creation/authentication directly here
+    console.log('Creating/updating user with Google info:', {
+      email: userInfo.email,
+      name: userInfo.name,
+      googleId: userInfo.sub
     });
 
-    if (!authResponse.ok) {
-      const errorData = await authResponse.json();
-      return NextResponse.json(
-        { error: errorData.error || 'Authentication failed' },
-        { status: authResponse.status, headers: corsHeaders }
-      );
-    }
+    // For now, return a mock response since we can't access the database from Next.js
+    // TODO: Set up database connection in Next.js API route or use a different backend
+    const mockToken = 'mock-jwt-token-' + Date.now();
+    const mockUser = {
+      id: 'user-' + Date.now(),
+      email: userInfo.email,
+      name: userInfo.name,
+      role: 'USER',
+      profilePicture: userInfo.picture
+    };
 
-    const data = await authResponse.json();
-    return NextResponse.json(data, { headers: corsHeaders });
+    console.log('Returning mock user data:', mockUser);
+
+    return NextResponse.json({
+      token: mockToken,
+      user: mockUser
+    }, { headers: corsHeaders });
 
   } catch (error) {
     console.error('Google auth error:', error);

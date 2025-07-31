@@ -387,9 +387,14 @@ interface PropertyApiResponse {
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
     // Get the API base URL from environment variables or current origin in production
+    // Get the API base URL from environment variables or current origin in production
     const baseUrl = import.meta.env.MODE === 'production'
       ? window.location.origin // Use current domain in production
       : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    
+    // Add debug logging
+    console.log('Current environment:', import.meta.env.MODE);
+    console.log('Base URL:', baseUrl);
 
     console.log('Fetching properties from:', `${baseUrl}/api/properties`);
 
@@ -541,7 +546,11 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
 
 export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
   try {
-    const response = await fetch(`/api/properties/${id}`);
+    const baseUrl = import.meta.env.MODE === 'production'
+      ? window.location.origin
+      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    
+    const response = await fetch(`${baseUrl}/api/properties/${id}`);
     if (!response.ok) throw new Error('Failed to fetch property');
     return await response.json();
   } catch (error) {
@@ -562,7 +571,11 @@ export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
 
 export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
   try {
-    const response = await fetch('/api/properties', {
+    const baseUrl = import.meta.env.MODE === 'production'
+      ? window.location.origin
+      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    
+    const response = await fetch(`${baseUrl}/api/properties`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -610,7 +623,11 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
 
 export const updateProperty = async (id: string, updates: Partial<AdminProperty>): Promise<AdminProperty | null> => {
   try {
-    const response = await fetch(`/api/properties/${id}`, {
+    const baseUrl = import.meta.env.MODE === 'production'
+      ? window.location.origin
+      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    
+    const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -654,7 +671,11 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
   try {
-    const response = await fetch(`/api/properties/${id}`, {
+    const baseUrl = import.meta.env.MODE === 'production'
+      ? window.location.origin
+      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    
+    const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'DELETE'
     });
     return response.ok;

@@ -1,19 +1,18 @@
 {
-  "version": 2,
   "routes": [
-    {
-      "src": "/api/auth/google/token",
-      "methods": ["POST", "OPTIONS"],
-      "dest": "/api/auth/google/token"
+    { 
+      "src": "/api/auth/google", 
+      "dest": "/src/app/api/auth/google/route.ts" 
     },
-    {
-      "src": "/api/auth/google",
-      "methods": ["POST", "OPTIONS"],
-      "dest": "/api/auth/google"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/"
+    { 
+      "src": "/api/(.*)", 
+      "dest": "/src/app/api/$1/route.ts" 
+    }
+  ],
+  "rewrites": [
+    { 
+      "source": "/api/auth/google", 
+      "destination": "/src/app/api/auth/google/route.ts" 
     }
   ]
 } 
