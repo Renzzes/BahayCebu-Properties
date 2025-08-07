@@ -167,10 +167,9 @@ const Navbar: React.FC = () => {
     try {
       console.log('Attempting login with email:', email);
       
-      // Use Vercel API URL for production
-      const apiUrl = import.meta.env.PROD 
-        ? 'https://bahay-cebu-properties-oh2od6o5k-rences-projects-f8660086.vercel.app'
-        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      // Select API base URL: prefer VITE_API_URL if provided
+      const apiUrl = (import.meta.env.VITE_API_URL 
+        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
       
       const loginEndpoint = `${apiUrl}/api/auth/login`;
       console.log('Login endpoint:', loginEndpoint);
@@ -280,9 +279,8 @@ const Navbar: React.FC = () => {
         passwordLength: values.password.length
       });
 
-      const apiUrl = import.meta.env.PROD 
-        ? 'https://bahaycebu-properties.com'  // Use your actual production domain
-        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      const apiUrl = (import.meta.env.VITE_API_URL 
+        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
       const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: { 
@@ -472,11 +470,10 @@ const Navbar: React.FC = () => {
       const userInfo = await userInfoResponse.json();
       console.log('Google user info:', userInfo);
 
-      // Call the Vercel API route for user authentication
-      console.log('Calling Vercel API route...');
-      const apiUrl = import.meta.env.PROD 
-        ? 'https://bahaycebu-properties.com'  // Use your actual production domain
-        : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+      // Call backend API route for user authentication
+      console.log('Calling backend API route...');
+      const apiUrl = (import.meta.env.VITE_API_URL 
+        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
       const authEndpoint = `${apiUrl}/api/auth/google`;
       console.log('Auth endpoint:', authEndpoint);
 

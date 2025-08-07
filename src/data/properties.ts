@@ -386,11 +386,11 @@ interface PropertyApiResponse {
 // Property management functions
 export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
-    // Get the API base URL from environment variables or current origin in production
-    // Get the API base URL from environment variables or current origin in production
-    const baseUrl = import.meta.env.MODE === 'production'
-      ? window.location.origin // Use current domain in production
-      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    // Determine API base URL.
+    // Prefer VITE_API_URL if provided (for cases where frontend and API are on different domains).
+    // Fallbacks: localhost in development, current origin otherwise.
+    const baseUrl = (import.meta.env.VITE_API_URL
+      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
     
     // Add debug logging
     console.log('Current environment:', import.meta.env.MODE);
@@ -546,9 +546,8 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
 
 export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.MODE === 'production'
-      ? window.location.origin
-      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    const baseUrl = (import.meta.env.VITE_API_URL
+      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`);
     if (!response.ok) throw new Error('Failed to fetch property');
@@ -571,9 +570,8 @@ export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
 
 export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.MODE === 'production'
-      ? window.location.origin
-      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    const baseUrl = (import.meta.env.VITE_API_URL
+      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
     
     const response = await fetch(`${baseUrl}/api/properties`, {
       method: 'POST',
@@ -623,9 +621,8 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
 
 export const updateProperty = async (id: string, updates: Partial<AdminProperty>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.MODE === 'production'
-      ? window.location.origin
-      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    const baseUrl = (import.meta.env.VITE_API_URL
+      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'PUT',
