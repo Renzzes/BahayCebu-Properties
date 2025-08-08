@@ -82,10 +82,6 @@ export default defineConfig(({ command, mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
-    // Add environment variable handling
-    define: {
-      'process.env.NODE_ENV': JSON.stringify(mode),
-      'process.env.VITE_API_URL': JSON.stringify(apiUrl),
-    },
+    // Vite automatically handles import.meta.env variables
   }
 });
