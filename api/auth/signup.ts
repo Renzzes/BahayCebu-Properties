@@ -27,14 +27,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    // Test database connection first
+    try {
+      await prisma.$connect();
+      console.log('Database connection successful in signup handler');
+    } catch (dbError) {
+      console.error('Database connection error in signup handler:', dbError);
+      return res.status(500).json({ 
+        error: "Server Error", 
+        message: "Database connection failed",
+        details: dbError instanceof Error ? dbError.message : "Unknown database error"
+      });
+    }
+
     // Check if any users exist
+    console.log('Checking user count...');
     const userCount = await prisma.user.count();
+    console.log('User count:', userCount);
     
     // If users exist, check if registration is enabled
     if (userCount > 0) {
+      console.log('Checking if registration is enabled...');
       const config = await prisma.systemConfig.findUnique({
         where: { id: 'singleton' }
       });
+      console.log('SystemConfig:', config);
 
       if (!config?.registrationEnabled) {
         console.log('Registration is disabled');
@@ -91,17 +108,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
   } catch (err: unknown) {
-    console.error('Signup error:', err);
+    console.error('=== Signup Error ===');
+    console.error('Error details:', err);
+    console.error('Email attempted:', req.body?.email);
+    
+    if (err instanceof Error) {
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
+    }
 
+    // Check for Prisma-specific errors
     if (typeof err === 'object' && err !== null && 'code' in err) {
-      if (err.code === "P2002") {
-        return res.status(400).json({ error: "Email already exists" });
+      const prismaErr = err as { code: string, meta?: any };
+      console.error('Prisma error code:', prismaErr.code);
+      console.error('Prisma error meta:', prismaErr.meta);
+      
+      if (prismaErr.code === "P2002") {
+        return res.status(400).json({ 
+          error: "Validation Error",
+          message: "Email already exists",
+          code: "P2002"
+        });
       }
     }
 
     return res.status(500).json({ 
-      error: "Signup failed", 
+      error: "Server Error", 
+      message: "Signup failed",
       details: err instanceof Error ? err.message : "Unknown error occurred" 
     });
   }
-} 
+}

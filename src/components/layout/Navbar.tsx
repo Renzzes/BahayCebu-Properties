@@ -168,8 +168,8 @@ const Navbar: React.FC = () => {
       console.log('Attempting login with email:', email);
       
       // Select API base URL: prefer VITE_API_URL if provided
-      const apiUrl = (import.meta.env.VITE_API_URL 
-        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
+      const apiUrl = (process.env.VITE_API_URL
+        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
       
       const loginEndpoint = `${apiUrl}/api/auth/login`;
       console.log('Login endpoint:', loginEndpoint);
@@ -279,8 +279,10 @@ const Navbar: React.FC = () => {
         passwordLength: values.password.length
       });
 
-      const apiUrl = (import.meta.env.VITE_API_URL 
-        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
+      const apiUrl = (process.env.VITE_API_URL
+        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
+      console.log('Using API URL:', apiUrl);
+      
       const res = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: { 
@@ -291,23 +293,31 @@ const Navbar: React.FC = () => {
           name: values.name,
           email: values.email,
           password: values.password,
-        })
+        }),
+        credentials: 'include'
       });
 
+      console.log('Response status:', res.status);
+      console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+      
       let data;
       const responseText = await res.text();
       console.log('Raw server response:', responseText);
+      console.log('Response text length:', responseText.length);
       
       try {
         data = JSON.parse(responseText);
         console.log('Parsed server response:', data);
       } catch (e) {
         console.error('Failed to parse response as JSON:', e);
-        throw new Error('Invalid response from server');
+        console.error('Response text:', responseText);
+        throw new Error(`Invalid response from server: ${responseText.substring(0, 100)}`);
       }
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || 'Signup failed');
+        const errorMessage = data.message || data.error || 'Signup failed';
+        console.error('Signup error response:', errorMessage, data);
+        throw new Error(errorMessage);
       }
 
       // Save user data
@@ -472,8 +482,8 @@ const Navbar: React.FC = () => {
 
       // Call backend API route for user authentication
       console.log('Calling backend API route...');
-      const apiUrl = (import.meta.env.VITE_API_URL 
-        || (import.meta.env.DEV ? 'http://localhost:4000' : window.location.origin));
+      const apiUrl = (process.env.VITE_API_URL
+        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
       const authEndpoint = `${apiUrl}/api/auth/google`;
       console.log('Auth endpoint:', authEndpoint);
 
@@ -582,11 +592,11 @@ const Navbar: React.FC = () => {
 
   // Update debug logging
   useEffect(() => {
-    console.log('Environment:', import.meta.env.MODE);
+    console.log('Environment:', process.env.NODE_ENV);
     console.log('Google OAuth Config:', {
-      redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
-      mode: import.meta.env.MODE,
-      baseUrl: import.meta.env.VITE_API_URL || window.location.origin
+      redirect_uri: process.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
+      mode: process.env.NODE_ENV,
+      baseUrl: process.env.VITE_API_URL || window.location.origin
     });
   }, []);
 
