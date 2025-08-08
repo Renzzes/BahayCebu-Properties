@@ -25,6 +25,7 @@ const corsOptions = {
     "http://localhost:8081",
     process.env.PRODUCTION_URL || "",
     "https://bahaycebu-properties.com",
+    "https://api.bahaycebu-properties.com",
     "https://bahaycebu-properties.vercel.app"
   ].filter((url): url is string => !!url),
   credentials: true,
@@ -33,13 +34,22 @@ const corsOptions = {
   exposedHeaders: ['Set-Cookie'],
 };
 
+// Helper function to apply CORS headers to all responses
+const applyCorsHeaders = (res: Response) => {
+  res.header('Access-Control-Allow-Origin', 'https://bahaycebu-properties.com');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  return res;
+};
+
 app.use(cors(corsOptions));
 app.use(express.json());
 
 // Public routes
 app.get('/api/ping', (_req, res) => {
   console.log('PING received on backend!');
-  res.send('pong from backend');
+  return applyCorsHeaders(res).send('pong from backend');
 });
 
 app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -47,7 +57,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 	console.log("Login attempt with email:", email);
 	
 	if (!email || !password) {
-		return res.status(400).json({ 
+		return applyCorsHeaders(res).status(400).json({ 
 			error: "Validation Error",
 			message: "Email and password are required"
 		});
@@ -60,7 +70,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 			console.log('Database connection successful');
 		} catch (dbError) {
 			console.error('Database connection error:', dbError);
-			return res.status(500).json({ 
+			return applyCorsHeaders(res).status(500).json({ 
 				error: "Server Error",
 				message: "Unable to connect to the database. Please try again later."
 			});
@@ -70,20 +80,29 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 		
 		if (!user) {
 			console.log("User not found:", email);
-			return res.status(401).json({ 
+			return applyCorsHeaders(res).status(401).json({ 
+			error: "Authentication Error",
+			message: "Invalid email or password"
+		});
+		}
+
+		// Check if user has a password (might be null for OAuth users)
+		if (!user.password) {
+			console.log("User has no password (OAuth user):", email);
+			return applyCorsHeaders(res).status(401).json({ 
 				error: "Authentication Error",
 				message: "Invalid email or password"
 			});
 		}
-
+		
 		const isValid = await bcrypt.compare(password, user.password);
 		
 		if (!isValid) {
 			console.log("Invalid password for user:", email);
-			return res.status(401).json({ 
-				error: "Authentication Error",
-				message: "Invalid email or password"
-			});
+			return applyCorsHeaders(res).status(401).json({ 
+			error: "Authentication Error",
+			message: "Invalid email or password"
+		});
 		}
 
 		console.log("Login successful for user:", email);
@@ -100,7 +119,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 			{ expiresIn: '24h' }
 		);
 
-		return res.status(200).json({
+		return applyCorsHeaders(res).status(200).json({
 			token,
 			user: {
 				id: user.id,
@@ -112,7 +131,7 @@ app.post("/api/auth/login", async (req: Request, res: Response) => {
 		});
 	} catch (err) {
 		console.error("Login error:", err);
-		return res.status(500).json({
+		return applyCorsHeaders(res).status(500).json({
 			error: "Server Error",
 			message: "Failed to process login. Please try again later.",
 			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
@@ -143,7 +162,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 	
 	if (!name) {
 		console.log("Validation failed: Name is required");
-		return res.status(400).json({ 
+		return applyCorsHeaders(res).status(400).json({ 
 			error: "Validation Error",
 			message: "Name is required"
 		});
@@ -151,7 +170,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 
 	if (!email) {
 		console.log("Validation failed: Email is required");
-		return res.status(400).json({ 
+		return applyCorsHeaders(res).status(400).json({ 
 			error: "Validation Error",
 			message: "Email is required"
 		});
@@ -159,7 +178,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 
 	if (!password) {
 		console.log("Validation failed: Password is required");
-		return res.status(400).json({ 
+		return applyCorsHeaders(res).status(400).json({ 
 			error: "Validation Error",
 			message: "Password is required"
 		});
@@ -167,7 +186,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 
 	if (password.length < 8) {
 		console.log("Validation failed: Password too short");
-		return res.status(400).json({ 
+		return applyCorsHeaders(res).status(400).json({ 
 			error: "Validation Error",
 			message: "Password must be at least 8 characters long"
 		});
@@ -181,7 +200,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 			console.log("Database connection successful");
 		} catch (dbError) {
 			console.error("Database connection error:", dbError);
-			return res.status(500).json({
+			return applyCorsHeaders(res).status(500).json({
 				error: "Server Error",
 				message: "Database connection failed"
 			});
@@ -198,7 +217,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 
 		if (existingUser) {
 			console.log("Signup failed: Email already exists");
-			return res.status(400).json({ 
+			return applyCorsHeaders(res).status(400).json({ 
 				error: "Validation Error",
 				message: "An account with this email already exists"
 			});
@@ -213,7 +232,7 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 		});
 		console.log("User created successfully:", { id: user.id, email: user.email, name: user.name });
 
-		return res.status(201).json({ 
+		return applyCorsHeaders(res).status(201).json({ 
 			id: user.id, 
 			email: user.email, 
 			name: user.name,
@@ -230,13 +249,13 @@ app.post("/api/auth/signup", async (req: Request, res: Response) => {
 		}
 
 		if (typeof err === 'object' && err !== null && 'code' in err && err.code === "P2002") {
-			return res.status(400).json({ 
-				error: "Validation Error",
-				message: "An account with this email already exists"
-			});
+			return applyCorsHeaders(res).status(400).json({ 
+			error: "Validation Error",
+			message: "An account with this email already exists"
+		});
 		}
 
-		return res.status(500).json({ 
+		return applyCorsHeaders(res).status(500).json({ 
 			error: "Server Error",
 			message: "Failed to create account. Please try again later.",
 			details: process.env.NODE_ENV === 'development' ? (err instanceof Error ? err.message : "Unknown error") : undefined
@@ -257,7 +276,7 @@ app.post("/api/auth/google/token", async (req: Request, res: Response) => {
     const { code } = req.body;
 
     if (!code) {
-      return res.status(400).json({ 
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Authorization code is required" 
       });
     }
@@ -280,17 +299,17 @@ app.post("/api/auth/google/token", async (req: Request, res: Response) => {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.json();
       console.error('Token exchange error:', errorData);
-      return res.status(400).json({ 
+      return applyCorsHeaders(res).status(400).json({ 
         error: 'Failed to exchange code for token',
         details: errorData
       });
     }
 
     const tokens = await tokenResponse.json();
-    return res.json(tokens);
+    return applyCorsHeaders(res).json(tokens);
   } catch (error) {
     console.error('Token exchange error:', error);
-    return res.status(500).json({ 
+    return applyCorsHeaders(res).status(500).json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -304,7 +323,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
     console.log("Google auth request:", { email, name, googleId });
 
     if (!email || !name || !googleId) {
-      return res.status(400).json({ 
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Validation Error",
         message: "Email, name, and googleId are required"
       });
@@ -316,7 +335,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       console.log("Database connection successful");
     } catch (dbError) {
       console.error("Database connection error:", dbError);
-      return res.status(500).json({
+      return applyCorsHeaders(res).status(500).json({
         error: "Server Error",
         message: "Database connection failed"
       });
@@ -354,7 +373,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       console.log("Updated existing user with Google auth:", user.email);
     }
 
-    return res.status(200).json({
+    return applyCorsHeaders(res).status(200).json({
       id: user.id,
       email: user.email,
       name: user.name,
@@ -362,7 +381,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Google auth error:", error);
-    return res.status(500).json({ 
+    return applyCorsHeaders(res).status(500).json({ 
       error: "Authentication failed",
       message: error instanceof Error ? error.message : "Unknown error occurred"
     });
@@ -379,9 +398,9 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
 app.get("/api/properties", authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		const properties = await prisma.property.findMany();
-		return res.json(properties);
+		return applyCorsHeaders(res).json(properties);
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Server error", details: err });
 	}
 });
 
@@ -390,10 +409,10 @@ app.get("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: 
 		const property = await prisma.property.findUnique({
 			where: { id: req.params.id },
 		});
-		if (!property) return res.status(404).json({ error: "Not found" });
-		return res.json(property);
+		if (!property) return applyCorsHeaders(res).status(404).json({ error: "Not found" });
+		return applyCorsHeaders(res).json(property);
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Server error", details: err });
 	}
 });
 
@@ -404,7 +423,7 @@ app.post("/api/properties", authenticateToken, async (req: AuthRequest, res: Res
 		
 		// Validate required fields
 		if (!data.title || !data.location || !data.description) {
-			return res.status(400).json({ 
+			return applyCorsHeaders(res).status(400).json({ 
 				error: "Missing required fields: title, location, or description" 
 			});
 		}
@@ -434,9 +453,9 @@ app.post("/api/properties", authenticateToken, async (req: AuthRequest, res: Res
 			}
 		});
 
-		return res.status(201).json(property);
+		return applyCorsHeaders(res).status(201).json(property);
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Server error", details: err });
 	}
 });
 
@@ -486,18 +505,18 @@ app.put("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: 
 				buildingFeatures: buildingFeatures || []
 			}
 		});
-		return res.json(property);
+		return applyCorsHeaders(res).json(property);
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Server error", details: err });
 	}
 });
 
 app.delete("/api/properties/:id", authenticateToken, async (req: AuthRequest, res: Response) => {
 	try {
 		await prisma.property.delete({ where: { id: req.params.id } });
-		return res.status(204).end();
+		return applyCorsHeaders(res).status(204).end();
 	} catch (err) {
-		return res.status(500).json({ error: "Server error", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Server error", details: err });
 	}
 });
 
@@ -527,14 +546,14 @@ app.get("/api/test-create-user", async (_req: Request, res: Response) => {
 		});
 		
 		console.log("Test user created:", user);
-		return res.json({ 
+		return applyCorsHeaders(res).json({ 
 			message: "Test user created", 
 			user: { id: user.id, email: user.email, name: user.name },
 			password: "password123" // Only returned for this test route
 		});
 	} catch (err) {
 		console.error("Test user creation error:", err);
-		return res.status(500).json({ error: "Failed to create test user", details: err });
+		return applyCorsHeaders(res).status(500).json({ error: "Failed to create test user", details: err });
 	}
 });
 
@@ -548,14 +567,14 @@ app.get("/api/test-db", async (_req: Request, res: Response) => {
     const userCount = await prisma.user.count();
     console.log("User count:", userCount);
     
-    return res.json({ 
+    return applyCorsHeaders(res).json({ 
       status: "success",
       message: "Database connection successful",
       userCount 
     });
   } catch (error) {
     console.error("Database connection test failed:", error);
-    return res.status(500).json({ 
+    return applyCorsHeaders(res).status(500).json({ 
       status: "error",
       message: "Database connection failed",
       error: error instanceof Error ? error.message : "Unknown error"
@@ -571,10 +590,12 @@ app.get("/api/agents", async (_req: Request, res: Response) => {
 		const agents = await prisma.agent.findMany({
 			orderBy: { createdAt: 'desc' }
 		});
-		return res.json(agents);
+		// Apply CORS headers to the response
+		return applyCorsHeaders(res).json(agents);
 	} catch (error) {
 		console.error('Error fetching agents:', error);
-		return res.status(500).json({ error: 'Failed to fetch agents' });
+		// Apply CORS headers to the error response
+		return applyCorsHeaders(res).status(500).json({ error: 'Failed to fetch agents' });
 	}
 });
 
@@ -584,10 +605,12 @@ app.get("/api/agents/latest", async (_req: Request, res: Response) => {
 		const agent = await prisma.agent.findFirst({
 			orderBy: { createdAt: 'desc' }
 		});
-		return res.json(agent);
+		// Apply CORS headers to the response
+		return applyCorsHeaders(res).json(agent);
 	} catch (error) {
 		console.error('Error fetching latest agent:', error);
-		return res.status(500).json({ error: 'Failed to fetch latest agent' });
+		// Apply CORS headers to the error response
+		return applyCorsHeaders(res).status(500).json({ error: 'Failed to fetch latest agent' });
 	}
 });
 
@@ -610,7 +633,8 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 		} = req.body;
 		
 		if (!name || !title || !email || !phone || !location || !description) {
-			return res.status(400).json({ error: 'Missing required fields' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(400).json({ error: 'Missing required fields' });
 		}
 
 		const agent = await prisma.agent.create({
@@ -634,13 +658,16 @@ app.post("/api/agents", async (req: Request, res: Response) => {
 			}
 		});
 		
-		return res.json(agent);
+		// Apply CORS headers to the response
+		return applyCorsHeaders(res).json(agent);
 	} catch (error) {
 		console.error('Error creating agent:', error);
 		if (error instanceof Error && error.message.includes('Unique constraint')) {
-			return res.status(400).json({ error: 'An agent with this email already exists' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(400).json({ error: 'An agent with this email already exists' });
 		}
-		return res.status(500).json({ error: 'Failed to create agent' });
+		// Apply CORS headers to the error response
+		return applyCorsHeaders(res).status(500).json({ error: 'Failed to create agent' });
 	}
 });
 
@@ -656,7 +683,8 @@ app.put("/api/agents/:id", async (req: Request, res: Response) => {
 
 		if (!name || !title || !email || !phone || !location || !description) {
 			console.log('Missing required fields:', { name, title, email, phone, location, description });
-			return res.status(400).json({ error: 'Missing required fields' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(400).json({ error: 'Missing required fields' });
 		}
 
 		// Check if the agent exists first
@@ -666,7 +694,8 @@ app.put("/api/agents/:id", async (req: Request, res: Response) => {
 
 		if (!existingAgentCheck) {
 			console.log('Agent not found:', req.params.id);
-			return res.status(404).json({ error: 'Agent not found' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(404).json({ error: 'Agent not found' });
 		}
 
 		// Check if email is being changed and if it's already in use by another agent
@@ -681,7 +710,8 @@ app.put("/api/agents/:id", async (req: Request, res: Response) => {
 
 		if (existingAgent) {
 			console.log('Email already in use:', email);
-			return res.status(400).json({ error: 'An agent with this email already exists' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(400).json({ error: 'An agent with this email already exists' });
 		}
 
 		// Prepare the update data with proper type handling
@@ -713,7 +743,8 @@ app.put("/api/agents/:id", async (req: Request, res: Response) => {
 		});
 
 		console.log('Agent updated successfully:', JSON.stringify(updatedAgent, null, 2));
-		return res.json(updatedAgent);
+		// Apply CORS headers to the response
+		return applyCorsHeaders(res).json(updatedAgent);
 	} catch (error) {
 		console.error('Detailed error in update agent:', error);
 		if (error instanceof Error) {
@@ -721,9 +752,11 @@ app.put("/api/agents/:id", async (req: Request, res: Response) => {
 			console.error('Error stack:', error.stack);
 		}
 		if (error instanceof Error && error.message.includes('Record to update not found')) {
-			return res.status(404).json({ error: 'Agent not found' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(404).json({ error: 'Agent not found' });
 		}
-		return res.status(500).json({ error: 'Failed to update agent', details: error instanceof Error ? error.message : 'Unknown error' });
+		// Apply CORS headers to the error response
+		return applyCorsHeaders(res).status(500).json({ error: 'Failed to update agent', details: error instanceof Error ? error.message : 'Unknown error' });
 	}
 });
 
@@ -733,13 +766,16 @@ app.delete("/api/agents/:id", async (req: Request, res: Response) => {
 		const agent = await prisma.agent.delete({
 			where: { id: req.params.id }
 		});
-		return res.json(agent);
+		// Apply CORS headers to the response
+		return applyCorsHeaders(res).json(agent);
 	} catch (error) {
 		console.error('Error deleting agent:', error);
 		if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
-			return res.status(404).json({ error: 'Agent not found' });
+			// Apply CORS headers to the error response
+			return applyCorsHeaders(res).status(404).json({ error: 'Agent not found' });
 		}
-		return res.status(500).json({ error: 'Failed to delete agent' });
+		// Apply CORS headers to the error response
+		return applyCorsHeaders(res).status(500).json({ error: 'Failed to delete agent' });
 	}
 });
 
@@ -754,7 +790,8 @@ app.post("/api/auth/request-otp", async (req: Request, res: Response) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Validation Error",
         message: "Email is required"
       });
@@ -763,7 +800,8 @@ app.post("/api/auth/request-otp", async (req: Request, res: Response) => {
     // Check if user exists
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      return res.status(404).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(404).json({ 
         error: "Not Found",
         message: "No account found with this email"
       });
@@ -785,12 +823,14 @@ app.post("/api/auth/request-otp", async (req: Request, res: Response) => {
     // Send OTP via email
     await gmailService.sendOTP(email, otp);
 
-    return res.status(200).json({
+    // Apply CORS headers to the response
+    return applyCorsHeaders(res).status(200).json({
       message: "OTP has been sent to your email"
     });
   } catch (error) {
     console.error("Request OTP error:", error);
-    return res.status(500).json({ 
+    // Apply CORS headers to the error response
+    return applyCorsHeaders(res).status(500).json({ 
       error: "Server Error",
       message: "Failed to send OTP"
     });
@@ -803,7 +843,8 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Validation Error",
         message: "Email and OTP are required"
       });
@@ -815,7 +856,8 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     }) as User & { otp: string | null; otpExpiry: Date | null };
 
     if (!user || user.otp !== otp || !user.otpExpiry || user.otpExpiry < new Date()) {
-      return res.status(400).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Invalid OTP",
         message: "Invalid or expired OTP"
       });
@@ -837,13 +879,15 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
       { expiresIn: '5m' }
     );
 
-    return res.status(200).json({
+    // Apply CORS headers to the response
+    return applyCorsHeaders(res).status(200).json({
       message: "OTP verified successfully",
       tempToken
     });
   } catch (error) {
     console.error("Verify OTP error:", error);
-    return res.status(500).json({ 
+    // Apply CORS headers to the error response
+    return applyCorsHeaders(res).status(500).json({ 
       error: "Server Error",
       message: "Failed to verify OTP"
     });
@@ -856,7 +900,8 @@ app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
     const { tempToken, newPassword } = req.body;
 
     if (!tempToken || !newPassword) {
-      return res.status(400).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Validation Error",
         message: "Token and new password are required"
       });
@@ -876,20 +921,23 @@ app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
       }
     });
 
-    return res.status(200).json({
+    // Apply CORS headers to the response
+    return applyCorsHeaders(res).status(200).json({
       message: "Password has been reset successfully"
     });
   } catch (error) {
     console.error("Reset password error:", error);
     
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(400).json({ 
+      // Apply CORS headers to the error response
+      return applyCorsHeaders(res).status(400).json({ 
         error: "Invalid Token",
         message: "Password reset token is invalid"
       });
     }
 
-    return res.status(500).json({ 
+    // Apply CORS headers to the error response
+    return applyCorsHeaders(res).status(500).json({ 
       error: "Server Error",
       message: "Failed to reset password"
     });

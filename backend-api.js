@@ -9,8 +9,10 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ['https://bahaycebu-properties.com', 'http://localhost:8081'],
-  credentials: true
+  origin: ['https://bahaycebu-properties.com', 'https://api.bahaycebu-properties.com', 'http://localhost:8081'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
 app.use(express.json());
 
@@ -160,6 +162,17 @@ app.post('/api/auth/login', async (req, res) => {
       }
 
       const user = users[0];
+      
+      // Check if user has a password (might be null for OAuth users)
+      if (!user.password) {
+        console.log('User has no password (OAuth user):', email);
+        await connection.end();
+        return res.status(401).json({
+          error: 'Invalid credentials',
+          message: 'Invalid email or password'
+        });
+      }
+      
       const isValid = await bcrypt.compare(password, user.password);
 
       if (!isValid) {
@@ -225,4 +238,4 @@ app.listen(PORT, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-module.exports = app; 
+module.exports = app;
