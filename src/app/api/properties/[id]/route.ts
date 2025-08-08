@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { PropertyUpdateInput, UnitTypeDetail } from '@/types/api';
 
+// Configure CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+  'Access-Control-Allow-Credentials': 'true',
+  'Content-Type': 'application/json'
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
+
 interface JsonUnitTypeDetail {
   type?: string;
   floorArea?: string;
@@ -56,7 +69,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     });
 
     if (!property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Property not found' }, { status: 404, headers: corsHeaders });
     }
 
     // Parse JSON fields
@@ -92,10 +105,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       featuresAmenities,
       lifestyleCommunity,
       additionalInformation
-    });
+    }, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching property:', error);
-    return NextResponse.json({ error: 'Failed to fetch property' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch property' }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -162,10 +175,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       data: propertyData
     });
 
-    return NextResponse.json(updatedProperty);
+    return NextResponse.json(updatedProperty, { headers: corsHeaders });
   } catch (error) {
     console.error('Error updating property:', error);
-    return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update property' }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -174,9 +187,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     await prisma.property.delete({
       where: { id: params.id }
     });
-    return new NextResponse(null, { status: 204 });
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
   } catch (error) {
     console.error('Error deleting property:', error);
-    return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete property' }, { status: 500, headers: corsHeaders });
   }
-} 
+}

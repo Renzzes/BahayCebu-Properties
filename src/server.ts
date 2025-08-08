@@ -373,11 +373,25 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
       console.log("Updated existing user with Google auth:", user.email);
     }
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        email: user.email,
+        name: user.name
+      },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '24h' }
+    );
+
     return applyCorsHeaders(res).status(200).json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      profilePicture: user.profilePicture
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        profilePicture: user.profilePicture
+      }
     });
   } catch (error) {
     console.error("Google auth error:", error);

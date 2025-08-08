@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+// Configure CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+  'Access-Control-Allow-Credentials': 'true',
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
+
 // Configure API route options
 export const config = {
   api: {
@@ -15,12 +27,12 @@ export async function GET() {
     const agents = await prisma.agent.findMany({
       orderBy: { createdAt: 'desc' }
     });
-    return NextResponse.json(agents);
+    return NextResponse.json(agents, { headers: corsHeaders });
   } catch (error) {
     console.error('Error fetching agents:', error);
     return NextResponse.json(
       { error: 'Failed to fetch agents' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -34,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (contentLength > 50 * 1024 * 1024) {
       return NextResponse.json(
         { error: 'Request body too large' },
-        { status: 413 }
+        { status: 413, headers: corsHeaders }
       );
     }
 
@@ -44,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!data.name || !data.title || !data.email || !data.phone || !data.location || !data.description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -69,18 +81,18 @@ export async function POST(request: NextRequest) {
       }
     });
     
-    return NextResponse.json(agent);
+    return NextResponse.json(agent, { headers: corsHeaders });
   } catch (error) {
     console.error('Error creating agent:', error);
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
         { error: 'An agent with this email already exists' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     return NextResponse.json(
       { error: 'Failed to create agent' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

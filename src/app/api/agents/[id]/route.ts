@@ -2,6 +2,19 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
+// Configure CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+  'Access-Control-Allow-Credentials': 'true',
+  'Content-Type': 'application/json'
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { headers: corsHeaders });
+}
+
 export const config = {
   api: {
     bodyParser: {
@@ -23,7 +36,7 @@ export async function PUT(
     if (!data.name || !data.title || !data.email || !data.phone || !data.location || !data.description) {
       return NextResponse.json(
         { error: 'Missing required fields' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -41,7 +54,7 @@ export async function PUT(
       if (existingAgent) {
         return NextResponse.json(
           { error: 'An agent with this email already exists' },
-          { status: 400 }
+          { status: 400, headers: corsHeaders }
         );
       }
     }
@@ -76,7 +89,7 @@ export async function PUT(
     });
     
     console.log('Updated agent:', agent);
-    return NextResponse.json(agent);
+    return NextResponse.json(agent, { headers: corsHeaders });
   } catch (error) {
     console.error('Detailed error updating agent:', error);
     if (error instanceof Error) {
@@ -87,18 +100,18 @@ export async function PUT(
     if (error instanceof Error && error.message.includes('Record to update not found')) {
       return NextResponse.json(
         { error: 'Agent not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'An agent with this email already exists' },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to update agent' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -111,18 +124,18 @@ export async function DELETE(
     const agent = await prisma.agent.delete({
       where: { id: params.id }
     });
-    return NextResponse.json(agent);
+    return NextResponse.json(agent, { headers: corsHeaders });
   } catch (error) {
     console.error('Error deleting agent:', error);
     if (error instanceof Error && error.message.includes('Record to delete does not exist')) {
       return NextResponse.json(
         { error: 'Agent not found' },
-        { status: 404 }
+        { status: 404, headers: corsHeaders }
       );
     }
     return NextResponse.json(
       { error: 'Failed to delete agent' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

@@ -27,7 +27,8 @@ interface JsonUnitTypeDetail {
 }
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json',
@@ -161,7 +162,7 @@ export async function POST(request: NextRequest) {
     if (!data.title || !data.location || !data.description) {
       return NextResponse.json({
         error: 'Missing required fields: title, location, or description'
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders });
     }
 
     // Ensure proper data types and handle unitTypeDetails
@@ -219,10 +220,10 @@ export async function POST(request: NextRequest) {
       data: propertyData
     });
 
-    return NextResponse.json(property, { status: 201 });
+    return NextResponse.json(property, { status: 201, headers: corsHeaders });
   } catch (error) {
     console.error('Error creating property:', error);
-    return NextResponse.json({ error: 'Failed to create property' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create property' }, { status: 500, headers: corsHeaders });
   }
 }
 
@@ -242,7 +243,7 @@ export async function PUT(request: NextRequest) {
     if (!data.id) {
       return NextResponse.json({
         error: 'Property ID is required'
-      }, { status: 400 });
+      }, { status: 400, headers: corsHeaders });
     }
 
     const propertyData = {
@@ -299,9 +300,9 @@ export async function PUT(request: NextRequest) {
       data: propertyData
     });
 
-    return NextResponse.json(property);
+    return NextResponse.json(property, { headers: corsHeaders });
   } catch (error) {
     console.error('Error updating property:', error);
-    return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update property' }, { status: 500, headers: corsHeaders });
   }
-} 
+}
