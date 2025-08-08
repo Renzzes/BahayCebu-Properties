@@ -1,5 +1,8 @@
-// Load environment variables from .env.api file
-require('dotenv').config({ path: './.env.api' });
+// Load environment variables from appropriate file based on environment
+const fs = require('fs');
+const envFile = fs.existsSync('./.env.api.local') ? './.env.api.local' : './.env.api';
+require('dotenv').config({ path: envFile });
+console.log(`Loading environment from: ${envFile}`);
 
 // Import and run the API server
 require('./backend-api.js');

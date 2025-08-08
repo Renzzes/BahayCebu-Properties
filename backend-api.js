@@ -3,13 +3,14 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mysql = require('mysql2/promise');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ['https://bahaycebu-properties.com', 'https://api.bahaycebu-properties.com', 'http://localhost:8081'],
+  origin: ['https://bahaycebu-properties.com', 'https://api.bahaycebu-properties.com', 'http://localhost:8081', 'http://localhost:8082'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
@@ -61,16 +62,17 @@ app.post('/api/auth/google', async (req, res) => {
       let user;
       if (users.length === 0) {
         // Create new user
+        const userId = crypto.randomUUID();
         const randomPassword = Math.random().toString(36).slice(-8);
         const hashedPassword = await bcrypt.hash(randomPassword, 10);
         
         const [result] = await connection.execute(
-          'INSERT INTO User (email, name, password, profilePicture, googleId, role, createdAt, lastLogin) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())',
-          [email, name, hashedPassword, picture, googleId, 'USER']
+          'INSERT INTO User (id, email, name, password, profilePicture, googleId, role, createdAt, lastLogin) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+          [userId, email, name, hashedPassword, picture, googleId, 'USER']
         );
         
         user = {
-          id: result.insertId,
+          id: userId,
           email,
           name,
           role: 'USER',
@@ -282,13 +284,14 @@ app.post('/api/auth/signup', async (req, res) => {
       const hashedPassword = await bcrypt.hash(password, 10);
       
       // Create new user
+      const userId = crypto.randomUUID();
       const [result] = await connection.execute(
-        'INSERT INTO User (email, name, password, role, createdAt, lastLogin) VALUES (?, ?, ?, ?, NOW(), NOW())',
-        [email, name, hashedPassword, 'USER']
+        'INSERT INTO User (id, email, name, password, role, createdAt, lastLogin) VALUES (?, ?, ?, ?, ?, NOW(), NOW())',
+        [userId, email, name, hashedPassword, 'USER']
       );
       
       const user = {
-        id: result.insertId,
+        id: userId,
         email,
         name,
         role: 'USER'
@@ -338,6 +341,64 @@ app.post('/api/auth/signup', async (req, res) => {
     return res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to process signup'
+    });
+  }
+});
+
+// Properties endpoints
+app.get('/api/properties', async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    try {
+      const [properties] = await connection.execute(
+        'SELECT * FROM Property ORDER BY createdAt DESC'
+      );
+      
+      await connection.end();
+      return res.json(properties);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to fetch properties'
+      });
+    }
+  } catch (error) {
+    console.error('Properties fetch error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch properties'
+    });
+  }
+});
+
+// Agents endpoints
+app.get('/api/agents', async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    try {
+      const [agents] = await connection.execute(
+        'SELECT * FROM Agent ORDER BY name ASC'
+      );
+      
+      await connection.end();
+      return res.json(agents);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to fetch agents'
+      });
+    }
+  } catch (error) {
+    console.error('Agents fetch error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch agents'
     });
   }
 });
