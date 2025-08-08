@@ -15,18 +15,30 @@ const dbName = process.env.DB_NAME || 'u547531148_bahaycebu_db';
 const dbUrl = process.env.DATABASE_URL || 
   `mysql://${dbUser}:${dbPassword}@${dbHost}:3306/${dbName}`;
 
-console.log('Database components:', { dbHost, dbUser, dbName });
+// Only log non-sensitive connection info in development
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Database components:', { 
+    dbHost, 
+    dbUser, 
+    dbName,
+    hasPassword: !!dbPassword,
+    connectionSource: process.env.DATABASE_URL ? 'env' : 'constructed'
+  });
+}
 
 export const prisma = global.prisma || new PrismaClient({
   datasources: {
     db: {
       url: dbUrl
     }
-  }
+  },
+  log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error']
 });
 
-// Log database connection information
-console.log('Prisma Client initialized with DATABASE_URL:', dbUrl);
+// Only log in development
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Prisma Client initialized successfully');
+}
 
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;

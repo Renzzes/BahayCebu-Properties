@@ -3,12 +3,18 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log('Google auth API called:', {
-    method: req.method,
-    headers: req.headers,
-    body: req.body
-  });
+  // Only log in development
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Received Google auth request:', {
+      method: req.method,
+      hasBody: !!req.body,
+      hasGoogleId: !!req.body?.googleId
+    });
+  }
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -28,12 +34,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { email, name, picture, googleId } = req.body;
-    console.log('Request body:', { email, name, googleId, picture: picture ? 'present' : 'missing' });
+    const { googleId, email, name, picture } = req.body;
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Processing Google auth for:', { googleId, email, name });
+    }
+
+    // Validate input
+    const validationErrors: string[] = [];
+    
+    if (!googleId) {
+      validationErrors.push('Google ID is required');
+    } else if (typeof googleId !== 'string' || googleId.trim().length === 0) {
+      validationErrors.push('Invalid Google ID format');
+    }
+    
+    if (!email) {
+      validationErrors.push('Email is required');
+    } else if (!EMAIL_REGEX.test(email)) {
+      validationErrors.push('Please provide a valid email address');
+    }
+    
+    if (!name) {
+      validationErrors.push('Name is required');
+    } else if (name.trim().length < 2) {
+      validationErrors.push('Name must be at least 2 characters long');
+    }
+    
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ 
+        error: "Validation failed",
+        message: validationErrors.join(', '),
+        details: validationErrors
+      });
+    }
+    
+    // Sanitize inputs
+    const sanitizedEmail = email.toLowerCase().trim();
+    const sanitizedName = name.trim();
+    const sanitizedGoogleId = googleId.trim();
 
     // Check if user exists
     let user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: sanitizedEmail },
     });
 
     if (!user) {
@@ -58,11 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       user = await prisma.user.create({
         data: {
-          email,
-          name,
+          email: sanitizedEmail,
+          name: sanitizedName,
           password: hashedPassword,
           profilePicture: picture,
-          googleId,
+          googleId: sanitizedGoogleId,
         },
       });
 
@@ -81,25 +124,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
       // Update existing user's Google info
       user = await prisma.user.update({
-        where: { email },
+        where: { email: sanitizedEmail },
         data: {
-          googleId,
+          googleId: sanitizedGoogleId,
           profilePicture: picture || user.profilePicture,
         },
       });
     }
 
-    // Generate JWT token
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('User processed:', { id: user.id, email: user.email, name: user.name });
+    }
+
+    // Validate JWT secret exists
+    if (!process.env.JWT_SECRET) {
+      console.error('JWT_SECRET is not configured');
+      return res.status(500).json({ 
+        error: "Server configuration error",
+        message: "Authentication service is not properly configured."
+      });
+    }
+
+    // Generate JWT token with more secure payload
     const token = jwt.sign(
       { 
         userId: user.id, 
         email: user.email,
-        name: user.name,
-        role: user.role
+        iat: Math.floor(Date.now() / 1000)
       },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
+      process.env.JWT_SECRET,
+      { 
+        expiresIn: '7d',
+        issuer: 'bahaycebu-properties',
+        audience: 'bahaycebu-users'
+      }
     );
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('JWT token generated for user:', user.id);
+    }
 
     // Update last login
     await prisma.user.update({
@@ -107,18 +170,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       data: { lastLogin: new Date() }
     });
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Google auth successful for user:', { id: user.id, email: user.email });
+    }
+
     return res.status(200).json({
+      message: "Google authentication successful",
       token,
       user: {
         id: user.id,
         email: user.email,
         name: user.name,
         role: user.role,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        lastLogin: new Date().toISOString()
       }
     });
-  } catch (error) {
-    console.error('Google auth error:', error);
-    return res.status(500).json({ error: 'Authentication failed' });
+  } catch (error: any) {
+    // Log errors appropriately
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Google auth error:', error);
+    } else {
+      console.error('Google auth error occurred:', error.message);
+    }
+    
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      return res.status(503).json({ 
+        error: "Service temporarily unavailable",
+        message: "Unable to connect to the database. Please try again later."
+      });
+    }
+    
+    // Check for JWT errors
+    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+      return res.status(500).json({ 
+        error: "Authentication service error",
+        message: "There was an issue with the authentication service. Please try again."
+      });
+    }
+    
+    // Check if it's a duplicate email error (shouldn't happen with Google auth, but just in case)
+    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+      return res.status(409).json({ 
+        error: "Account conflict",
+        message: "An account with this email address already exists with different authentication method."
+      });
+    }
+    
+    // Check for other Prisma errors
+    if (error.code?.startsWith('P')) {
+      return res.status(400).json({ 
+        error: "Database error",
+        message: "There was an issue processing your request. Please try again."
+      });
+    }
+    
+    return res.status(500).json({ 
+      error: "Internal server error",
+      message: "An unexpected error occurred during Google authentication. Please try again later."
+    });
   }
-} 
+}

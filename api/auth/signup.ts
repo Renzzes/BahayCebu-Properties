@@ -2,20 +2,21 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import { prisma } from '../_db';
 import bcrypt from 'bcryptjs';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Log the database connection details being used
-  console.log('Database connection config:', {
-    host: process.env.DB_HOST ? 'Using process.env.DB_HOST' : 'Using fallback host',
-    user: process.env.DB_USER ? 'Using process.env.DB_USER' : 'Using fallback user',
-    dbName: process.env.DB_NAME ? 'Using process.env.DB_NAME' : 'Using fallback dbName',
-    isProduction: process.env.NODE_ENV === 'production',
-  });
+// Email validation regex
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  console.log('Received signup request:', {
-    method: req.method,
-    headers: req.headers,
-    body: req.body
-  });
+// Password validation regex (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Only log in development
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('Received signup request:', {
+      method: req.method,
+      hasBody: !!req.body,
+      email: req.body?.email || 'not provided'
+    });
+  }
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -68,29 +69,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { email, password, name } = req.body;
-    console.log('Processing signup for:', { email, name });
-
-    // Validate input
-    if (!email || !password || !name) {
-      console.log('Missing required fields:', { email: !!email, password: !!password, name: !!name });
-      return res.status(400).json({ 
-        error: "Missing required fields",
-        details: {
-          email: !email ? "Email is required" : null,
-          password: !password ? "Password is required" : null,
-          name: !name ? "Name is required" : null
-        }
-      });
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Processing signup for:', { email, name });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Password hashed successfully');
+    // Validate input
+    const validationErrors: string[] = [];
+    
+    if (!email) {
+      validationErrors.push('Email is required');
+    } else if (!EMAIL_REGEX.test(email)) {
+      validationErrors.push('Please provide a valid email address');
+    }
+    
+    if (!password) {
+      validationErrors.push('Password is required');
+    } else if (!PASSWORD_REGEX.test(password)) {
+      validationErrors.push('Password must be at least 8 characters long and contain at least one uppercase letter, one lowercase letter, and one number');
+    }
+    
+    if (!name) {
+      validationErrors.push('Name is required');
+    } else if (name.trim().length < 2) {
+      validationErrors.push('Name must be at least 2 characters long');
+    }
+    
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ 
+        error: "Validation failed",
+        message: validationErrors.join(', '),
+        details: validationErrors
+      });
+    }
+    
+    // Sanitize inputs
+    const sanitizedEmail = email.toLowerCase().trim();
+    const sanitizedName = name.trim();
+
+    const hashedPassword = await bcrypt.hash(password, 12); // Increased salt rounds for better security
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('Password hashed successfully');
+    }
 
     const user = await prisma.user.create({
       data: { 
-        email, 
+        email: sanitizedEmail, 
         password: hashedPassword, 
-        name 
+        name: sanitizedName 
       },
     });
 
@@ -107,7 +134,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('First user registered - disabled further registrations');
     }
 
-    console.log('User created successfully:', { id: user.id, email: user.email });
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('User created successfully:', { id: user.id, email: user.email });
+    }
 
     return res.status(201).json({ 
       id: user.id, 
@@ -115,35 +144,41 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name: user.name 
     });
 
-  } catch (err: unknown) {
-    console.error('=== Signup Error ===');
-    console.error('Error details:', err);
-    console.error('Email attempted:', req.body?.email);
+  } catch (error: any) {
+    // Log errors appropriately
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Signup error:', error);
+    } else {
+      console.error('Signup error occurred:', error.message);
+    }
     
-    if (err instanceof Error) {
-      console.error('Error message:', err.message);
-      console.error('Error stack:', err.stack);
+    // Check if it's a database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
+      return res.status(503).json({ 
+        error: "Service temporarily unavailable",
+        message: "Unable to connect to the database. Please try again later."
+      });
     }
-
-    // Check for Prisma-specific errors
-    if (typeof err === 'object' && err !== null && 'code' in err) {
-      const prismaErr = err as { code: string, meta?: any };
-      console.error('Prisma error code:', prismaErr.code);
-      console.error('Prisma error meta:', prismaErr.meta);
-      
-      if (prismaErr.code === "P2002") {
-        return res.status(400).json({ 
-          error: "Validation Error",
-          message: "Email already exists",
-          code: "P2002"
-        });
-      }
+    
+    // Check if it's a duplicate email error
+    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+      return res.status(409).json({ 
+        error: "Email already exists",
+        message: "An account with this email address already exists. Please use a different email or try logging in."
+      });
     }
-
+    
+    // Check for other Prisma errors
+    if (error.code?.startsWith('P')) {
+      return res.status(400).json({ 
+        error: "Database error",
+        message: "There was an issue processing your request. Please try again."
+      });
+    }
+    
     return res.status(500).json({ 
-      error: "Server Error", 
-      message: "Signup failed",
-      details: err instanceof Error ? err.message : "Unknown error occurred" 
+      error: "Internal server error",
+      message: "An unexpected error occurred. Please try again later."
     });
   }
 }
