@@ -232,6 +232,116 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+// Signup endpoint
+app.post('/api/auth/signup', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Email, password, and name are required'
+      });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: 'Invalid email',
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Invalid password',
+        message: 'Password must be at least 6 characters long'
+      });
+    }
+
+    const connection = await createConnection();
+    
+    try {
+      // Check if user already exists
+      const [existingUsers] = await connection.execute(
+        'SELECT * FROM User WHERE email = ?',
+        [email]
+      );
+
+      if (existingUsers.length > 0) {
+        await connection.end();
+        return res.status(409).json({
+          error: 'User already exists',
+          message: 'An account with this email already exists'
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create new user
+      const [result] = await connection.execute(
+        'INSERT INTO User (email, name, password, role, createdAt, lastLogin) VALUES (?, ?, ?, ?, NOW(), NOW())',
+        [email, name, hashedPassword, 'USER']
+      );
+      
+      const user = {
+        id: result.insertId,
+        email,
+        name,
+        role: 'USER'
+      };
+      
+      console.log('Created new user via signup:', user);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        {
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role
+        },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
+      await connection.end();
+
+      return res.status(201).json({
+        message: 'User created successfully',
+        token,
+        user
+      });
+
+    } catch (dbError) {
+      console.error('Database error during signup:', dbError);
+      await connection.end();
+      
+      if (dbError.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({
+          error: 'User already exists',
+          message: 'An account with this email already exists'
+        });
+      }
+      
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to create user account'
+      });
+    }
+
+  } catch (error) {
+    console.error('Signup error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to process signup'
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Backend API server running on port ${PORT}`);
