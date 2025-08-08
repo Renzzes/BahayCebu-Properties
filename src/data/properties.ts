@@ -1,4 +1,5 @@
 import { UnitTypeDetail } from '@/types/admin';
+import { getApiBaseUrl } from '@/config/api';
 
 // Unit type enum
 export type UnitType = 
@@ -389,7 +390,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     // Determine API base URL.
     // Prefer VITE_API_URL if provided (for cases where frontend and API are on different domains).
     // Use production API URL since we're using Vercel serverless functions
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = getApiBaseUrl();
     
     // Add debug logging
     console.log('Current environment:', import.meta.env.MODE);
@@ -545,7 +546,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
 
 export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = getApiBaseUrl();
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`);
     if (!response.ok) throw new Error('Failed to fetch property');
@@ -568,7 +569,7 @@ export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
 
 export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = getApiBaseUrl();
     
     const response = await fetch(`${baseUrl}/api/properties`, {
       method: 'POST',
@@ -618,7 +619,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
 
 export const updateProperty = async (id: string, updates: Partial<AdminProperty>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = getApiBaseUrl();
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'PUT',
@@ -664,7 +665,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
   try {
-    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    const baseUrl = getApiBaseUrl();
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'DELETE'

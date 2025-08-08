@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from '@/config/api';
+
 export interface Agent {
   id: string;
   name: string;
@@ -25,20 +27,10 @@ interface ApiAgent extends Omit<Agent, 'createdAt' | 'updatedAt'> {
   updatedAt: string;
 }
 
-function getBaseUrl(): string {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  if (import.meta.env.DEV) {
-    return 'http://localhost:4000';
-  }
-  
-  return window.location.origin;
-}
+// Removed local getBaseUrl function - now using getApiBaseUrl from config
 
 export async function getAgent(): Promise<Agent> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agents`);
   if (!response.ok) {
     throw new Error('Failed to fetch agent');
@@ -54,7 +46,7 @@ export async function getAgent(): Promise<Agent> {
 }
 
 export async function getAllAgentsPublic(): Promise<Agent[]> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agents`);
   if (!response.ok) {
     throw new Error('Failed to fetch agents');
@@ -68,7 +60,7 @@ export async function getAllAgentsPublic(): Promise<Agent[]> {
 }
 
 export async function getAllAgents(): Promise<Agent[]> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agents`);
   if (!response.ok) {
     throw new Error('Failed to fetch agents');
@@ -86,7 +78,7 @@ export async function updateAgent(id: string, data: Partial<Agent>): Promise<Age
     console.log('Sending update request for agent:', id);
     console.log('Update data:', JSON.stringify(data, null, 2));
 
-    const baseUrl = getBaseUrl();
+    const baseUrl = getApiBaseUrl();
     const response = await fetch(`${baseUrl}/api/agents/${id}`, {
       method: 'PUT',
       headers: {
@@ -125,7 +117,7 @@ export async function updateAgent(id: string, data: Partial<Agent>): Promise<Age
 }
 
 export async function createAgent(data: Omit<Agent, 'id' | 'createdAt' | 'updatedAt'>): Promise<Agent> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agents`, {
     method: 'POST',
     headers: {
@@ -148,7 +140,7 @@ export async function createAgent(data: Omit<Agent, 'id' | 'createdAt' | 'update
 }
 
 export async function deleteAgent(id: string): Promise<Agent> {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agents/${id}`, {
     method: 'DELETE',
   });

@@ -1,8 +1,12 @@
 export const getApiBaseUrl = () => {
+  // In development, use relative paths to leverage Vite proxy
+  if (import.meta.env.DEV) {
+    return '';
+  }
+  // In production, use the API URL or current origin
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Use current origin for both development and production
   return window.location.origin;
 };
 
