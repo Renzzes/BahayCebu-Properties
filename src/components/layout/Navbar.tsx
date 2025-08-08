@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Menu, X, LogIn, Eye, EyeOff, Mail } from 'lucide-react';
+import { getApiBaseUrl } from '@/config/api';
 import ContactModal from '@/components/ui/ContactModal';
 import {
   Dialog,
@@ -167,9 +168,8 @@ const Navbar: React.FC = () => {
     try {
       console.log('Attempting login with email:', email);
       
-      // Select API base URL: prefer VITE_API_URL if provided
-      const apiUrl = (process.env.VITE_API_URL
-        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
+      // Use proper API configuration
+      const apiUrl = getApiBaseUrl();
       
       const loginEndpoint = `${apiUrl}/api/auth/login`;
       console.log('Login endpoint:', loginEndpoint);
@@ -279,8 +279,7 @@ const Navbar: React.FC = () => {
         passwordLength: values.password.length
       });
 
-      const apiUrl = (process.env.VITE_API_URL
-        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
+      const apiUrl = getApiBaseUrl();
       console.log('Using API URL:', apiUrl);
       
       const res = await fetch(`${apiUrl}/api/auth/signup`, {
@@ -367,7 +366,7 @@ const Navbar: React.FC = () => {
 
   const onForgotPasswordSubmit = async (values: z.infer<typeof forgotPasswordSchema>) => {
     try {
-      const response = await fetch('/api/auth/request-otp', {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/request-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
@@ -402,7 +401,7 @@ const Navbar: React.FC = () => {
 
   const onOTPSubmit = async (values: z.infer<typeof otpSchema>) => {
     try {
-      const response = await fetch('/api/auth/verify-otp', {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -433,7 +432,7 @@ const Navbar: React.FC = () => {
 
   const onResetPasswordSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
     try {
-      const response = await fetch('/api/auth/reset-password', {
+      const response = await fetch(`${getApiBaseUrl()}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -482,8 +481,7 @@ const Navbar: React.FC = () => {
 
       // Call backend API route for user authentication
       console.log('Calling backend API route...');
-      const apiUrl = (process.env.VITE_API_URL
-        || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : window.location.origin));
+      const apiUrl = getApiBaseUrl();
       const authEndpoint = `${apiUrl}/api/auth/google`;
       console.log('Auth endpoint:', authEndpoint);
 
