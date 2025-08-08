@@ -8,7 +8,7 @@ declare global {
 // Create Prisma client with explicit database URL
 const dbHost = process.env.DB_HOST || '153.92.15.81';
 const dbUser = process.env.DB_USER || 'u547531148_bahaycebu_admi';
-const dbPassword = process.env.DB_PASSWORD || 'Bahaycebu123';
+const dbPassword = process.env.DB_PASSWORD || 'Bahaycebu-1231';
 const dbName = process.env.DB_NAME || 'u547531148_bahaycebu_db';
 
 // Construct database URL from individual components
