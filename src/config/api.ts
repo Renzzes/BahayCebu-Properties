@@ -1,6 +1,6 @@
 export const getApiBaseUrl = () => {
   if (import.meta.env.PROD) {
-    return 'https://bahay-cebu-properties.vercel.app';  // Use Vercel deployment for API routes
+    return 'https://bahay-cebu-properties-rences-projects-f8660086.vercel.app';  // Use Vercel deployment for API routes
   }
   // In development, use the Vercel dev server which serves API routes
   return 'http://localhost:4000';
