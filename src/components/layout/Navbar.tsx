@@ -590,11 +590,13 @@ const Navbar: React.FC = () => {
 
   // Update debug logging
   useEffect(() => {
-    console.log('Environment:', process.env.NODE_ENV);
+    console.log('Environment:', import.meta.env.MODE);
+    console.log('Production mode:', import.meta.env.PROD);
+    console.log('API Base URL:', getApiBaseUrl());
     console.log('Google OAuth Config:', {
-      redirect_uri: process.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
-      mode: process.env.NODE_ENV,
-      baseUrl: process.env.VITE_API_URL || window.location.origin
+      redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
+      mode: import.meta.env.MODE,
+      baseUrl: import.meta.env.VITE_API_URL || window.location.origin
     });
   }, []);
 
