@@ -12,10 +12,17 @@ export default defineConfig(({ command, mode }) => {
   
   console.log('Vite config - Environment:', mode);
   console.log('Vite config - API URL:', apiUrl);
+  console.log('Vite config - VITE_API_URL from env:', env.VITE_API_URL);
   
   return {
     base: '/',
     publicDir: 'public',
+    define: {
+      // Explicitly define environment variables for the build
+      'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
+      'import.meta.env.DEV': JSON.stringify(!isProduction),
+      'import.meta.env.PROD': JSON.stringify(isProduction)
+    },
     server: {
       host: "::",
       port: 8081,
