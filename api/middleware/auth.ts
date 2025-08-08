@@ -122,7 +122,6 @@ export function rateLimit(
 ): boolean {
   const clientIp = req.headers['x-forwarded-for'] as string || req.connection?.remoteAddress || 'unknown';
   const now = Date.now();
-  const windowStart = now - options.windowMs;
 
   // Clean up old entries
   for (const [ip, data] of rateLimitMap.entries()) {
