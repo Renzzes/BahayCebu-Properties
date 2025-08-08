@@ -8,7 +8,7 @@ export default defineConfig(({ command, mode }) => {
   
   // Get API URL from environment variables or use default
   // In production, use the current domain as the API URL
-  const apiUrl = env.VITE_API_URL || (isProduction ? 'https://bahaycebu-properties.com' : 'http://localhost:4000');
+  const apiUrl = env.VITE_API_URL || (isProduction ? 'https://bahaycebu-properties.com' : 'http://localhost:3001');
   
   console.log('Vite config - Environment:', mode);
   console.log('Vite config - API URL:', apiUrl);
