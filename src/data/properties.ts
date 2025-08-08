@@ -388,9 +388,8 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
   try {
     // Determine API base URL.
     // Prefer VITE_API_URL if provided (for cases where frontend and API are on different domains).
-    // Fallbacks: localhost in development, current origin otherwise.
-    const baseUrl = (import.meta.env.VITE_API_URL
-      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
+    // Use production API URL since we're using Vercel serverless functions
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
     
     // Add debug logging
     console.log('Current environment:', import.meta.env.MODE);
@@ -546,8 +545,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
 
 export const getPropertyById = async (id: string): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = (import.meta.env.VITE_API_URL
-      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`);
     if (!response.ok) throw new Error('Failed to fetch property');
@@ -570,8 +568,7 @@ export const getFeaturedProperties = async (): Promise<AdminProperty[]> => {
 
 export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpdated' | 'stats'>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = (import.meta.env.VITE_API_URL
-      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
     
     const response = await fetch(`${baseUrl}/api/properties`, {
       method: 'POST',
@@ -621,8 +618,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
 
 export const updateProperty = async (id: string, updates: Partial<AdminProperty>): Promise<AdminProperty | null> => {
   try {
-    const baseUrl = (import.meta.env.VITE_API_URL
-      || (import.meta.env.MODE === 'development' ? 'http://localhost:4000' : window.location.origin));
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'PUT',
@@ -668,9 +664,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
   try {
-    const baseUrl = import.meta.env.MODE === 'production'
-      ? window.location.origin
-      : (import.meta.env.VITE_API_URL || 'http://localhost:4000');
+    const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
     
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'DELETE'
@@ -943,4 +937,4 @@ export const BUILDING_FEATURES: BuildingFeature[] = [
   'On-Site Property Management Office',
   'Package Delivery Lockers',
   'Seismic-Resilient Structural Design'
-]; 
+];
