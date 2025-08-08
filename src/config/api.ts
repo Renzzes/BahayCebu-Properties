@@ -1,8 +1,9 @@
 export const getApiBaseUrl = () => {
   if (import.meta.env.PROD) {
-    return 'https://api.bahaycebu-properties.com';  // Use a dedicated API subdomain
+    return 'https://bahaycebu-properties.com';  // Use main domain for API routes
   }
-  return 'http://localhost:3000';  // Vercel dev server default port
+  // In development, use the Vercel dev server which serves API routes
+  return 'http://localhost:4000';
 };
 
 export const getBaseUrl = () => {
