@@ -7,8 +7,8 @@ export default defineConfig(({ command, mode }) => {
   const isProduction = mode === 'production';
   
   // Get API URL from environment variables or use default
-  // In production, use the current domain as the API URL
-  const apiUrl = env.VITE_API_URL || (isProduction ? 'https://bahaycebu-properties.com' : 'http://localhost:3001');
+  // In production, use the API subdomain as the fallback
+  const apiUrl = env.VITE_API_URL || (isProduction ? 'https://api.bahaycebu-properties.com' : 'http://localhost:4000');
   
   console.log('Vite config - Environment:', mode);
   console.log('Vite config - API URL:', apiUrl);
