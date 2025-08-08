@@ -594,9 +594,11 @@ const Navbar: React.FC = () => {
     console.log('Production mode:', import.meta.env.PROD);
     console.log('API Base URL:', getApiBaseUrl());
     console.log('Google OAuth Config:', {
-      redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/google/callback`,
+      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+      flow: 'implicit',
       mode: import.meta.env.MODE,
-      baseUrl: import.meta.env.VITE_API_URL || window.location.origin
+      baseUrl: import.meta.env.VITE_API_URL || window.location.origin,
+      note: 'Using implicit flow - no redirect URI needed'
     });
   }, []);
 
