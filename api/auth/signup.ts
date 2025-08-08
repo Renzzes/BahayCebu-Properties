@@ -3,6 +3,14 @@ import { prisma } from '../_db';
 import bcrypt from 'bcryptjs';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Log the database connection details being used
+  console.log('Database connection config:', {
+    host: process.env.DB_HOST ? 'Using process.env.DB_HOST' : 'Using fallback host',
+    user: process.env.DB_USER ? 'Using process.env.DB_USER' : 'Using fallback user',
+    dbName: process.env.DB_NAME ? 'Using process.env.DB_NAME' : 'Using fallback dbName',
+    isProduction: process.env.NODE_ENV === 'production',
+  });
+
   console.log('Received signup request:', {
     method: req.method,
     headers: req.headers,
