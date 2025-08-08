@@ -255,12 +255,12 @@ Ensure these environment variables are set in all deployment environments:
 JWT_SECRET=bahaycebu-jwt-secret-2024
 
 # Google OAuth Configuration
-GOOGLE_CLIENT_ID=897144997266-c4nm53c1080819oj00t282p7iq3ogesp.apps.googleusercontent.com
+GOOGLE_CLIENT_ID=897144997266-c4nm53c10808l9oj00t282p7iq3ogesp.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=G8C5PX-4PpfFHJ-PJ1L4CTjSZ9nONV1qxt8
 GOOGLE_REDIRECT_URI=https://bahaycebu-properties.com/auth/google/callback
 
 # Frontend Configuration
-VITE_GOOGLE_CLIENT_ID=897144997266-c4nm53c1080819oj00t282p7iq3ogesp.apps.googleusercontent.com
+VITE_GOOGLE_CLIENT_ID=897144997266-c4nm53c10808l9oj00t282p7iq3ogesp.apps.googleusercontent.com
 VITE_GOOGLE_REDIRECT_URI=https://bahaycebu-properties.com/auth/google/callback
 VITE_API_URL=https://api.bahaycebu-properties.com
 VITE_BASE_URL=https://bahaycebu-properties.com
