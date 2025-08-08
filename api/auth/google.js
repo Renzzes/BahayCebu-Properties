@@ -1,12 +1,11 @@
-import { prisma } from '../_db';
+import { prisma } from '../_db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Only log in development
   if (process.env.NODE_ENV !== 'production') {
     console.log('Received Google auth request:', {
@@ -18,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://bahaycebu-properties.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
@@ -41,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Validate input
-    const validationErrors: string[] = [];
+    const validationErrors = [];
     
     if (!googleId) {
       validationErrors.push('Google ID is required');
@@ -186,7 +185,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         lastLogin: new Date().toISOString()
       }
     });
-  } catch (error: any) {
+  } catch (error) {
     // Log errors appropriately
     if (process.env.NODE_ENV !== 'production') {
       console.error('Google auth error:', error);
@@ -198,37 +197,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'ETIMEDOUT') {
       return res.status(503).json({ 
         error: "Service temporarily unavailable",
-        message: "Unable to connect to the database. Please try again later."
+        message: "Database connection failed. Please try again later."
       });
     }
     
-    // Check for JWT errors
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
+    // Check for authentication errors
+    if (error.message && error.message.includes('Authentication failed')) {
       return res.status(500).json({ 
-        error: "Authentication service error",
-        message: "There was an issue with the authentication service. Please try again."
+        error: "Server Error",
+        message: "Database connection failed",
+        details: error.message
       });
     }
     
-    // Check if it's a duplicate email error (shouldn't happen with Google auth, but just in case)
-    if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+    // Check for validation errors from Prisma
+    if (error.code === 'P2002') {
       return res.status(409).json({ 
-        error: "Account conflict",
-        message: "An account with this email address already exists with different authentication method."
+        error: "Conflict",
+        message: "A user with this email already exists"
       });
     }
     
-    // Check for other Prisma errors
-    if (error.code?.startsWith('P')) {
-      return res.status(400).json({ 
-        error: "Database error",
-        message: "There was an issue processing your request. Please try again."
-      });
-    }
-    
+    // Generic server error
     return res.status(500).json({ 
       error: "Internal server error",
-      message: "An unexpected error occurred during Google authentication. Please try again later."
+      message: "An unexpected error occurred during Google authentication"
     });
   }
 }

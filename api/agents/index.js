@@ -1,7 +1,6 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from '../_db';
+import { prisma } from '../_db.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const agents = await prisma.agent.findMany({
@@ -68,4 +67,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Method not allowed
   return res.status(405).json({ error: "Method not allowed" });
-} 
+}

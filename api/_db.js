@@ -1,8 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 
 // Prevent multiple instances of Prisma Client in development
-declare global {
-  var prisma: PrismaClient | undefined;
+if (!global.prisma) {
+  global.prisma = undefined;
 }
 
 // Create Prisma client with explicit database URL
@@ -26,13 +26,14 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-export const prisma = global.prisma || new PrismaClient({
+const prisma = global.prisma || new PrismaClient({
   datasources: {
     db: {
-      url: dbUrl
+      url: process.env.DATABASE_URL || 
+           "mysql://u547531148_bahaycebu_admi:Bahaycebu123@153.92.15.81:3306/u547531148_bahaycebu_db"
     }
   },
-  log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'info', 'warn', 'error']
+  log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error']
 });
 
 // Only log in development
@@ -43,3 +44,5 @@ if (process.env.NODE_ENV !== 'production') {
 if (process.env.NODE_ENV !== 'production') {
   global.prisma = prisma;
 }
+
+export { prisma };

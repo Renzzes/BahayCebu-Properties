@@ -1,5 +1,4 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from '../_db';
+import { prisma } from '../_db.js';
 import bcrypt from 'bcryptjs';
 
 // Email validation regex
@@ -8,7 +7,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Password validation regex (at least 8 chars, 1 uppercase, 1 lowercase, 1 number)
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/;
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // Only log in development
   if (process.env.NODE_ENV !== 'production') {
     console.log('Received signup request:', {
@@ -20,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', 'https://bahaycebu-properties.com');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
 
@@ -75,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Validate input
-    const validationErrors: string[] = [];
+    const validationErrors = [];
     
     if (!email) {
       validationErrors.push('Email is required');
@@ -144,7 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       name: user.name 
     });
 
-  } catch (error: any) {
+  } catch (error) {
     // Log errors appropriately
     if (process.env.NODE_ENV !== 'production') {
       console.error('Signup error:', error);
@@ -181,4 +180,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: "An unexpected error occurred. Please try again later."
     });
   }
-}
+};
