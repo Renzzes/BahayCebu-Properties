@@ -30,7 +30,7 @@ const corsOptions = {
   ].filter((url): url is string => !!url),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'cache-control'],
   exposedHeaders: ['Set-Cookie'],
 };
 
@@ -38,7 +38,7 @@ const corsOptions = {
 const applyCorsHeaders = (res: Response) => {
   res.header('Access-Control-Allow-Origin', 'https://bahaycebu-properties.com');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, cache-control');
   res.header('Access-Control-Allow-Credentials', 'true');
   return res;
 };

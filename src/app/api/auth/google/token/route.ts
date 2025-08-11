@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, cache-control',
   'Access-Control-Allow-Credentials': 'true',
   'Content-Type': 'application/json'
 };

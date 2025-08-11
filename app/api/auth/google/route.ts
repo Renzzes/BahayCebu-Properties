@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // export const runtime = 'edge';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://bahaycebu-properties.com',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, Accept, cache-control',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 export async function OPTIONS() {
@@ -74,4 +75,4 @@ export async function POST(request: NextRequest) {
       { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

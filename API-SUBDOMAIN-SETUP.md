@@ -30,7 +30,7 @@ RewriteBase /
     # Always set these headers for all responses
     Header always set Access-Control-Allow-Origin "https://bahaycebu-properties.com"
     Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, Accept"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, Accept, cache-control"
     Header always set Access-Control-Allow-Credentials "true"
     
     # Handle preflight OPTIONS requests
@@ -60,7 +60,7 @@ app.use(cors({
   origin: ['https://bahaycebu-properties.com', 'https://api.bahaycebu-properties.com', 'http://localhost:8081'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'cache-control']
 }));
 ```
 
