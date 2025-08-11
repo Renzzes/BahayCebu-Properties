@@ -16,6 +16,7 @@ import Agent from "./pages/Agent";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./Admin/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
+import AdminLogin from "./pages/AdminLogin";
 
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
@@ -72,6 +73,8 @@ const App = () => {
                 <Route path="/about" element={<MainLayout><About /></MainLayout>} />
                 <Route path="/contact" element={<MainLayout><Agent /></MainLayout>} />
                 <Route path="/reset-password" element={<MainLayout><ResetPassword /></MainLayout>} />
+                {/* Admin Login Route - Standalone page without navbar/footer */}
+                <Route path="/admin-login" element={<AdminLogin />} />
                 {/* Protected Admin Routes */}
                 <Route path="/admin/*" element={
                   <ProtectedRoute>
