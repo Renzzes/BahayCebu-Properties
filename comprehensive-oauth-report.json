@@ -1,0 +1,22 @@
+{
+  "timestamp": "2025-08-11T09:56:45.266Z",
+  "clientId": "897144997266-c4nm53c10808l9oj00t282p7iq3ogesp.apps.googleusercontent.com",
+  "testResults": {
+    "hostinger": {
+      "domain": "https://bahaycebu-properties.com",
+      "accessible": true,
+      "oauthWorking": true,
+      "hasError": false,
+      "statusCode": 302
+    },
+    "vercel": {
+      "domain": "https://api.bahaycebu-properties.com",
+      "accessible": true,
+      "oauthWorking": true,
+      "hasError": false,
+      "statusCode": 302
+    }
+  },
+  "diagnosis": "OAuth working on both domains",
+  "nextSteps": "Clear browser cache and test"
+}

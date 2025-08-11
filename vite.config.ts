@@ -13,6 +13,7 @@ export default defineConfig(({ command, mode }) => {
   console.log('Vite config - Environment:', mode);
   console.log('Vite config - API URL:', apiUrl);
   console.log('Vite config - VITE_API_URL from env:', env.VITE_API_URL);
+  console.log('Vite config - VITE_GOOGLE_CLIENT_ID from env:', env.VITE_GOOGLE_CLIENT_ID ? 'SET' : 'NOT SET');
   
   return {
     base: '/',
@@ -20,6 +21,7 @@ export default defineConfig(({ command, mode }) => {
     define: {
       // Explicitly define environment variables for the build
       'import.meta.env.VITE_API_URL': JSON.stringify(apiUrl),
+      'import.meta.env.VITE_GOOGLE_CLIENT_ID': JSON.stringify(env.VITE_GOOGLE_CLIENT_ID),
       'import.meta.env.DEV': JSON.stringify(!isProduction),
       'import.meta.env.PROD': JSON.stringify(isProduction)
     },
