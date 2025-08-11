@@ -17,7 +17,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import Swal from 'sweetalert2';
 import { setInitialUserData } from '@/data/userData';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { setToken, isAuthenticated } from '../utils/auth';
 
 interface GoogleUserInfo {
@@ -214,8 +214,28 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  const handleGoogleSuccess = async (tokenResponse: any) => {
+  const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
+      if (!credentialResponse.credential) {
+        throw new Error('No credential received from Google');
+      }
+
+      // Decode the JWT credential to get user info
+      const base64Url = credentialResponse.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      
+      const decoded = JSON.parse(jsonPayload);
+      
+      // Extract user information
+      const { email, name, picture, sub: googleId } = decoded;
+      
+      if (!email || !name || !googleId) {
+        throw new Error('Google ID is required, Email is required, Name is required');
+      }
+
       const apiUrl = getApiBaseUrl();
       const googleAuthEndpoint = `${apiUrl}/api/auth/google`;
 
@@ -225,8 +245,10 @@ const AdminLogin: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          code: tokenResponse.code,
-          mode: authMode 
+          email,
+          name,
+          picture,
+          googleId
         }),
       });
 
@@ -267,20 +289,16 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
-    onError: (error) => {
-      console.error('Google login error:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Login Failed',
-        text: 'Failed to login with Google. Please try again.',
-        timer: 3000,
-        showConfirmButton: true
-      });
-    },
-    flow: 'auth-code',
-  });
+  const handleGoogleError = () => {
+    console.error('Google login error');
+    Swal.fire({
+      icon: 'error',
+      title: 'Login Failed',
+      text: 'Failed to login with Google. Please try again.',
+      timer: 3000,
+      showConfirmButton: true
+    });
+  };
 
   const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
     Swal.fire({
@@ -310,11 +328,7 @@ const AdminLogin: React.FC = () => {
     });
   };
 
-  const handleSocialLogin = (provider: 'gmail') => {
-    if (provider === 'gmail') {
-      googleLogin();
-    }
-  };
+
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
@@ -602,14 +616,17 @@ const AdminLogin: React.FC = () => {
             </div>
 
             {/* Google Login */}
-            <Button 
-              variant="outline" 
-              className="w-full h-12 border-gray-300 hover:bg-gray-50 text-gray-700 font-medium flex items-center justify-center gap-3"
-              onClick={() => handleSocialLogin('gmail')}
-            >
-              <GoogleLogo />
-              <span>Sign in with Google</span>
-            </Button>
+            <div className="w-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="outline"
+                size="large"
+                width="100%"
+                text={authMode === 'login' ? 'signin_with' : 'signup_with'}
+              />
+            </div>
 
             {/* Footer text */}
             <div className="mt-6 text-center text-sm text-gray-600">
