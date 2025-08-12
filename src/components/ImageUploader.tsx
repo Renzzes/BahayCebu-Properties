@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Plus, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, Trash2, Upload } from 'lucide-react';
 import { Dialog, DialogContent } from './ui/dialog';
 import { cn } from '@/lib/utils';
+import { ImageOptimizer, isValidImage, formatFileSize } from '@/utils/imageOptimization';
 
 interface ImageUploaderProps {
   images: string[];
@@ -16,16 +17,55 @@ export default function ImageUploader({ images, onImagesChange, onImageUpload }:
   const [isZoomed, setIsZoomed] = useState(false);
   const [zoomedImage, setZoomedImage] = useState('');
 
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>('');
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
+    setIsUploading(true);
+    setUploadProgress('Validating files...');
+
     try {
-      const uploadPromises = Array.from(files).map(file => onImageUpload(file));
-      const uploadedUrls = await Promise.all(uploadPromises);
-      onImagesChange([...images, ...uploadedUrls]);
+      // Validate files
+      const validFiles = Array.from(files).filter(file => {
+        if (!isValidImage(file)) {
+          console.warn(`Invalid file: ${file.name}`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length === 0) {
+        alert('Please select valid image files (JPEG, PNG, WebP, max 10MB)');
+        return;
+      }
+
+      setUploadProgress(`Optimizing ${validFiles.length} image(s)...`);
+
+      // Optimize images for better performance
+      const optimizedImages: string[] = [];
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        setUploadProgress(`Optimizing image ${i + 1} of ${validFiles.length}...`);
+        
+        // Use property optimizer for better compression
+        const optimizedImage = await ImageOptimizer.property(file);
+        optimizedImages.push(optimizedImage);
+      }
+
+      setUploadProgress('Finalizing...');
+      onImagesChange([...images, ...optimizedImages]);
+      
+      // Reset file input
+      e.target.value = '';
     } catch (error) {
       console.error('Error uploading images:', error);
+      alert('Error processing images. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress('');
     }
   };
 
@@ -126,25 +166,79 @@ export default function ImageUploader({ images, onImagesChange, onImageUpload }:
           </CardContent>
         </Card>
       ) : (
-        <label className="block cursor-pointer">
+        <label className={cn(
+          "block cursor-pointer",
+          isUploading && "pointer-events-none opacity-50"
+        )}>
           <input
             type="file"
             multiple
-            accept="image/*"
+            accept="image/jpeg,image/jpg,image/png,image/webp"
             onChange={handleImageUpload}
             className="hidden"
+            disabled={isUploading}
           />
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 transition-colors hover:border-gray-400">
             <div className="flex flex-col items-center justify-center text-center">
-              <Plus className="w-12 h-12 text-gray-400 mb-4" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">No images uploaded</p>
-                <p className="text-sm text-gray-500">
-                  Click here to upload images
-                </p>
-              </div>
+              {isUploading ? (
+                <>
+                  <Upload className="w-12 h-12 text-bahayCebu-green mb-4 animate-pulse" />
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-bahayCebu-green">{uploadProgress}</p>
+                    <p className="text-xs text-gray-500">Please wait...</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Plus className="w-12 h-12 text-gray-400 mb-4" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">No images uploaded</p>
+                    <p className="text-sm text-gray-500">
+                      Click here to upload images
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Supports JPEG, PNG, WebP (max 10MB each)
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
+        </label>
+      )}
+
+      {images.length > 0 && (
+        <label className={cn(
+          "block cursor-pointer",
+          isUploading && "pointer-events-none"
+        )}>
+          <input
+            type="file"
+            multiple
+            accept="image/jpeg,image/jpg,image/png,image/webp"
+            onChange={handleImageUpload}
+            className="hidden"
+            disabled={isUploading}
+          />
+          <Button 
+            className={cn(
+              "w-full bg-bahayCebu-green hover:bg-bahayCebu-green/90",
+              isUploading && "opacity-50 cursor-not-allowed"
+            )}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Upload className="w-4 h-4 mr-2 animate-pulse" />
+                {uploadProgress}
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4 mr-2" />
+                Add More Images
+              </>
+            )}
+          </Button>
         </label>
       )}
 
@@ -161,4 +255,4 @@ export default function ImageUploader({ images, onImagesChange, onImageUpload }:
       </Dialog>
     </div>
   );
-} 
+}

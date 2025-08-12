@@ -1,5 +1,6 @@
 import { UnitTypeDetail } from '@/types/admin';
 import { getApiBaseUrl } from '@/config/api';
+import { uploadOptimizedImages, validateImages } from '@/services/optimizedImageService';
 
 // Unit type enum
 export type UnitType = 
@@ -571,6 +572,39 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
   try {
     const baseUrl = getApiBaseUrl();
     
+    // Optimize images if they exist
+    let optimizedImages = property.images || [];
+    if (property.images && property.images.length > 0) {
+      try {
+        // Convert base64 images to files for optimization
+        const imageFiles = await Promise.all(
+          property.images.map(async (base64Image, index) => {
+            const response = await fetch(base64Image);
+            const blob = await response.blob();
+            return new File([blob], `property-image-${index}.jpg`, { type: 'image/jpeg' });
+          })
+        );
+        
+        // Validate and optimize images
+        const validationResult = validateImages(imageFiles);
+        if (validationResult.isValid) {
+          const optimizedFiles = await uploadOptimizedImages(imageFiles, 'property');
+          // Convert back to base64 for storage
+          optimizedImages = await Promise.all(
+            optimizedFiles.map(file => {
+              return new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+              });
+            })
+          );
+        }
+      } catch (optimizationError) {
+        console.warn('Image optimization failed, using original images:', optimizationError);
+      }
+    }
+    
     const response = await fetch(`${baseUrl}/api/properties`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -584,7 +618,7 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
         type: property.type,
         featured: property.featured,
         description: property.description,
-        images: property.images,
+        images: optimizedImages,
         videoUrl: property.videoUrl,
         thumbnail: property.thumbnail,
         unitTypes: property.unitTypes,
@@ -621,6 +655,39 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
   try {
     const baseUrl = getApiBaseUrl();
     
+    // Optimize images if they exist and have been updated
+    let optimizedImages = updates.images;
+    if (updates.images && updates.images.length > 0) {
+      try {
+        // Convert base64 images to files for optimization
+        const imageFiles = await Promise.all(
+          updates.images.map(async (base64Image, index) => {
+            const response = await fetch(base64Image);
+            const blob = await response.blob();
+            return new File([blob], `property-image-${index}.jpg`, { type: 'image/jpeg' });
+          })
+        );
+        
+        // Validate and optimize images
+        const validationResult = validateImages(imageFiles);
+        if (validationResult.isValid) {
+          const optimizedFiles = await uploadOptimizedImages(imageFiles, 'property');
+          // Convert back to base64 for storage
+          optimizedImages = await Promise.all(
+            optimizedFiles.map(file => {
+              return new Promise<string>((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.readAsDataURL(file);
+              });
+            })
+          );
+        }
+      } catch (optimizationError) {
+        console.warn('Image optimization failed, using original images:', optimizationError);
+      }
+    }
+    
     const response = await fetch(`${baseUrl}/api/properties/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -634,7 +701,7 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
         type: updates.type,
         featured: updates.featured,
         description: updates.description,
-        images: updates.images,
+        images: optimizedImages,
         videoUrl: updates.videoUrl,
         thumbnail: updates.thumbnail,
         unitTypes: updates.unitTypes,

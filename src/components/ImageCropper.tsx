@@ -3,6 +3,7 @@ import ReactCrop, { Crop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { ImageOptimizer } from '@/utils/imageOptimization';
 
 interface ImageCropperProps {
   isOpen: boolean;
@@ -31,33 +32,48 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
     return false;
   };
 
-  const getCroppedImg = () => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const getCroppedImg = async () => {
     if (!imageRef) return;
 
-    const canvas = document.createElement('canvas');
-    const scaleX = imageRef.naturalWidth / imageRef.width;
-    const scaleY = imageRef.naturalHeight / imageRef.height;
-    canvas.width = crop.width!;
-    canvas.height = crop.height!;
-    const ctx = canvas.getContext('2d');
+    setIsProcessing(true);
+    
+    try {
+      const canvas = document.createElement('canvas');
+      const scaleX = imageRef.naturalWidth / imageRef.width;
+      const scaleY = imageRef.naturalHeight / imageRef.height;
+      canvas.width = crop.width!;
+      canvas.height = crop.height!;
+      const ctx = canvas.getContext('2d');
 
-    if (!ctx) return;
+      if (!ctx) return;
 
-    ctx.drawImage(
-      imageRef,
-      crop.x! * scaleX,
-      crop.y! * scaleY,
-      crop.width! * scaleX,
-      crop.height! * scaleY,
-      0,
-      0,
-      crop.width!,
-      crop.height!
-    );
+      // Enable high-quality image smoothing
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
 
-    const base64Image = canvas.toDataURL('image/jpeg');
-    onCropComplete(base64Image);
-    onClose();
+      ctx.drawImage(
+        imageRef,
+        crop.x! * scaleX,
+        crop.y! * scaleY,
+        crop.width! * scaleX,
+        crop.height! * scaleY,
+        0,
+        0,
+        crop.width!,
+        crop.height!
+      );
+
+      // Use optimized compression for better quality and smaller size
+      const base64Image = canvas.toDataURL('image/jpeg', 0.9);
+      onCropComplete(base64Image);
+      onClose();
+    } catch (error) {
+      console.error('Error processing cropped image:', error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -82,14 +98,16 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
               variant="outline"
               onClick={onClose}
               className="px-6 py-2 border-bahayCebu-darkGray/20 text-bahayCebu-darkGray hover:bg-bahayCebu-darkGray/5"
+              disabled={isProcessing}
             >
               Cancel
             </Button>
             <Button
               onClick={getCroppedImg}
               className="px-6 py-2 bg-bahayCebu-green hover:bg-bahayCebu-green/90 text-white shadow-lg"
+              disabled={isProcessing}
             >
-              Apply
+              {isProcessing ? 'Processing...' : 'Apply'}
             </Button>
           </div>
         </div>
@@ -98,4 +116,4 @@ const ImageCropper: React.FC<ImageCropperProps> = ({
   );
 };
 
-export default ImageCropper; 
+export default ImageCropper;

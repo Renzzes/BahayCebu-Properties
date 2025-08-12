@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AgentProvider } from "@/contexts/AgentContext";
 import ChatwayWidget from "@/components/ChatwayWidget";
+import ImagePerformanceMonitor from "@/components/ImagePerformanceMonitor";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 import Index from "./pages/Index";
@@ -93,6 +94,7 @@ const App = () => {
                 <Route path="*" element={<MainLayout><NotFound /></MainLayout>} />
               </Routes>
               <ChatwayWidgetWrapper />
+              <ImagePerformanceMonitor />
               <Toaster />
               <Sonner />
             </div>

@@ -58,9 +58,9 @@ model Agent {
   email           String   @unique
   phone           String
   location        String
-  description     String
+  description     String   @db.Text
   image           String?
-  specializations Json     @default("[]") // Changed from String[] to Json
+  specializations Json     @default("[]")
   listings        Int      @default(0)
   deals           Int      @default(0)
   rating          Float    @default(0)

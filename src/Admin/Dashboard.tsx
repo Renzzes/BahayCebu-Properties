@@ -28,6 +28,7 @@ import TagInput from '@/components/TagInput';
 import TravelTimesInput from '@/components/TravelTimesInput';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { ImageOptimizer, isValidImage } from '@/utils/imageOptimization';
 
 const SPECIALIZATIONS = [
   'Residential Sales',
@@ -189,6 +190,7 @@ const AdminDashboard = () => {
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [editingProperty, setEditingProperty] = useState<AdminProperty | null>(null);
   const [expandedDescriptions, setExpandedDescriptions] = useState<Set<string>>(new Set());
+  const [expandedAgentDescriptions, setExpandedAgentDescriptions] = useState<Set<string>>(new Set());
   const [properties, setProperties] = useState<AdminProperty[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<AdminProperty[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -501,10 +503,21 @@ const AdminDashboard = () => {
     return description.substring(0, maxLength) + '...';
   };
 
-  const handleImageUpload = (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, isEdit = false): Promise<string> => {
-    return new Promise((resolve) => {
+  const handleImageUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, isEdit = false): Promise<string> => {
+    try {
       const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
-      if (file) {
+      if (!file) return '';
+
+      // Validate image
+      if (!isValidImage(file)) {
+        showErrorAlert('Invalid Image', 'Please select a valid image file (JPEG, PNG, WebP).');
+        return '';
+      }
+
+      // Optimize image for properties
+      const optimizedFile = await ImageOptimizer.property(file);
+      
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const imageUrl = e.target?.result as string;
@@ -523,11 +536,13 @@ const AdminDashboard = () => {
           }
           resolve(imageUrl);
         };
-        reader.readAsDataURL(file);
-      } else {
-        resolve('');
-      }
-    });
+        reader.readAsDataURL(optimizedFile);
+      });
+    } catch (error) {
+      console.error('Error optimizing image:', error);
+      showErrorAlert('Image Processing Error', 'Failed to process the image. Please try again.');
+      return '';
+    }
   };
 
   const handleAddProperty = async () => {
@@ -793,16 +808,25 @@ const AdminDashboard = () => {
   const [tempAgentImageSrc, setTempAgentImageSrc] = useState<string>('');
   const [isEditingAgentImage, setIsEditingAgentImage] = useState(false);
 
-  const handleAgentImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
+  const handleAgentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setTempAgentImageSrc(e.target?.result as string);
+      // Validate the image file
+      if (!isValidImage(file)) {
+        showErrorAlert('Invalid File', 'Please select a valid image file (JPEG, PNG, WebP, max 10MB)');
+        return;
+      }
+
+      try {
+        // Optimize the image before cropping for better performance
+        const optimizedImage = await ImageOptimizer.agent(file);
+        setTempAgentImageSrc(optimizedImage);
         setIsAgentCropperOpen(true);
         setIsEditingAgentImage(isEdit);
-      };
-      reader.readAsDataURL(file);
+      } catch (error) {
+        console.error('Error optimizing image:', error);
+        showErrorAlert('Image Processing Error', 'Failed to process the image. Please try again.');
+      }
     }
   };
 
@@ -819,31 +843,31 @@ const AdminDashboard = () => {
     try {
       // Validate required fields
       if (!newAgent.name.trim()) {
-        alert('Please enter the agent\'s name');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s name');
         return;
       }
       if (!newAgent.title.trim()) {
-        alert('Please enter the agent\'s title');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s title');
         return;
       }
       if (!newAgent.email.trim()) {
-        alert('Please enter the agent\'s email');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s email');
         return;
       }
       if (!newAgent.phone.trim()) {
-        alert('Please enter the agent\'s phone number');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s phone number');
         return;
       }
       if (!newAgent.location.trim()) {
-        alert('Please enter the agent\'s location');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s location');
         return;
       }
       if (!newAgent.description.trim()) {
-        alert('Please enter the agent\'s description');
+        showErrorAlert('Validation Error', 'Please enter the agent\'s description');
         return;
       }
       if (!newAgent.specializations.length) {
-        alert('Please select at least one specialization');
+        showErrorAlert('Validation Error', 'Please select at least one specialization');
         return;
       }
 
@@ -870,7 +894,7 @@ const AdminDashboard = () => {
       // Create the agent and get the created agent data
       const createdAgent = await createAgent(agentData);
       
-      // Add the new agent to the local state immediately
+      // Add the new agent to the local state immediately for better UX
       setAgents(prevAgents => [...prevAgents, createdAgent]);
       
       // Reset form and close dialog
@@ -894,25 +918,44 @@ const AdminDashboard = () => {
       });
       setIsAddAgentOpen(false);
       
-      alert('Agent added successfully!');
+      await showSuccessAlert('Agent Added Successfully', 'The new agent has been added to your team!');
     } catch (error) {
       console.error('Error adding agent:', error);
       if (error instanceof Error && error.message.includes('email already exists')) {
-        alert('An agent with this email address already exists. Please use a different email.');
+        showErrorAlert('Email Already Exists', 'An agent with this email address already exists. Please use a different email.');
       } else {
-        alert('Failed to add agent. Please try again.');
+        showErrorAlert('Failed to Add Agent', 'Failed to add agent. Please try again.');
       }
     }
   };
 
   const handleDeleteAgent = async (agentId: string) => {
     try {
-      await deleteAgent(agentId);
-      // Remove the agent from local state immediately
-      setAgents(prevAgents => prevAgents.filter(agent => agent.id !== agentId));
+      const result = await showConfirmationDialog(
+        'Delete Agent',
+        'Are you sure you want to delete this agent? This action cannot be undone.'
+      );
+      
+      if (result.isConfirmed) {
+        // Show a quick loading state without SweetAlert
+        const agentElement = document.querySelector(`[data-agent-id="${agentId}"]`);
+        if (agentElement) {
+          agentElement.classList.add('opacity-50', 'pointer-events-none');
+        }
+        
+        await deleteAgent(agentId);
+        // Remove the agent from local state immediately
+        setAgents(prevAgents => prevAgents.filter(agent => agent.id !== agentId));
+        await showSuccessAlert('Agent Deleted', 'The agent has been successfully removed.');
+      }
     } catch (error) {
       console.error('Error deleting agent:', error);
-      alert('Failed to delete agent. Please try again.');
+      // Remove loading state on error
+      const agentElement = document.querySelector(`[data-agent-id="${agentId}"]`);
+      if (agentElement) {
+        agentElement.classList.remove('opacity-50', 'pointer-events-none');
+      }
+      showErrorAlert('Delete Failed', 'Failed to delete agent. Please try again.');
     }
   };
 
@@ -2834,22 +2877,26 @@ const AdminDashboard = () => {
               {!isLoadingAgents && agents && agents.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {agents.map((agent) => (
-                    <div key={agent?.id || 'temp-key'} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100">
+                    <div key={agent?.id || 'temp-key'} data-agent-id={agent?.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 transition-opacity duration-200">
                       <div className="p-6 space-y-6">
                         {/* Header - Image and Basic Info */}
                         <div className="flex items-start space-x-4">
                           <div className="relative w-32 h-32 flex-shrink-0">
                             <div className="w-32 h-32 rounded-full bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green p-[2px]">
                               <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                                {agent?.image ? (
+                                {agent?.image && agent.image.trim() !== '' ? (
                                   <img
                                     src={agent.image}
                                     alt={agent?.name || 'Agent'}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      target.nextElementSibling?.classList.remove('hidden');
+                                    }}
                                   />
-                                ) : (
-                                  <User className="h-12 w-12 text-gray-400" />
-                                )}
+                                ) : null}
+                                <User className={`h-12 w-12 text-gray-400 ${agent?.image && agent.image.trim() !== '' ? 'hidden' : ''}`} />
                               </div>
                             </div>
                           </div>
@@ -2875,7 +2922,39 @@ const AdminDashboard = () => {
                         {/* Description */}
                         <div>
                           <h4 className="text-sm font-medium text-bahayCebu-darkGray mb-2">About</h4>
-                          <p className="text-sm text-gray-600 line-clamp-3">{agent?.description || 'No description available'}</p>
+                          <div className="text-sm text-gray-600">
+                            {(() => {
+                              const description = agent?.description || 'No description available';
+                              const isExpanded = expandedAgentDescriptions.has(agent.id);
+                              const shouldTruncate = description.length > 300;
+                              
+                              if (!shouldTruncate) {
+                                return <p>{description}</p>;
+                              }
+                              
+                              return (
+                                <div>
+                                  <p className={isExpanded ? '' : 'line-clamp-3'}>
+                                    {isExpanded ? description : `${description.substring(0, 300)}...`}
+                                  </p>
+                                  <button
+                                    onClick={() => {
+                                      const newExpanded = new Set(expandedAgentDescriptions);
+                                      if (isExpanded) {
+                                        newExpanded.delete(agent.id);
+                                      } else {
+                                        newExpanded.add(agent.id);
+                                      }
+                                      setExpandedAgentDescriptions(newExpanded);
+                                    }}
+                                    className="text-bahayCebu-green hover:text-bahayCebu-green/80 text-xs font-medium mt-1 transition-colors"
+                                  >
+                                    {isExpanded ? 'Show less' : 'View more'}
+                                  </button>
+                                </div>
+                              );
+                            })()} 
+                          </div>
                         </div>
 
                         {/* Specializations */}
@@ -3233,18 +3312,22 @@ const AdminDashboard = () => {
                 <div className="space-y-6">
                   <div className="flex justify-center">
                     <div className="relative w-40 h-40">
-                      {editingAgent.image ? (
+                      {editingAgent.image && editingAgent.image.trim() !== '' ? (
                         <img 
                           src={editingAgent.image} 
                           alt="Agent Preview" 
                           className="w-40 h-40 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
                           style={{ objectPosition: '50% 25%' }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.nextElementSibling?.classList.remove('hidden');
+                          }}
                         />
-                      ) : (
-                        <div className="w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
-                          <User className="h-16 w-16 text-white" />
-                        </div>
-                      )}
+                      ) : null}
+                      <div className={`w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center ${editingAgent.image && editingAgent.image.trim() !== '' ? 'hidden' : ''}`}>
+                        <User className="h-16 w-16 text-white" />
+                      </div>
                       <Label 
                         htmlFor="agent-image-upload-edit" 
                         className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-gray-50 transition-colors"
@@ -3507,18 +3590,22 @@ const AdminDashboard = () => {
             <div className="space-y-6">
               <div className="flex justify-center">
                 <div className="relative w-40 h-40">
-                  {newAgent.image ? (
+                  {newAgent.image && newAgent.image.trim() !== '' ? (
                     <img 
                       src={newAgent.image} 
                       alt="Agent Preview" 
                       className="w-40 h-40 rounded-full object-cover border-4 border-bahayCebu-green/20 object-center"
                       style={{ objectPosition: '50% 25%' }}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        target.nextElementSibling?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <div className="w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center">
-                      <User className="h-16 w-16 text-white" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div className={`w-40 h-40 bg-gradient-to-br from-bahayCebu-terracotta to-bahayCebu-green rounded-full flex items-center justify-center ${newAgent.image && newAgent.image.trim() !== '' ? 'hidden' : ''}`}>
+                    <User className="h-16 w-16 text-white" />
+                  </div>
                   <Label 
                     htmlFor="agent-image-upload" 
                     className="absolute bottom-2 right-2 w-10 h-10 bg-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-gray-50 transition-colors"
