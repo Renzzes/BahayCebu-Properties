@@ -394,7 +394,7 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     const baseUrl = getApiBaseUrl();
     
     // Add debug logging
-    console.log('Current environment:', import.meta.env.MODE);
+    console.log('Current environment:', process.env.NODE_ENV || 'development');
     console.log('Base URL:', baseUrl);
 
     console.log('Fetching properties from:', `${baseUrl}/api/properties`);
@@ -532,12 +532,12 @@ export const getAllProperties = async (): Promise<AdminProperty[]> => {
     // Improve error logging
     console.error('Error fetching properties:', {
       message: error instanceof Error ? error.message : 'Unknown error',
-      mode: import.meta.env.MODE,
+      mode: process.env.NODE_ENV || 'development',
       error
     });
     
     // In development, log more details about the error
-    if (import.meta.env.MODE === 'development') {
+    if (process.env.NODE_ENV === 'development') {
       console.error('Full error details:', error);
     }
     
@@ -589,16 +589,10 @@ export const addProperty = async (property: Omit<AdminProperty, 'id' | 'lastUpda
         const validationResult = validateImages(imageFiles);
         if (validationResult.isValid) {
           const optimizedFiles = await uploadOptimizedImages(imageFiles, 'property');
-          // Convert back to base64 for storage
-          optimizedImages = await Promise.all(
-            optimizedFiles.map(file => {
-              return new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-              });
-            })
-          );
+          // Use the optimized image URLs directly
+          if (optimizedFiles.success && optimizedFiles.imageUrls) {
+            optimizedImages = optimizedFiles.imageUrls;
+          }
         }
       } catch (optimizationError) {
         console.warn('Image optimization failed, using original images:', optimizationError);
@@ -672,16 +666,10 @@ export const updateProperty = async (id: string, updates: Partial<AdminProperty>
         const validationResult = validateImages(imageFiles);
         if (validationResult.isValid) {
           const optimizedFiles = await uploadOptimizedImages(imageFiles, 'property');
-          // Convert back to base64 for storage
-          optimizedImages = await Promise.all(
-            optimizedFiles.map(file => {
-              return new Promise<string>((resolve) => {
-                const reader = new FileReader();
-                reader.onload = () => resolve(reader.result as string);
-                reader.readAsDataURL(file);
-              });
-            })
-          );
+          // Use the optimized image URLs directly
+          if (optimizedFiles.success && optimizedFiles.imageUrls) {
+            optimizedImages = optimizedFiles.imageUrls;
+          }
         }
       } catch (optimizationError) {
         console.warn('Image optimization failed, using original images:', optimizationError);

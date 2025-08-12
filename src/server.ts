@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import jwt from 'jsonwebtoken';
 import { prisma } from "./lib/db";
 import { User } from "./types/api";
-import { UserCreateInputType, UserUpdateInputType } from "./types/prisma-extensions";
+// import { UserCreateInputType, UserUpdateInputType } from "./types/prisma-extensions";
 import { gmailService } from "./utils/gmailService";
 import { authenticateToken, AuthRequest } from './middleware/auth';
 
@@ -409,7 +409,7 @@ app.post("/api/auth/google", async (req: Request, res: Response) => {
 });
 
 // Protected routes
-app.get("/api/properties", authenticateToken, async (req: AuthRequest, res: Response) => {
+app.get("/api/properties", authenticateToken, async (_req: AuthRequest, res: Response) => {
 	try {
 		const properties = await prisma.property.findMany();
 		return applyCorsHeaders(res).json(properties);

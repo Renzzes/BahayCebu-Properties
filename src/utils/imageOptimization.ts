@@ -3,15 +3,15 @@
  * Handles compression, resizing, and format conversion
  */
 
-import { getOptimizationConfig, getPropertyImageSettings, VALIDATION_RULES } from '@/config/imageOptimization';
+import { VALIDATION_RULES } from '@/config/imageOptimization';
 
 // Legacy compression settings (kept for backward compatibility)
-const COMPRESSION_SETTINGS = {
-  property: { quality: 0.8, maxWidth: 1200, maxHeight: 800 },
-  agent: { quality: 0.85, maxWidth: 400, maxHeight: 400 },
-  gallery: { quality: 0.75, maxWidth: 1000, maxHeight: 700 },
-  thumbnail: { quality: 0.7, maxWidth: 300, maxHeight: 200 }
-};
+// const COMPRESSION_SETTINGS = {
+//   property: { quality: 0.8, maxWidth: 1200, maxHeight: 800 },
+//   agent: { quality: 0.85, maxWidth: 400, maxHeight: 400 },
+//   gallery: { quality: 0.75, maxWidth: 1000, maxHeight: 700 },
+//   thumbnail: { quality: 0.7, maxWidth: 300, maxHeight: 200 }
+// };
 
 export interface ImageCompressionOptions {
   maxWidth?: number;

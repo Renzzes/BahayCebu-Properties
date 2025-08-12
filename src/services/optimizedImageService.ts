@@ -158,8 +158,7 @@ export const uploadOptimizedImages = async (
  * @returns Promise<ImageUploadResult>
  */
 export const createOptimizedThumbnail = async (
-  file: File,
-  size: number = 300
+  file: File
 ): Promise<ImageUploadResult> => {
   const startTime = ImagePerformanceMonitor.startTimer();
   

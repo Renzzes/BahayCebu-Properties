@@ -515,29 +515,23 @@ const AdminDashboard = () => {
       }
 
       // Optimize image for properties
-      const optimizedFile = await ImageOptimizer.property(file);
+      const optimizedImageUrl = await ImageOptimizer.property(file);
       
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target?.result as string;
-          if (isEdit) {
-            setEditProperty(prev => ({
-              ...prev,
-              image: imageUrl,
-              images: [...(prev.images || []), imageUrl]
-            }));
-          } else {
-            setNewProperty(prev => ({
-              ...prev,
-              image: imageUrl,
-              images: [...(prev.images || []), imageUrl]
-            }));
-          }
-          resolve(imageUrl);
-        };
-        reader.readAsDataURL(optimizedFile);
-      });
+      if (isEdit) {
+        setEditProperty(prev => ({
+          ...prev,
+          image: optimizedImageUrl,
+          images: [...(prev.images || []), optimizedImageUrl]
+        }));
+      } else {
+        setNewProperty(prev => ({
+          ...prev,
+          image: optimizedImageUrl,
+          images: [...(prev.images || []), optimizedImageUrl]
+        }));
+      }
+      
+      return optimizedImageUrl;
     } catch (error) {
       console.error('Error optimizing image:', error);
       showErrorAlert('Image Processing Error', 'Failed to process the image. Please try again.');
