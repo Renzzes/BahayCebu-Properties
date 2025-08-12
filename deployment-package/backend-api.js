@@ -620,6 +620,310 @@ app.delete('/api/agents/:id', async (req, res) => {
   }
 });
 
+// Create property endpoint
+app.post('/api/properties', async (req, res) => {
+  try {
+    const {
+      title,
+      price,
+      location,
+      bedrooms,
+      bathrooms,
+      area,
+      type,
+      featured,
+      description,
+      images,
+      videoUrl,
+      thumbnail,
+      unitTypes,
+      amenities,
+      residentialFeatures,
+      provisions,
+      buildingFeatures
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !price || !location || !bedrooms || !bathrooms || !area || !type) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Title, price, location, bedrooms, bathrooms, area, and type are required'
+      });
+    }
+
+    const connection = await createConnection();
+    
+    try {
+      const propertyId = crypto.randomUUID();
+      const [result] = await connection.execute(
+         'INSERT INTO Property (id, title, price, location, bedrooms, bathrooms, area, type, featured, description, images, videoUrl, thumbnail, unitTypes, unitTypeDetails, amenities, residentialFeatures, provisions, buildingFeatures, locationAccessibility, featuresAmenities, lifestyleCommunity, additionalInformation, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())',
+         [
+           propertyId,
+           title,
+           parseFloat(price),
+           location,
+           parseInt(bedrooms),
+           parseInt(bathrooms),
+           parseFloat(area),
+           type,
+           featured || false,
+           description,
+           JSON.stringify(images || []),
+           videoUrl || null,
+           thumbnail || null,
+           JSON.stringify(unitTypes || []),
+           JSON.stringify([]),
+           JSON.stringify(amenities || []),
+           JSON.stringify(residentialFeatures || []),
+           JSON.stringify(provisions || []),
+           JSON.stringify(buildingFeatures || []),
+           JSON.stringify({}),
+           JSON.stringify({}),
+           JSON.stringify({}),
+           JSON.stringify({})
+         ]
+       );
+      
+      // Fetch the created property
+      const [createdProperty] = await connection.execute(
+        'SELECT * FROM Property WHERE id = ?',
+        [propertyId]
+      );
+      
+      await connection.end();
+      return res.status(201).json(createdProperty[0]);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to create property'
+      });
+    }
+  } catch (error) {
+    console.error('Property creation error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to create property'
+    });
+  }
+});
+
+// Update property endpoint
+app.put('/api/properties/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      title,
+      price,
+      location,
+      bedrooms,
+      bathrooms,
+      area,
+      type,
+      featured,
+      description,
+      images,
+      videoUrl,
+      thumbnail,
+      unitTypes,
+      amenities,
+      residentialFeatures,
+      provisions,
+      buildingFeatures
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !price || !location || !bedrooms || !bathrooms || !area || !type) {
+      return res.status(400).json({
+        error: 'Missing required fields'
+      });
+    }
+
+    const connection = await createConnection();
+    
+    try {
+      const [result] = await connection.execute(
+         'UPDATE Property SET title = ?, price = ?, location = ?, bedrooms = ?, bathrooms = ?, area = ?, type = ?, featured = ?, description = ?, images = ?, videoUrl = ?, thumbnail = ?, unitTypes = ?, unitTypeDetails = ?, amenities = ?, residentialFeatures = ?, provisions = ?, buildingFeatures = ?, locationAccessibility = ?, featuresAmenities = ?, lifestyleCommunity = ?, additionalInformation = ?, updatedAt = NOW() WHERE id = ?',
+         [
+           title,
+           parseFloat(price),
+           location,
+           parseInt(bedrooms),
+           parseInt(bathrooms),
+           parseFloat(area),
+           type,
+           featured || false,
+           description,
+           JSON.stringify(images || []),
+           videoUrl || null,
+           thumbnail || null,
+           JSON.stringify(unitTypes || []),
+           JSON.stringify([]),
+           JSON.stringify(amenities || []),
+           JSON.stringify(residentialFeatures || []),
+           JSON.stringify(provisions || []),
+           JSON.stringify(buildingFeatures || []),
+           JSON.stringify({}),
+           JSON.stringify({}),
+           JSON.stringify({}),
+           JSON.stringify({}),
+           id
+         ]
+       );
+      
+      if (result.affectedRows === 0) {
+        await connection.end();
+        return res.status(404).json({
+          error: 'Property not found'
+        });
+      }
+      
+      // Fetch the updated property
+      const [updatedProperty] = await connection.execute(
+        'SELECT * FROM Property WHERE id = ?',
+        [id]
+      );
+      
+      await connection.end();
+      return res.json(updatedProperty[0]);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to update property'
+      });
+    }
+  } catch (error) {
+    console.error('Property update error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to update property'
+    });
+  }
+});
+
+// Delete property endpoint
+app.delete('/api/properties/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const connection = await createConnection();
+    
+    try {
+      // Check if property exists
+      const [existingProperty] = await connection.execute(
+        'SELECT * FROM Property WHERE id = ?',
+        [id]
+      );
+
+      if (existingProperty.length === 0) {
+        await connection.end();
+        return res.status(404).json({
+          error: 'Property not found'
+        });
+      }
+
+      const [result] = await connection.execute(
+        'DELETE FROM Property WHERE id = ?',
+        [id]
+      );
+      
+      await connection.end();
+      return res.json(existingProperty[0]);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to delete property'
+      });
+    }
+  } catch (error) {
+    console.error('Property deletion error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to delete property'
+    });
+  }
+});
+
+// Get single property endpoint
+app.get('/api/properties/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const connection = await createConnection();
+    
+    try {
+      const [properties] = await connection.execute(
+        'SELECT * FROM Property WHERE id = ?',
+        [id]
+      );
+      
+      if (properties.length === 0) {
+        await connection.end();
+        return res.status(404).json({
+          error: 'Property not found'
+        });
+      }
+      
+      await connection.end();
+      return res.json(properties[0]);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to fetch property'
+      });
+    }
+  } catch (error) {
+    console.error('Property fetch error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch property'
+    });
+  }
+});
+
+// Get single agent endpoint
+app.get('/api/agents/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const connection = await createConnection();
+    
+    try {
+      const [agents] = await connection.execute(
+        'SELECT * FROM Agent WHERE id = ?',
+        [id]
+      );
+      
+      if (agents.length === 0) {
+        await connection.end();
+        return res.status(404).json({
+          error: 'Agent not found'
+        });
+      }
+      
+      await connection.end();
+      return res.json(agents[0]);
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      await connection.end();
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to fetch agent'
+      });
+    }
+  } catch (error) {
+    console.error('Agent fetch error:', error);
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to fetch agent'
+    });
+  }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Backend API server running on port ${PORT}`);
