@@ -1,6 +1,15 @@
 import { prisma } from '../_db.js';
 
 export default async function handler(req, res) {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', 'https://bahaycebu-properties.com');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, cache-control');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    return res.status(200).end();
+  }
+
   if (req.method === 'GET') {
     try {
       const agents = await prisma.agent.findMany({
