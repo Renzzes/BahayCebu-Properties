@@ -867,12 +867,11 @@ const AdminDashboard = () => {
         }
       };
 
-      // Create the agent
-      await createAgent(agentData);
+      // Create the agent and get the created agent data
+      const createdAgent = await createAgent(agentData);
       
-      // Reload the entire agents list to ensure we have the latest data
-      const updatedAgents = await getAllAgents();
-      setAgents(updatedAgents);
+      // Add the new agent to the local state immediately
+      setAgents(prevAgents => [...prevAgents, createdAgent]);
       
       // Reset form and close dialog
       setNewAgent({
@@ -909,8 +908,8 @@ const AdminDashboard = () => {
   const handleDeleteAgent = async (agentId: string) => {
     try {
       await deleteAgent(agentId);
-      const updatedAgents = await getAllAgents();
-      setAgents(updatedAgents);
+      // Remove the agent from local state immediately
+      setAgents(prevAgents => prevAgents.filter(agent => agent.id !== agentId));
     } catch (error) {
       console.error('Error deleting agent:', error);
       alert('Failed to delete agent. Please try again.');
@@ -1004,7 +1003,6 @@ const AdminDashboard = () => {
     }
 
     try {
-      setIsLoadingAgents(true);
       await showLoadingAlert('Updating agent...');
 
       // Prepare update data
@@ -1020,11 +1018,15 @@ const AdminDashboard = () => {
         socialMedia: editingAgent.socialMedia
       };
 
-      // Update the agent
-      await updateAgent(editingAgent.id, updateData);
+      // Update the agent and get the updated data
+      const updatedAgent = await updateAgent(editingAgent.id, updateData);
       
-      // Reload the agents list
-      await loadAgents();
+      // Update local state immediately with the updated agent data
+      setAgents(prevAgents => 
+        prevAgents.map(agent => 
+          agent.id === updatedAgent.id ? updatedAgent : agent
+        )
+      );
       
       // Close the dialog and reset state
       setIsEditAgentOpen(false);
@@ -1044,8 +1046,6 @@ const AdminDashboard = () => {
       } else {
         showErrorAlert('Update Failed', 'Failed to update agent. Please try again.');
       }
-    } finally {
-      setIsLoadingAgents(false);
     }
   };
 
