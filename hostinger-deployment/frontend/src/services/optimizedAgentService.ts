@@ -102,6 +102,8 @@ export class OptimizedAgentService {
       location: apiAgent.location,
       description: apiAgent.description,
       image: apiAgent.image || '',
+      createdAt: new Date(apiAgent.createdAt),
+      updatedAt: new Date(apiAgent.updatedAt),
       specializations: Array.isArray(apiAgent.specializations) ? apiAgent.specializations : [],
       listings: Number(apiAgent.listings) || 0,
       deals: Number(apiAgent.deals) || 0,
