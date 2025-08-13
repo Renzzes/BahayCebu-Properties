@@ -10,6 +10,21 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, cache-control');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     return res.status(200).end();
+
+// Add request size validation
+if (req.headers['content-length'] && parseInt(req.headers['content-length']) > 50 * 1024 * 1024) {
+  return res.status(413).json({ error: 'Request too large. Maximum size is 50MB.' });
+}
+
+// Add request timeout handling
+const timeout = setTimeout(() => {
+  if (!res.headersSent) {
+    res.status(408).json({ error: 'Request timeout' });
+  }
+}, 30000); // 30 second timeout
+
+// Clear timeout on response
+res.on('finish', () => clearTimeout(timeout));
   }
 
   if (typeof id !== 'string') {

@@ -13,6 +13,8 @@ import { Building, Home, LogOut, User, Plus, MessageSquare, Eye, Users, FileText
 import { AdminProperty, getAllProperties, addProperty, updateProperty, deleteProperty, BUILDING_AMENITIES, RESIDENTIAL_FEATURES, PROPERTY_PROVISIONS, BUILDING_FEATURES } from '@/data/properties';
 import { AdminUser, getCurrentUser, updateUserProfile, updateUserPassword, updateUserPreferences, verifyCurrentPassword } from '../data/userData';
 import { Agent, getAllAgents, createAgent, updateAgent, deleteAgent } from '../data/agents';
+import { createAgentOptimized, updateAgentOptimized } from '../services/optimizedAgentService';
+import { uploadAgentImage } from '../services/imageStorageService';
 import { showSuccessAlert, showErrorAlert, showConfirmationDialog, showLoadingAlert } from '@/utils/sweetAlert';
 import Swal from 'sweetalert2';
 import ImageCropper from '../components/ImageCropper';
@@ -805,20 +807,36 @@ const AdminDashboard = () => {
   const handleAgentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit = false) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate the image file
-      if (!isValidImage(file)) {
-        showErrorAlert('Invalid File', 'Please select a valid image file (JPEG, PNG, WebP, max 10MB)');
-        return;
-      }
-
       try {
-        // Optimize the image before cropping for better performance
-        const optimizedImage = await ImageOptimizer.agent(file);
-        setTempAgentImageSrc(optimizedImage);
-        setIsAgentCropperOpen(true);
-        setIsEditingAgentImage(isEdit);
+        // Show loading state
+        await showLoadingAlert('Processing image...');
+        
+        // Upload and optimize the image
+        const result = await uploadAgentImage(file);
+        
+        await Swal.close();
+        
+        if (!result.success) {
+          showErrorAlert('Image Upload Failed', result.error || 'Failed to process the image');
+          return;
+        }
+        
+        // Log performance metrics
+        if (result.metadata) {
+          console.log(`Image processed in ${result.metadata.processingTime}ms`);
+          console.log(`Compression: ${result.metadata.originalSize} → ${result.metadata.compressedSize} (${result.metadata.compressionRatio})`);
+        }
+        
+        // Set the optimized image for cropping
+        if (result.imageUrl) {
+          setTempAgentImageSrc(result.imageUrl);
+          setIsAgentCropperOpen(true);
+          setIsEditingAgentImage(isEdit);
+        }
+        
       } catch (error) {
-        console.error('Error optimizing image:', error);
+        await Swal.close();
+        console.error('Error processing image:', error);
         showErrorAlert('Image Processing Error', 'Failed to process the image. Please try again.');
       }
     }
@@ -835,35 +853,8 @@ const AdminDashboard = () => {
 
   const handleAddAgent = async () => {
     try {
-      // Validate required fields
-      if (!newAgent.name.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s name');
-        return;
-      }
-      if (!newAgent.title.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s title');
-        return;
-      }
-      if (!newAgent.email.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s email');
-        return;
-      }
-      if (!newAgent.phone.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s phone number');
-        return;
-      }
-      if (!newAgent.location.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s location');
-        return;
-      }
-      if (!newAgent.description.trim()) {
-        showErrorAlert('Validation Error', 'Please enter the agent\'s description');
-        return;
-      }
-      if (!newAgent.specializations.length) {
-        showErrorAlert('Validation Error', 'Please select at least one specialization');
-        return;
-      }
+      // Import the optimized agent service
+      const { createAgentOptimized } = await import('@/services/optimizedAgentService');
 
       // Prepare the agent data
       const agentData = {
@@ -877,7 +868,9 @@ const AdminDashboard = () => {
         listings: typeof newAgent.listings === 'number' ? newAgent.listings : 0,
         deals: typeof newAgent.deals === 'number' ? newAgent.deals : 0,
         rating: typeof newAgent.rating === 'number' ? newAgent.rating : 0,
-        image: newAgent.image || null,
+        image: newAgent.image || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
         socialMedia: {
           facebook: newAgent.socialMedia?.facebook || '',
           instagram: newAgent.socialMedia?.instagram || '',
@@ -885,11 +878,28 @@ const AdminDashboard = () => {
         }
       };
 
-      // Create the agent and get the created agent data
-      const createdAgent = await createAgent(agentData);
+      // Use optimized create with performance monitoring
+      const result = await createAgentOptimized(agentData, {
+        timeout: 15000, // 15 second timeout
+        retries: 1
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create agent');
+      }
+
+      // Log performance metrics
+      if (result.performance) {
+        console.log(`Agent creation completed in ${result.performance.duration}ms`);
+        if (result.performance.imageSize) {
+          console.log(`Image size: ${(result.performance.imageSize / 1024).toFixed(1)}KB`);
+        }
+      }
       
       // Add the new agent to the local state immediately for better UX
-      setAgents(prevAgents => [...prevAgents, createdAgent]);
+      if (result.data) {
+        setAgents(prevAgents => [...prevAgents, result.data!]);
+      }
       
       // Reset form and close dialog
       setNewAgent({
@@ -915,8 +925,14 @@ const AdminDashboard = () => {
       await showSuccessAlert('Agent Added Successfully', 'The new agent has been added to your team!');
     } catch (error) {
       console.error('Error adding agent:', error);
-      if (error instanceof Error && error.message.includes('email already exists')) {
-        showErrorAlert('Email Already Exists', 'An agent with this email address already exists. Please use a different email.');
+      if (error instanceof Error) {
+        if (error.message.includes('email already exists')) {
+          showErrorAlert('Email Already Exists', 'An agent with this email address already exists. Please use a different email.');
+        } else if (error.message.includes('timeout')) {
+          showErrorAlert('Creation Failed', 'The creation is taking longer than expected. Please check your connection and try again.');
+        } else {
+          showErrorAlert('Failed to Add Agent', `Failed to add agent: ${error.message}`);
+        }
       } else {
         showErrorAlert('Failed to Add Agent', 'Failed to add agent. Please try again.');
       }
@@ -1052,18 +1068,38 @@ const AdminDashboard = () => {
         description: editingAgent.description,
         specializations: editingAgent.specializations,
         image: editingAgent.image,
-        socialMedia: editingAgent.socialMedia
+        socialMedia: editingAgent.socialMedia,
+        listings: editingAgent.listings,
+        deals: editingAgent.deals,
+        rating: editingAgent.rating
       };
 
-      // Update the agent and get the updated data
-      const updatedAgent = await updateAgent(editingAgent.id, updateData);
+      // Use optimized update with performance monitoring
+      const result = await updateAgentOptimized(editingAgent.id, updateData, {
+        timeout: 15000, // 15 second timeout
+        retries: 1
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update agent');
+      }
+
+      // Log performance metrics
+      if (result.performance) {
+        console.log(`Agent update completed in ${result.performance.duration}ms`);
+        if (result.performance.imageSize) {
+          console.log(`Image size: ${(result.performance.imageSize / 1024).toFixed(1)}KB`);
+        }
+      }
       
       // Update local state immediately with the updated agent data
-      setAgents(prevAgents => 
-        prevAgents.map(agent => 
-          agent.id === updatedAgent.id ? updatedAgent : agent
-        )
-      );
+      if (result.data) {
+        setAgents(prevAgents => 
+          prevAgents.map(agent => 
+            agent.id === result.data!.id ? result.data! : agent
+          )
+        );
+      }
       
       // Close the dialog and reset state
       setIsEditAgentOpen(false);
@@ -1077,6 +1113,8 @@ const AdminDashboard = () => {
       if (error instanceof Error) {
         if (error.message.includes('email already exists')) {
           showErrorAlert('Update Failed', 'An agent with this email address already exists. Please use a different email.');
+        } else if (error.message.includes('timeout')) {
+          showErrorAlert('Update Failed', 'The update is taking longer than expected. Please check your connection and try again.');
         } else {
           showErrorAlert('Update Failed', `Failed to update agent: ${error.message}`);
         }

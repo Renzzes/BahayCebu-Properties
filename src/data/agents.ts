@@ -22,7 +22,7 @@ export interface Agent {
   };
 }
 
-interface ApiAgent extends Omit<Agent, 'createdAt' | 'updatedAt'> {
+export interface ApiAgent extends Omit<Agent, 'createdAt' | 'updatedAt'> {
   createdAt: string;
   updatedAt: string;
 }
